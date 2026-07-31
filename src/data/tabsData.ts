@@ -1,0 +1,26 @@
+import {Tab} from '../types';
+
+export interface TabConfig{
+    id: Tab;
+    label: string;
+    emoji: string;
+}
+
+
+export const TABS: TabConfig[] = [
+  { id: 'home',         label: '홈',             emoji: '🏠' },
+  { id: 'couple',       label: '커플 싱크',       emoji: '💞' },
+  { id: 'curiation',     label: '데이트 큐레이션', emoji: '🎬' },
+  { id: 'builder',      label: '코스 빌더',       emoji: '🗺️' },
+  { id: 'calendar',     label: '데이트 캘린더',   emoji: '📅' }, 
+  { id: 'tendency',     label: '성향테스트',     emoji: '💡' }
+];
+
+export const QUICK_TABS: { tab: Tab; label: string; emoji: string; color: string }[] = [
+  { tab: 'home', label: '홈', emoji: '🏠', color: '#ff6b8a' },
+  { tab: 'couple', label: '커플 싱크', emoji: '💞', color: '#ff6b8a' },
+  { tab: 'curiation', label: '큐레이션', emoji: '☕', color: '#ff6b8a' },
+  { tab: 'builder', label: '코스 빌더', emoji: '✨', color: '#c4a0e8' },
+  { tab: 'calendar', label: '데이트 캘린더', emoji: '📅', color: '#f9a030' },
+  { tab: 'tendency', label: '성향 테스트', emoji: '🧭', color: '#ff6b8a' },
+];
