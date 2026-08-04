@@ -9,12 +9,15 @@ import { BuilderTab } from './tabs/BuilderTab';
 import { CuriationTab } from './tabs/CurationTab';   
 import { CalendarTab } from './tabs/CalendarTab';  
 import { LoginModal } from './components/LoginModal';
+import { OnboardingTab } from './tabs/Onboardingtab';
+import { PERSONA_AXES } from './data/onboardingData';
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('home')
   const [user, setUser] = useState(null)
   const [showLogin, setShowLogin] = useState(false)
+  const [personaProfile, setPersonaProfile] = useState(null)
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#fff8f4', fontFamily: 'Nunito, sans-serif' }}>
@@ -37,8 +40,8 @@ export default function App() {
         <nav className="flex flex-col gap-1 px-3 flex-1">
           {TABS.map(t => (
             <button key={t.id} onClick={() => {
-              // 홈 화면이 아니면서, 로그인이 되어 있지 않은 경우
-              if (t.id !== 'home' && !user) {
+              // 페르소나 검사는 로그인 전에도 체험할 수 있습니다.
+              if (t.id !== 'home' && t.id !== 'onboarding' && !user) {
                 alert('로그인 후 이용 가능합니다! 🌸');
                 setShowLogin(true); // 선택사항: 알림창과 동시에 로그인 모달을 띄워줄 수도 있습니다.
                 return;
@@ -69,21 +72,24 @@ export default function App() {
 
           {/* ── 6대 성향 게이지 ── */}
           <div className="flex-1 flex items-center gap-2 min-w-0">
-            <span className="text-[10px] font-bold flex-shrink-0 rounded-full px-2 py-1"
-              style={{ background: '#fff0f3', color: '#ff6b8a' }}>💡 성향</span>
+            <button
+              type="button"
+              onClick={() => setTab('onboarding')}
+              className="text-[10px] font-bold flex-shrink-0 rounded-full px-2 py-1 transition-all hover:scale-105"
+              style={{ background: '#fff0f3', color: '#ff6b8a' }}
+              title="성향 테스트 다시 하기"
+            >
+              💡 성향
+            </button>
             <div className="flex gap-1.5 flex-1 min-w-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-              {[
-                { label: '에너지',   lo: '프라이빗',  hi: '활력',    score: 38, color: '#ff6b8a' },
-                { label: '몰입',     lo: '능동체험',  hi: '관람',    score: 72, color: '#c4a0e8' },
-                { label: '분위기',   lo: '아날로그',  hi: '핫플',    score: 55, color: '#f9a030' },
-                { label: '미감',     lo: '스토리',    hi: '비주얼',  score: 80, color: '#4dbfa8' },
-                { label: '페이스',   lo: '즉흥',      hi: '계획',    score: 62, color: '#60a860' },
-                { label: '취향깊이', lo: '이지',      hi: '딥다이브', score: 45, color: '#e8486b' },
-              ].map(({ label, lo, hi, score, color }) => (
-                <div key={label} className="flex-shrink-0 flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5 min-w-[88px]"
+              {PERSONA_AXES.map(({ id, koreanLabel, lowLabel, highLabel, color }) => {
+                const score = personaProfile?.scores?.[id] ?? 50
+
+                return (
+                <div key={id} className="flex-shrink-0 flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5 min-w-[88px]"
                   style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold" style={{ color }}>{label}</span>
+                    <span className="text-[9px] font-bold" style={{ color }}>{koreanLabel}</span>
                     <span className="text-[9px] font-bold text-stone-400">{score}</span>
                   </div>
                   {/* Track */}
@@ -95,11 +101,11 @@ export default function App() {
                       style={{ left: `calc(${score}% - 5px)`, background: color }} />
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[8px] text-stone-400">{lo}</span>
-                    <span className="text-[8px] text-stone-400">{hi}</span>
+                    <span className="text-[8px] text-stone-400">{lowLabel}</span>
+                    <span className="text-[8px] text-stone-400">{highLabel}</span>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
@@ -148,8 +154,8 @@ export default function App() {
         {/* Scrollable content / 로그인 여부에 따른 조건부 렌더링 */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full px-8 py-7 pb-16">
-            {/* 홈 화면이 아니면서 로그인이 안 되어 있는 경우 */}
-            {tab !== 'home' && !user ? (
+            {/* 홈/페르소나 검사 외 화면은 로그인이 필요합니다. */}
+            {tab !== 'home' && tab !== 'onboarding' && !user ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <span className="text-5xl mb-3">🔒</span>
                 <h2 className="font-bold text-xl text-[#3d2c35]">로그인이 필요한 서비스입니다</h2>
@@ -168,6 +174,16 @@ export default function App() {
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
+                {tab === 'onboarding' && (
+                  <OnboardingTab
+                    embedded
+                    onComplete={(profile) => {
+                      setPersonaProfile(profile)
+                      setTab('home')
+                    }}
+                    onSkip={() => setTab('home')}
+                  />
+                )}
                 {tab === 'tendency' && <TendencyTab />}
               </>
             )}
