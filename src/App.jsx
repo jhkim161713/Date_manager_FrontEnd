@@ -1,6 +1,6 @@
 import { TABS } from './data/tabsData';
 import { useState } from 'react';
-import dmLogo from '@/imports/22211.png';
+import dmLogo from '@/imports/Logo.png';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
 import { TendencyTab } from './tabs/TendencyTab';
