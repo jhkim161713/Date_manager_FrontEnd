@@ -2,3 +2,4 @@ node_modules
 dist
 .env
 .env.local
+TEAM_SECRETS_TO_SHARE.md
