@@ -12,12 +12,14 @@ npm run build # 프로덕션 빌드
 
 ## 주요 파일
 
-- `src/App.tsx` - 메인 애플리케이션 컴포넌트
-- `src/main.tsx` - React 진입점
+- `src/App.jsx` - 메인 애플리케이션 컴포넌트
+- `src/main.jsx` - React 진입점
 - `src/index.css` - 전역 스타일 및 Tailwind CSS import
 - `package.json` - 의존성 및 스크립트
 - `vite.config.ts` - Vite 설정
 
 ## 스타일링
 
-Tailwind CSS v4를 사용합니다. JSX에서 Tailwind 유틸리티 클래스를 바로 사용하면 됩니다. Vite 플러그인으로 로드되므로 별도의 PostCSS 설정이 필요 없습니다.
+Tailwind v4 사용 중: src/index.css에 @import "tailwindcss"; 같은 v4 전용 문법이 잘 들어가 있다면 설정은 완벽합니다.
+
+추가 설정 불필요: Vite 플러그인(@tailwindcss/vite)으로 연동되어 있기 때문에, 설명에 적힌 대로 별도의 postcss.config.js를 만들 필요 없이 유틸리티 클래스(className="...")를 JSX에 바로 갖다 쓰시면 끝납니다.
