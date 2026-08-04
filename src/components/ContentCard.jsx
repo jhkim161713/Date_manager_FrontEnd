@@ -1,13 +1,6 @@
-import { CurationCard } from '../types';
 import { Badge } from './Badge';
 
-interface ContentCardProps {
-  item: CurationCard;
-  wide?: boolean;
-}
-
-
-export function ContentCard({ item, wide }: ContentCardProps) {
+export function ContentCard({ item, wide }) {
   return (
     <div className={`rounded-3xl overflow-hidden flex-shrink-0 ${wide ? 'w-72' : 'w-52'} hover:scale-[1.02] transition-transform cursor-pointer`}
       style={{ background: 'white', border: '1.5px solid #ffd6e0', boxShadow: '0 2px 12px rgba(255,107,138,0.08)' }}>

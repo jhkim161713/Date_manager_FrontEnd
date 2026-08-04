@@ -1,11 +1,6 @@
 import { useState } from 'react';
 
-interface LoginModalProps {
-  onClose: () => void;
-  onLogin: (name: string) => void;
-}
-
-export function LoginModal({ onClose, onLogin }: { onClose: () => void; onLogin: (name: string) => void }) {
+export function LoginModal({ onClose, onLogin }) {
   const [name, setName] = useState('')
   const [pw, setPw] = useState('')
   return (

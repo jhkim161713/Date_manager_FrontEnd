@@ -1,15 +1,10 @@
 import { useState } from 'react';
-import { Tab } from '../types';
 import { TENDENCY_TYPES, ALL_CARDS} from '../data/dummyData';
 import { QUICK_TABS } from '../data/tabsData';
 import { Badge } from '../components/Badge';
 
-interface HomeTabProps {
-  onTabChange: (t: Tab) => void;
-}
-
-export function HomeTab({ onTabChange }: HomeTabProps) {
-  const [coupleType] = useState<string | null>('romantic');
+export function HomeTab({ onTabChange }) {
+  const [coupleType] = useState('romantic');
   const matched = TENDENCY_TYPES.find(t => t.id === coupleType);
 
   const filtered = ALL_CARDS;
@@ -50,7 +45,6 @@ export function HomeTab({ onTabChange }: HomeTabProps) {
             )}
           </div>
 
-          {/* 버튼을 아예 안 쓰시려면 이 아래 div 통째로 삭제, 아래처럼 두시면 아래쪽에 예쁘게 정렬됩니다 */}
           <div className="flex items-center gap-2 mt-4">
             <button onClick={() => onTabChange('builder')}
               className="rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105"

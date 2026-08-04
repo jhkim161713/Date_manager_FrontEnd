@@ -1,5 +1,4 @@
 import { TABS } from './data/tabsData';
-import { Tab } from './types';
 import { useState } from 'react';
 import dmLogo from '@/imports/22211.png';
 import { HomeTab } from './tabs/HomeTab';
@@ -13,8 +12,8 @@ import { LoginModal } from './components/LoginModal';
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [tab, setTab] = useState<Tab>('home')
-  const [user, setUser] = useState<string | null>(null)
+  const [tab, setTab] = useState('home')
+  const [user, setUser] = useState(null)
   const [showLogin, setShowLogin] = useState(false)
 
   return (
@@ -97,11 +96,11 @@ export default function App() {
           </div>
 
           {/* ── Login / Profile ── */}
-<div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {user ? (
               <>
                 {/* 로그인 상태: 마이페이지 버튼 + 유저 정보 및 로그아웃 */}
-                <button onClick={() => setTab('tendency' as Tab)} // 마이페이지 탭 ID에 맞게 수정 가능
+                <button onClick={() => setTab('tendency')}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
                   ⚙️ 마이페이지
@@ -122,7 +121,6 @@ export default function App() {
               <>
                 {/* 비로그인 상태: 회원가입 버튼 + 로그인 버튼 */}
                 <button onClick={() => {
-                  /* 회원가입 모달 열기 또는 온보딩 탭 이동 로직 연결 */
                   alert('회원가입 페이지/모달로 이동합니다.');
                 }}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"

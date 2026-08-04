@@ -5,7 +5,6 @@ import { CURIATION} from "../data/curationData"
 import { ContentCard } from "../components/ContentCard"
 import { Badge } from "../components/Badge"
 
-
 export function CuriationTab() {
   return (
     <div className="space-y-6">

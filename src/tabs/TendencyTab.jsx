@@ -2,20 +2,18 @@ import { useState } from "react";
 import { QUESTIONS, TYPE_RESULT } from "../data/tendencyData";
 import { SectionTitle } from "../components/SectionTitle";
 
-
-
 export function TendencyTab() {
   const [step, setStep] = useState(0)
-  const [answers, setAnswers] = useState<string[]>([])
-  const [result, setResult] = useState<string | null>(null)
+  const [answers, setAnswers] = useState([])
+  const [result, setResult] = useState(null)
 
-  const choose = (type: string) => {
+  const choose = (type) => {
     const next = [...answers, type]
     if (step < QUESTIONS.length - 1) {
       setAnswers(next)
       setStep(s => s + 1)
     } else {
-      const counts: Record<string, number> = {}
+      const counts = {}
       next.forEach(t => { counts[t] = (counts[t] ?? 0) + 1 })
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
       setResult(top)

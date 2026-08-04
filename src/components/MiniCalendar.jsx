@@ -13,7 +13,7 @@ export function MiniCalendar() {
   const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) =>
     i < firstDay ? null : i - firstDay + 1
   )
-  const pad = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  const pad = (d) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   const eventCount = Object.keys(CALENDAR_EVENTS).length
 
   return (
@@ -46,7 +46,7 @@ export function MiniCalendar() {
         {/* Preview chips */}
         {!open && (
           <div className="px-2 py-1.5 flex gap-1 flex-wrap" style={{ background: '#fff8f4' }}>
-            {(Object.entries(CAT_LABEL) as [string, string][]).map(([emoji, label]) => (
+            {Object.entries(CAT_LABEL).map(([emoji, label]) => (
               <span key={label} className="rounded-full px-1.5 py-0.5 text-[9px] font-bold flex items-center gap-0.5"
                 style={{ background: `${CAT_COLOR[emoji]}20`, color: CAT_COLOR[emoji] }}>
                 {emoji} {label}
@@ -64,7 +64,7 @@ export function MiniCalendar() {
             style={{ background: 'linear-gradient(90deg, #fff0f3, #f5eef9)' }}>
             <span className="text-xs font-bold" style={{ color: '#3d2c35' }}>{year}년 {monthLabel}</span>
             <div className="flex gap-1">
-              {(Object.entries(CAT_COLOR) as [string, string][]).map(([emoji, color]) => (
+              {Object.entries(CAT_COLOR).map(([emoji, color]) => (
                 <span key={emoji} className="text-[10px] w-4 h-4 rounded-full flex items-center justify-center"
                   style={{ background: `${color}25` }}>{emoji}</span>
               ))}
@@ -109,7 +109,7 @@ export function MiniCalendar() {
             {/* Upcoming events strip */}
             <div className="mt-2 pt-2" style={{ borderTop: '1px dashed #ffd6e0' }}>
               <p className="text-[9px] font-bold text-stone-400 mb-1">다가오는 일정</p>
-              {(Object.entries(CALENDAR_EVENTS) as [string, string][]).slice(0, 3).map(([date, emoji]) => {
+              {Object.entries(CALENDAR_EVENTS).slice(0, 3).map(([date, emoji]) => {
                 const d = new Date(date)
                 return (
                   <div key={date} className="flex items-center gap-1.5 py-0.5">
