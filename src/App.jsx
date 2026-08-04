@@ -36,7 +36,15 @@ export default function App() {
         {/* Nav items */}
         <nav className="flex flex-col gap-1 px-3 flex-1">
           {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => {
+              // 홈 화면이 아니면서, 로그인이 되어 있지 않은 경우
+              if (t.id !== 'home' && !user) {
+                alert('로그인 후 이용 가능합니다! 🌸');
+                setShowLogin(true); // 선택사항: 알림창과 동시에 로그인 모달을 띄워줄 수도 있습니다.
+                return;
+              }
+              setTab(t.id);
+            }}
               className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-left transition-all hover:scale-[1.02]"
               style={{
                 background: tab === t.id ? 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' : 'transparent',
@@ -137,15 +145,32 @@ export default function App() {
           </div>
         </header>
 
-        {/* Scrollable content */}
+        {/* Scrollable content / 로그인 여부에 따른 조건부 렌더링 */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full px-8 py-7 pb-16">
-            {tab === 'home' && <HomeTab onTabChange={setTab} />}
-            {tab === 'couple' && <CoupleTab />}
-            {tab === 'curiation' && <CuriationTab />}
-            {tab === 'builder' && <BuilderTab />}
-            {tab === 'calendar' && <CalendarTab />}
-            {tab === 'tendency' && <TendencyTab />}
+            {/* 홈 화면이 아니면서 로그인이 안 되어 있는 경우 */}
+            {tab !== 'home' && !user ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <span className="text-5xl mb-3">🔒</span>
+                <h2 className="font-bold text-xl text-[#3d2c35]">로그인이 필요한 서비스입니다</h2>
+                <p className="text-xs text-stone-400 mt-1 mb-4">로그인하고 우리만의 알콩달콩한 기능을 모두 이용해 보세요! 🌸</p>
+                <button onClick={() => setShowLogin(true)}
+                  className="rounded-2xl px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:scale-105"
+                  style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' }}>
+                  로그인하러 가기 💖
+                </button>
+              </div>
+            ) : (
+              /* 홈 화면이거나 로그인이 된 상태일 때 정상적으로 탭 내용 보여주기 */
+              <>
+                {tab === 'home' && <HomeTab onTabChange={setTab} />}
+                {tab === 'couple' && <CoupleTab />}
+                {tab === 'curiation' && <CuriationTab />}
+                {tab === 'builder' && <BuilderTab />}
+                {tab === 'calendar' && <CalendarTab />}
+                {tab === 'tendency' && <TendencyTab />}
+              </>
+            )}
           </div>
         </main>
       </div>
