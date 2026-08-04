@@ -1,20 +1,59 @@
 import { TABS } from './data/tabsData';
-import { useState } from 'react';
-import dmLogo from '@/imports/Logo.png';
+import { useEffect, useState, useCallback } from 'react';
+import dmLogo from '@/imports/22211.png';
+import { getMe, getToken, setToken, clearToken } from '@/lib/api';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
 import { TendencyTab } from './tabs/TendencyTab';
 import { MiniCalendar } from './components/MiniCalendar';
 import { BuilderTab } from './tabs/BuilderTab';
-import { CuriationTab } from './tabs/CurationTab';   
-import { CalendarTab } from './tabs/CalendarTab';  
+import { CuriationTab } from './tabs/CurationTab';
+import { CalendarTab } from './tabs/CalendarTab';
+import { MyPageTab } from './tabs/MyPageTab';
 import { LoginModal } from './components/LoginModal';
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('home')
   const [user, setUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
+  const [authError, setAuthError] = useState(null)
+
+  const loadUser = useCallback(() => {
+    if (!getToken()) {
+      setUser(null)
+      return Promise.resolve(null)
+    }
+    return getMe()
+      .then(data => { setUser(data); return data })
+      .catch(() => { clearToken(); setUser(null); return null })
+  }, [])
+
+  useEffect(() => {
+    // OAuth 콜백으로 돌아온 경우: ?token=... 을 저장하고 URL을 정리
+    const params = new URLSearchParams(window.location.search)
+    const oauthToken = params.get('token')
+    const oauthError = params.get('error')
+    if (oauthToken) {
+      setToken(oauthToken)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+    if (oauthError) {
+      setAuthError(oauthError)
+      setShowLogin(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+    loadUser().finally(() => setAuthChecked(true))
+  }, [loadUser])
+
+  const handleLogout = () => {
+    clearToken()
+    setUser(null)
+    setTab('home')
+  }
+
+  const displayName = user?.nickname || user?.email || ''
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#fff8f4', fontFamily: 'Nunito, sans-serif' }}>
@@ -39,8 +78,7 @@ export default function App() {
             <button key={t.id} onClick={() => {
               // 홈 화면이 아니면서, 로그인이 되어 있지 않은 경우
               if (t.id !== 'home' && !user) {
-                alert('로그인 후 이용 가능합니다! 🌸');
-                setShowLogin(true); // 선택사항: 알림창과 동시에 로그인 모달을 띄워줄 수도 있습니다.
+                setShowLogin(true);
                 return;
               }
               setTab(t.id);
@@ -105,10 +143,10 @@ export default function App() {
 
           {/* ── Login / Profile ── */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {user ? (
+            {!authChecked ? null : user ? (
               <>
                 {/* 로그인 상태: 마이페이지 버튼 + 유저 정보 및 로그아웃 */}
-                <button onClick={() => setTab('tendency')}
+                <button onClick={() => setTab('mypage')}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
                   ⚙️ 마이페이지
@@ -116,10 +154,10 @@ export default function App() {
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
                   style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
                   <span className="text-sm">🌷</span>
-                  <span className="text-sm font-bold" style={{ color: '#3d2c35' }}>{user}</span>
+                  <span className="text-sm font-bold" style={{ color: '#3d2c35' }}>{displayName}</span>
                   <span className="text-xs text-stone-400">님</span>
                 </div>
-                <button onClick={() => setUser(null)}
+                <button onClick={handleLogout}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:opacity-80"
                   style={{ border: '1.5px solid #ffd6e0', color: '#bbb', background: 'white' }}>
                   로그아웃
@@ -127,14 +165,7 @@ export default function App() {
               </>
             ) : (
               <>
-                {/* 비로그인 상태: 회원가입 버튼 + 로그인 버튼 */}
-                <button onClick={() => {
-                  alert('회원가입 페이지/모달로 이동합니다.');
-                }}
-                  className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
-                  style={{ border: '1.5px solid #ffd6e0', color: '#ff6b8a', background: 'white' }}>
-                  ✨ 회원가입
-                </button>
+                {/* 비로그인 상태: 소셜 로그인 버튼 (최초 로그인 시 자동 회원가입) */}
                 <button onClick={() => setShowLogin(true)}
                   className="flex items-center gap-1.5 rounded-2xl px-4 py-1.5 text-xs font-bold text-white transition-all hover:scale-105"
                   style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 4px 14px rgba(255,107,138,0.3)' }}>
@@ -169,6 +200,7 @@ export default function App() {
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
                 {tab === 'tendency' && <TendencyTab />}
+                {tab === 'mypage' && <MyPageTab onUpdated={loadUser} />}
               </>
             )}
           </div>
@@ -176,7 +208,13 @@ export default function App() {
       </div>
 
       {/* Login Modal */}
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onLogin={setUser} />}
+      {showLogin && (
+        <LoginModal
+          onClose={() => { setShowLogin(false); setAuthError(null) }}
+          onAuthed={loadUser}
+          initialError={authError}
+        />
+      )}
     </div>
   )
 }
