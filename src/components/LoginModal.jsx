@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { googleLoginUrl, kakaoLoginUrl, login, signup } from '@/lib/api';
+import { googleLoginUrl, kakaoLoginUrl, login, signup, tryMockLogin } from '@/lib/api';
 
 export function LoginModal({ onClose, onAuthed, initialError }) {
   const [mode, setMode] = useState('login');
@@ -23,6 +23,12 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
     }
     setLoading('email');
     try {
+      // 백엔드 없이도 동작하는 테스트 계정이면 서버에 요청하지 않고 바로 통과
+      if (mode === 'login' && tryMockLogin({ email, password })) {
+        onAuthed();
+        onClose();
+        return;
+      }
       if (mode === 'login') {
         await login({ email, password });
       } else {
@@ -106,6 +112,12 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
         </button>
 
         {error && <p className="text-center text-xs mt-3" style={{ color: '#e8486b' }}>{error}</p>}
+
+        {mode === 'login' && (
+          <p className="text-center text-[10px] text-stone-300 mt-3 leading-relaxed">
+            백엔드 없이 다른 탭만 보고 싶다면: admin/password, couple/couple
+          </p>
+        )}
 
         <p className="text-center text-xs text-stone-400 mt-3 cursor-pointer hover:text-pink-400 transition-colors"
           onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null) }}>

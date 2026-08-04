@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
-import { getMe, updateMe } from '@/lib/api';
+import { getMe, updateMe, getMockUser, setMockUser } from '@/lib/api';
 
 const GENDER_OPTIONS = [
   { value: 'UNKNOWN', label: '선택 안 함' },
@@ -17,7 +17,17 @@ export function MyPageTab({ onUpdated }) {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
 
+  const mockUser = getMockUser();
+
   useEffect(() => {
+    if (mockUser) {
+      // 백엔드 없이 로그인한 테스트 계정 -> 서버 호출 없이 로컬 값만 사용
+      setProfile(mockUser);
+      setNickname(mockUser.nickname ?? '');
+      setGender(mockUser.gender ?? 'UNKNOWN');
+      setLoading(false);
+      return;
+    }
     getMe()
       .then(data => {
         setProfile(data);
@@ -37,6 +47,14 @@ export function MyPageTab({ onUpdated }) {
     }
     setSaving(true);
     try {
+      if (mockUser) {
+        const updated = { ...mockUser, nickname, gender };
+        setMockUser(updated);
+        setProfile(updated);
+        setNotice('저장했어요 💾 (테스트 계정이라 이 브라우저에만 저장돼요)');
+        onUpdated?.();
+        return;
+      }
       const updated = await updateMe({ nickname, gender });
       setProfile(updated);
       setNotice('저장했어요 💾');
