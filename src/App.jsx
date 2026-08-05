@@ -1,23 +1,65 @@
 import { TABS } from './data/tabsData';
-import { useState } from 'react';
-import dmLogo from '@/imports/Logo.png';
+import { useEffect, useState, useCallback } from 'react';
+import dmLogo from '@/imports/22211.png';
+import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser } from '@/lib/api';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
 import { TendencyTab } from './tabs/TendencyTab';
 import { MiniCalendar } from './components/MiniCalendar';
 import { BuilderTab } from './tabs/BuilderTab';
-import { CuriationTab } from './tabs/CurationTab';   
-import { CalendarTab } from './tabs/CalendarTab';  
+import { CuriationTab } from './tabs/CurationTab';
+import { CalendarTab } from './tabs/CalendarTab';
+import { MyPageTab } from './tabs/MyPageTab';
 import { LoginModal } from './components/LoginModal';
-import { OnboardingTab } from './tabs/Onboardingtab';
-import { PERSONA_AXES } from './data/onboardingData';
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('home')
   const [user, setUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
-  const [personaProfile, setPersonaProfile] = useState(null)
+  const [authError, setAuthError] = useState(null)
+
+  const loadUser = useCallback(() => {
+    // 백엔드 없이 로컬로만 로그인된 테스트 계정이면 그대로 사용 (네트워크 요청 없음)
+    const mockUser = getMockUser()
+    if (mockUser) {
+      setUser(mockUser)
+      return Promise.resolve(mockUser)
+    }
+    if (!getToken()) {
+      setUser(null)
+      return Promise.resolve(null)
+    }
+    return getMe()
+      .then(data => { setUser(data); return data })
+      .catch(() => { clearToken(); setUser(null); return null })
+  }, [])
+
+  useEffect(() => {
+    // OAuth 콜백으로 돌아온 경우: ?token=... 을 저장하고 URL을 정리
+    const params = new URLSearchParams(window.location.search)
+    const oauthToken = params.get('token')
+    const oauthError = params.get('error')
+    if (oauthToken) {
+      setToken(oauthToken)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+    if (oauthError) {
+      setAuthError(oauthError)
+      setShowLogin(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+    loadUser().finally(() => setAuthChecked(true))
+  }, [loadUser])
+
+  const handleLogout = () => {
+    clearToken()
+    clearMockUser()
+    setUser(null)
+  }
+
+  const displayName = user?.nickname || user?.email || ''
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#fff8f4', fontFamily: 'Nunito, sans-serif' }}>
@@ -39,15 +81,7 @@ export default function App() {
         {/* Nav items */}
         <nav className="flex flex-col gap-1 px-3 flex-1">
           {TABS.map(t => (
-            <button key={t.id} onClick={() => {
-              // 페르소나 검사는 로그인 전에도 체험할 수 있습니다.
-              if (t.id !== 'home' && t.id !== 'onboarding' && !user) {
-                alert('로그인 후 이용 가능합니다! 🌸');
-                setShowLogin(true); // 선택사항: 알림창과 동시에 로그인 모달을 띄워줄 수도 있습니다.
-                return;
-              }
-              setTab(t.id);
-            }}
+            <button key={t.id} onClick={() => setTab(t.id)}
               className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-left transition-all hover:scale-[1.02]"
               style={{
                 background: tab === t.id ? 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' : 'transparent',
@@ -72,24 +106,21 @@ export default function App() {
 
           {/* ── 6대 성향 게이지 ── */}
           <div className="flex-1 flex items-center gap-2 min-w-0">
-            <button
-              type="button"
-              onClick={() => setTab('onboarding')}
-              className="text-[10px] font-bold flex-shrink-0 rounded-full px-2 py-1 transition-all hover:scale-105"
-              style={{ background: '#fff0f3', color: '#ff6b8a' }}
-              title="성향 테스트 다시 하기"
-            >
-              💡 성향
-            </button>
+            <span className="text-[10px] font-bold flex-shrink-0 rounded-full px-2 py-1"
+              style={{ background: '#fff0f3', color: '#ff6b8a' }}>💡 성향</span>
             <div className="flex gap-1.5 flex-1 min-w-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-              {PERSONA_AXES.map(({ id, koreanLabel, lowLabel, highLabel, color }) => {
-                const score = personaProfile?.scores?.[id] ?? 50
-
-                return (
-                <div key={id} className="flex-shrink-0 flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5 min-w-[88px]"
+              {[
+                { label: '에너지',   lo: '프라이빗',  hi: '활력',    score: 38, color: '#ff6b8a' },
+                { label: '몰입',     lo: '능동체험',  hi: '관람',    score: 72, color: '#c4a0e8' },
+                { label: '분위기',   lo: '아날로그',  hi: '핫플',    score: 55, color: '#f9a030' },
+                { label: '미감',     lo: '스토리',    hi: '비주얼',  score: 80, color: '#4dbfa8' },
+                { label: '페이스',   lo: '즉흥',      hi: '계획',    score: 62, color: '#60a860' },
+                { label: '취향깊이', lo: '이지',      hi: '딥다이브', score: 45, color: '#e8486b' },
+              ].map(({ label, lo, hi, score, color }) => (
+                <div key={label} className="flex-shrink-0 flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5 min-w-[88px]"
                   style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold" style={{ color }}>{koreanLabel}</span>
+                    <span className="text-[9px] font-bold" style={{ color }}>{label}</span>
                     <span className="text-[9px] font-bold text-stone-400">{score}</span>
                   </div>
                   {/* Track */}
@@ -101,20 +132,20 @@ export default function App() {
                       style={{ left: `calc(${score}% - 5px)`, background: color }} />
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[8px] text-stone-400">{lowLabel}</span>
-                    <span className="text-[8px] text-stone-400">{highLabel}</span>
+                    <span className="text-[8px] text-stone-400">{lo}</span>
+                    <span className="text-[8px] text-stone-400">{hi}</span>
                   </div>
                 </div>
-              )})}
+              ))}
             </div>
           </div>
 
           {/* ── Login / Profile ── */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {user ? (
+<div className="flex items-center gap-2 flex-shrink-0">
+            {!authChecked ? null : user ? (
               <>
                 {/* 로그인 상태: 마이페이지 버튼 + 유저 정보 및 로그아웃 */}
-                <button onClick={() => setTab('tendency')}
+                <button onClick={() => setTab('mypage')}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
                   ⚙️ 마이페이지
@@ -122,10 +153,10 @@ export default function App() {
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
                   style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
                   <span className="text-sm">🌷</span>
-                  <span className="text-sm font-bold" style={{ color: '#3d2c35' }}>{user}</span>
+                  <span className="text-sm font-bold" style={{ color: '#3d2c35' }}>{displayName}</span>
                   <span className="text-xs text-stone-400">님</span>
                 </div>
-                <button onClick={() => setUser(null)}
+                <button onClick={handleLogout}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:opacity-80"
                   style={{ border: '1.5px solid #ffd6e0', color: '#bbb', background: 'white' }}>
                   로그아웃
@@ -133,14 +164,7 @@ export default function App() {
               </>
             ) : (
               <>
-                {/* 비로그인 상태: 회원가입 버튼 + 로그인 버튼 */}
-                <button onClick={() => {
-                  alert('회원가입 페이지/모달로 이동합니다.');
-                }}
-                  className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
-                  style={{ border: '1.5px solid #ffd6e0', color: '#ff6b8a', background: 'white' }}>
-                  ✨ 회원가입
-                </button>
+                {/* 비로그인 상태: 소셜 로그인 버튼 (최초 로그인 시 자동 회원가입) */}
                 <button onClick={() => setShowLogin(true)}
                   className="flex items-center gap-1.5 rounded-2xl px-4 py-1.5 text-xs font-bold text-white transition-all hover:scale-105"
                   style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 4px 14px rgba(255,107,138,0.3)' }}>
@@ -151,48 +175,28 @@ export default function App() {
           </div>
         </header>
 
-        {/* Scrollable content / 로그인 여부에 따른 조건부 렌더링 */}
+        {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full px-8 py-7 pb-16">
-            {/* 홈/페르소나 검사 외 화면은 로그인이 필요합니다. */}
-            {tab !== 'home' && tab !== 'onboarding' && !user ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <span className="text-5xl mb-3">🔒</span>
-                <h2 className="font-bold text-xl text-[#3d2c35]">로그인이 필요한 서비스입니다</h2>
-                <p className="text-xs text-stone-400 mt-1 mb-4">로그인하고 우리만의 알콩달콩한 기능을 모두 이용해 보세요! 🌸</p>
-                <button onClick={() => setShowLogin(true)}
-                  className="rounded-2xl px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:scale-105"
-                  style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' }}>
-                  로그인하러 가기 💖
-                </button>
-              </div>
-            ) : (
-              /* 홈 화면이거나 로그인이 된 상태일 때 정상적으로 탭 내용 보여주기 */
-              <>
-                {tab === 'home' && <HomeTab onTabChange={setTab} />}
-                {tab === 'couple' && <CoupleTab />}
-                {tab === 'curiation' && <CuriationTab />}
-                {tab === 'builder' && <BuilderTab />}
-                {tab === 'calendar' && <CalendarTab />}
-                {tab === 'onboarding' && (
-                  <OnboardingTab
-                    embedded
-                    onComplete={(profile) => {
-                      setPersonaProfile(profile)
-                      setTab('home')
-                    }}
-                    onSkip={() => setTab('home')}
-                  />
-                )}
-                {tab === 'tendency' && <TendencyTab />}
-              </>
-            )}
+            {tab === 'home' && <HomeTab onTabChange={setTab} />}
+            {tab === 'couple' && <CoupleTab />}
+            {tab === 'curiation' && <CuriationTab />}
+            {tab === 'builder' && <BuilderTab />}
+            {tab === 'calendar' && <CalendarTab />}
+            {tab === 'tendency' && <TendencyTab />}
+            {tab === 'mypage' && <MyPageTab onUpdated={loadUser} />}
           </div>
         </main>
       </div>
 
       {/* Login Modal */}
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onLogin={setUser} />}
+      {showLogin && (
+        <LoginModal
+          onClose={() => { setShowLogin(false); setAuthError(null) }}
+          onAuthed={loadUser}
+          initialError={authError}
+        />
+      )}
     </div>
   )
 }

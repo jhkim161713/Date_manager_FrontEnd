@@ -4,7 +4,6 @@ export const TABS = [
   { id: 'curiation',     label: '데이트 큐레이션', emoji: '🎬' },
   { id: 'builder',      label: '코스 빌더',       emoji: '🗺️' },
   { id: 'calendar',     label: '데이트 캘린더',   emoji: '📅' }, 
-  { id: 'onboarding',   label: '페르소나 검사',   emoji: '🃏' },
   { id: 'tendency',     label: '성향테스트',     emoji: '💡' },
 ];
 
