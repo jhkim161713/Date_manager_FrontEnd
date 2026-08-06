@@ -107,7 +107,7 @@ function ChoiceCard({ option, side, axisColor, selectedOptionId, onSelect }) {
         <div className="absolute inset-x-0 bottom-0 z-30 p-5 text-white sm:p-6">
           <p className="text-lg font-extrabold sm:text-xl">{option.label}</p>
           <p className="mt-1 text-xs font-semibold text-white/70">
-            마음이 더 가는 사진을 선택하세요
+            {option.label2}
           </p>
         </div>
       </div>
