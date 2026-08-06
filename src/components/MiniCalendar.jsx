@@ -18,34 +18,40 @@ export function MiniCalendar() {
 
   return (
     <div className="mx-3 my-3">
-      {/* Trigger button — premium feel */}
+      {/* 트리거 버튼 — 프리미엄 캘린더 */}
       <button onClick={() => setOpen(o => !o)}
-        className="w-full rounded-2xl overflow-hidden transition-all hover:scale-[1.01]"
-        style={{ border: '1.5px solid #ffd6e0' }}>
-        {/* Gradient header strip */}
-        <div className="px-3 py-2 flex items-center gap-2"
+        className="w-full rounded-2xl overflow-hidden transition-all hover:scale-[1.13]"
+        style={{ border: '#ffd6e0' }}>
+        {/* 헤더 그라데이션 */}
+        <div className="px-2 py-2 flex items-center gap-2"
           style={{ background: 'linear-gradient(135deg, #ff6b8a 0%, #c4a0e8 100%)' }}>
-          {/* Mini decorative calendar SVG */}
+          {/* 미니달력 장식 */}
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
             <rect x="1" y="3" width="20" height="18" rx="4" fill="white" fillOpacity="0.25"/>
-            <rect x="1" y="3" width="20" height="18" rx="4" stroke="white" strokeWidth="1.5"/>
+            <rect x="1" y="3" width="20" height="18" rx="4" stroke="white" strokeWidth="1"/>
             <rect x="1" y="3" width="20" height="7" rx="4" fill="white" fillOpacity="0.3"/>
-            <line x1="1" y1="10" x2="21" y2="10" stroke="white" strokeWidth="1"/>
+            <line x1="1" y1="10" x2="21" y2="10" stroke="white" strokeWidth="2"/>
             <circle cx="7" cy="14.5" r="1.5" fill="white" fillOpacity="0.7"/>
             <circle cx="11" cy="14.5" r="1.5" fill="white"/>
             <circle cx="15" cy="14.5" r="1.5" fill="#ffd6e0"/>
             <line x1="6" y1="1" x2="6" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
             <line x1="16" y1="1" x2="16" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
+          
+          {/*헤더 문구 */}
           <div className="flex-1 text-left">
             <p className="text-xs font-bold text-white leading-none">프리미엄 캘린더</p>
             <p className="text-[9px] text-white/70 mt-0.5">이번 달 일정 {eventCount}개</p>
           </div>
+
+          {/* 옆에 있는 △ */}
           <span className="text-white/80 text-xs" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', display: 'inline-block', transition: 'transform .2s' }}>▾</span>
         </div>
-        {/* Preview chips */}
+
+        
+        {/* 접었을때 미리보기 */}
         {!open && (
-          <div className="px-2 py-1.5 flex gap-1 flex-wrap" style={{ background: '#fff8f4' }}>
+          <div className="px-2 py-1.5 flex gap-1.5 flex-wrap" style={{ background: '#fff8f4' }}>
             {Object.entries(CAT_LABEL).map(([emoji, label]) => (
               <span key={label} className="rounded-full px-1.5 py-0.5 text-[9px] font-bold flex items-center gap-0.5"
                 style={{ background: `${CAT_COLOR[emoji]}20`, color: CAT_COLOR[emoji] }}>
