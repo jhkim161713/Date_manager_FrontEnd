@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { googleLoginUrl, kakaoLoginUrl, login, signup, tryMockLogin } from '@/lib/api';
 
 export function LoginModal({ onClose, onAuthed, initialError }) {
@@ -9,6 +9,21 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(initialError ?? null);
 
+  // 소셜로그인 페이지로 이동했다가 로그인하지 않고 뒤로가기를 누르면
+  // bfcache로 인해 loading 상태가 "이동 중..."에 멈춰있는 채로 복원되므로 초기화해준다
+  useEffect(() => {
+    const resetLoadingOnRestore = (event) => {
+      if (event.persisted) {
+        setLoading(null);
+      }
+    };
+    window.addEventListener('pageshow', resetLoadingOnRestore);
+    return () => window.removeEventListener('pageshow', resetLoadingOnRestore);
+  }, []);
+
+  // 소셜로그인은 프론트에서 API를 직접 호출하는 게 아니라, 백엔드의 OAuth2 시작 URL로
+  // 브라우저 자체를 이동시킨다. 이후 구글/카카오 로그인 -> 백엔드 콜백 -> 다시 프론트의
+  // /oauth/callback?token=... 으로 리다이렉트되는 흐름은 전부 백엔드가 처리한다 (App.jsx에서 token을 받음).
   const handleSocialLogin = (provider) => {
     setError(null);
     setLoading(provider);
