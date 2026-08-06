@@ -402,7 +402,7 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
           </button>
         </div>
         <p className="mt-2 text-center text-[11px] font-semibold text-stone-400">
-          ← 왼쪽 · ↑ 모르겠다 · 오른쪽 →
+          
         </p>
       </main>
     </div>
