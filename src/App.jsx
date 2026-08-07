@@ -235,7 +235,7 @@ export default function App() {
               </div>
             ) : (
               <>
-                {tab === 'home' && <HomeTab onTabChange={changeTab} />}
+                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'couple' && <CoupleTab />}
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
