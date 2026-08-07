@@ -1,0 +1,66 @@
+// mock/places.js
+export const FEW_DATA = [
+  // ===== 음식점 3곳 =====
+  {
+    place_id: 'rest_1',
+    name: '명동 마라탕전문',
+    category: '음식점',
+    rating: 4.8,
+    price: '30,000원',
+    address: '서울특별시 중구 명동길 14',
+    lat: 37.563428,
+    lng: 126.984821,
+  },
+  {
+    place_id: 'rest_2',
+    name: '학림다방',
+    category: '음식점',
+    rating: 4.5,
+    price: '20,000원',
+    address: '서울특별시 종로구 대학로 119 2층',
+    lat: 37.582811,
+    lng: 127.001831,
+  },
+  {
+    place_id: 'rest_3',
+    name: '우래옥',
+    category: '음식점',
+    rating: 4.6,
+    price: '32,000원',
+    address: '서울특별시 중구 창경궁로 62-29',
+    lat: 37.568194,
+    lng: 126.998625,
+  },
+
+  // ===== 숙박업소 3곳 =====
+  {
+    place_id: 'stay_1',
+    name: 'L7 명동 바이 롯데',
+    category: '숙박',
+    rating: 4.6,
+    price: '180,000원',
+    address: '서울특별시 중구 퇴계로 137',
+    lat: 37.560611,
+    lng: 126.986329,
+  },
+  {
+    place_id: 'stay_2',
+    name: '웨스틴 조선 서울',
+    category: '숙박',
+    rating: 4.8,
+    price: '350,000원',
+    address: '서울특별시 중구 소공로 106',
+    lat: 37.564303,
+    lng: 126.980128,
+  },
+  {
+    place_id: 'stay_3',
+    name: '라이즈 오토그래프 컬렉션',
+    category: '숙박',
+    rating: 4.7,
+    price: '240,000원',
+    address: '서울특별시 마포구 양화로 130',
+    lat: 37.554611,
+    lng: 126.920556,
+  },
+];
