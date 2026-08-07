@@ -2,26 +2,12 @@ import { useState } from 'react';
 import { TENDENCY_TYPES, ALL_CARDS} from '../data/dummyData';
 import { QUICK_TABS } from '../data/tabsData';
 import { Badge } from '../components/Badge';
-import { PERSONA_AXES, getPersonaImage } from '../data/onboardingData';
 
-export function HomeTab({ onTabChange, personaProfile }) {
+export function HomeTab({ onTabChange }) {
   const [coupleType] = useState('romantic');
   const matched = TENDENCY_TYPES.find(t => t.id === coupleType);
 
   const filtered = ALL_CARDS;
-
-  // 6대 성향 점수(없으면 기본값 50 = 중립)를 기준으로 축마다 high/low 사진을 고릅니다.
-  const personaCards = PERSONA_AXES.map((axis) => {
-    const score = personaProfile?.scores?.[axis.id] ?? 50;
-    const isHigh = score >= 50;
-    return {
-      ...axis,
-      score,
-      isHigh,
-      image: getPersonaImage(axis.id, score),
-      resultLabel: isHigh ? axis.highLabel : axis.lowLabel,
-    };
-  });
 
   // weather mock
   const weather = { icon: '⛅', temp: '27°C', desc: '맑고 산책하기 좋은 날' };
@@ -88,36 +74,57 @@ export function HomeTab({ onTabChange, personaProfile }) {
         </div>
       </div>
 
-      {/* ━━━ ③ 우리 성향 — 2열 3행 그리드 (6대 축 high/low 사진) ━━━ */}
+      {/* ━━━ ③ 오늘의 추천 — 2열 그리드 (꽉 채움) ━━━ */}
       <div className="flex-1 min-h-0 overflow-y-auto pb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="font-display font-bold text-lg" style={{ color: '#3d2c35' }}>💡 우리 성향</h2>
+            <h2 className="font-display font-bold text-lg" style={{ color: '#3d2c35' }}>✨ 오늘의 추천</h2>
             <span className="text-xs font-bold rounded-full px-2.5 py-0.5" style={{ background: '#fff0f3', color: '#ff6b8a' }}>
-              {personaCards.length}개 축
+              {filtered.length}개
             </span>
           </div>
-          <button onClick={() => onTabChange('onboarding')} className="text-xs text-stone-400 hover:text-[#ff6b8a]">
-            테스트 다시하기
-          </button>
+          <span className="text-xs text-stone-400">우리 성향에 딱 맞는 곳</span>
         </div>
 
-        {/* 2열 3행 그리드 */}
+        {/* 2열 그리드 */}
         <div className="grid grid-cols-2 gap-3">
-          {personaCards.map((axis) => (
-            <div key={axis.id} className="rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white"
+          {/* 첫 번째 카드 (와이드) */}
+          {filtered.length > 0 && (
+            <div className="col-span-2 rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.01] transition-transform relative bg-pink-100"
+              style={{ height: '180px', border: '1.5px solid #ffd6e0', boxShadow: '0 4px 16px rgba(255,107,138,0.1)' }}>
+              <img src={filtered[0].img} alt={filtered[0].title} className="w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(61,44,53,0.65) 0%, transparent 55%)' }} />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <Badge color={filtered[0].tagColor} bg="rgba(255,255,255,0.18)">{filtered[0].tag}</Badge>
+                    <p className="font-display font-bold text-white text-lg mt-1 leading-snug">{filtered[0].title}</p>
+                    <p className="text-white/70 text-xs mt-0.5">📍 {filtered[0].location}</p>
+                  </div>
+                  <div className="flex-shrink-0 rounded-full w-11 h-11 flex items-center justify-center font-bold text-sm"
+                    style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1.5px solid rgba(255,255,255,0.4)' }}>
+                    ♥{filtered[0].match}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 나머지 카드들 (2열) */}
+          {filtered.slice(1).map(item => (
+            <div key={item.id} className="rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white"
               style={{ border: '1.5px solid #ffd6e0', boxShadow: '0 2px 8px rgba(255,107,138,0.06)' }}>
               <div className="relative overflow-hidden bg-pink-100" style={{ height: '110px' }}>
-                <img src={axis.image} alt={`${axis.koreanLabel} ${axis.resultLabel}`} className="w-full h-full object-cover" />
+                <img src={item.img} alt={item.title} className="w-full h-full object-cover" />
                 <div className="absolute top-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
                   style={{ background: 'rgba(0,0,0,0.38)', backdropFilter: 'blur(4px)' }}>
-                  ♥ {axis.score}점
+                  ♥ {item.match}%
                 </div>
               </div>
               <div className="p-2.5">
-                <Badge color={axis.color} bg={`${axis.color}15`}>{axis.label}</Badge>
-                <p className="font-bold text-sm mt-1.5 leading-snug" style={{ color: '#3d2c35' }}>{axis.koreanLabel} · {axis.resultLabel}</p>
-                <p className="text-[10px] text-stone-400 mt-0.5 truncate">{axis.lowLabel} ↔ {axis.highLabel}</p>
+                <Badge color={item.tagColor} bg={item.tagBg}>{item.tag}</Badge>
+                <p className="font-bold text-sm mt-1.5 leading-snug" style={{ color: '#3d2c35' }}>{item.title}</p>
+                <p className="text-[10px] text-stone-400 mt-0.5 truncate">📍 {item.location}</p>
               </div>
             </div>
           ))}
