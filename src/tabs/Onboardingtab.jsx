@@ -239,13 +239,13 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
             <img src={dmLogo} alt="DM 로고" className="h-14 w-14 object-contain" />
           </div>
           <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.22em] text-[#ff6b8a]">
-            Persona World Cup
+            Persona Researcher
           </p>
           <h1 className="font-display text-3xl font-bold leading-tight text-[#3d2c35] sm:text-4xl">
-            둘 중 더 끌리는 데이트를<br />6번만 선택해 주세요
+            더 끌리는 데이트를<br />6번만 선택해 주세요
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-stone-500">
-            매 라운드마다 같은 취향 축의 두 사진이 함께 나와요. 오래 고민하지 말고 첫 느낌으로 골라주세요.
+            매 라운드마다 같은 취향 축의 두 사진이 함께 나와요.<br></br> 오래 고민하지 말고 첫 느낌으로 골라주세요.
           </p>
 
           <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -333,7 +333,7 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
             <img src={dmLogo} alt="DM 로고" className="h-9 w-9 object-contain" />
           </span>
           <div>
-            <p className="text-sm font-extrabold text-[#3d2c35]">취향 월드컵</p>
+            <p className="text-sm font-extrabold text-[#3d2c35]">취향 탐색기</p>
             <p className="text-[10px] font-bold text-stone-400">PAIR COMPARISON</p>
           </div>
         </div>
@@ -350,7 +350,7 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
       <div className="mx-auto mt-4 w-full max-w-3xl">
         <div className="mb-2 flex items-center justify-between text-xs font-bold">
           <span style={{ color: currentAxis.color }}>{roundIndex + 1} / {rounds.length}</span>
-          <span className="text-stone-400">← 왼쪽 · 오른쪽 →</span>
+          <span className="text-stone-400"></span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-white/80 shadow-inner">
           <div

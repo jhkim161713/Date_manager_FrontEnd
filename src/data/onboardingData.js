@@ -15,7 +15,7 @@ export const PERSONA_AXES = [
   {
     id: 'aesthetic',
     label: 'Aesthetic',
-    koreanLabel: '미감',
+    koreanLabel: '',
     question: '어떤 종류의 전시회를 더 선호하시나요?',
     lowLabel: '해설·작품',
     highLabel: '감각·공간',
@@ -24,7 +24,7 @@ export const PERSONA_AXES = [
   {
     id: 'depth',
     label: 'Depth',
-    koreanLabel: '취향 깊이',
+    koreanLabel: '',
     question: '어떤 종류의 영화를 더 선호하시나요?',
     lowLabel: '가벼운 재미',
     highLabel: '깊은 서사',
@@ -33,7 +33,7 @@ export const PERSONA_AXES = [
   {
     id: 'energetic',
     label: 'Energetic',
-    koreanLabel: '에너지',
+    koreanLabel: '',
     question: ' 어떤 종류의 공연을 더 선호하시나요?',
     lowLabel: '잔잔함',
     highLabel: '강한 활력',
@@ -42,7 +42,7 @@ export const PERSONA_AXES = [
   {
     id: 'immersion',
     label: 'Immersion',
-    koreanLabel: '몰입',
+    koreanLabel: '',
     question: '어떤 종류의 연극을 더 선호하시나요?',
     lowLabel: '관람형',
     highLabel: '참여형',
@@ -51,7 +51,7 @@ export const PERSONA_AXES = [
   {
     id: 'pacing',
     label: 'Pacing',
-    koreanLabel: '페이스',
+    koreanLabel: '',
     question: '당신의 데이트 혹은 여행 성향을 어떤가요?',
     lowLabel: '즉흥',
     highLabel: '계획',
@@ -60,7 +60,7 @@ export const PERSONA_AXES = [
   {
     id: 'vibe',
     label: 'Vibe',
-    koreanLabel: '분위기',
+    koreanLabel: '',
     question: '휴일에 어떤 데이트 장소를 선호하시나요?',
     lowLabel: '로컬',
     highLabel: '프리미엄',
@@ -214,23 +214,6 @@ export const ONBOARDING_MATCHUPS = [
     ],
   },
 ]
-
-// 축(id)별 high/low 사진을 한 번에 찾기 위한 매핑 테이블입니다.
-export const PERSONA_AXIS_IMAGES = {
-  aesthetic: { high: AestheticHigh, low: AestheticLow },
-  depth: { high: DepthHigh, low: DepthLow },
-  energetic: { high: EnergeticHigh, low: EnergeticLow },
-  immersion: { high: ImmersionHigh, low: ImmersionLow },
-  pacing: { high: PacingHigh, low: PacingLow },
-  vibe: { high: VibeHigh, low: VibeLow },
-}
-
-// score(0~100 가정)가 50 이상이면 high 사진, 미만이면 low 사진을 돌려줍니다.
-export function getPersonaImage(axisId, score) {
-  const images = PERSONA_AXIS_IMAGES[axisId]
-  if (!images) return null
-  return score >= 50 ? images.high : images.low
-}
 
 export function buildPersonaResult(responses) {
   const details = PERSONA_AXES.reduce((result, axis) => {
