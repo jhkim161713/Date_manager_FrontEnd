@@ -8,12 +8,15 @@ export function MiniCalendar() {
   const month = now.getMonth()
   const todayDate = now.getDate()
   const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const lastdaysInMonth = new Date(year, month + 1, 0).getDate()
   const monthLabel = now.toLocaleDateString('ko-KR', { month: 'long' })
-  const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) =>
+  {/*달력 칸 개수 만드는 변수*/}
+  const cells = Array.from({ length: firstDay + lastdaysInMonth }, (_, i) =>
     i < firstDay ? null : i - firstDay + 1
   )
+  {/*숫자 입력받아 xxxx(년)-xx(월)-xx(일) 형태로 출력해주는 함수*/}
   const pad = (d) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  {/*일정 :xxxx(년)-xx(월)-xx(일) 형태로 출력 */}
   const eventCount = Object.keys(CALENDAR_EVENTS).length
 
   return (
@@ -62,23 +65,28 @@ export function MiniCalendar() {
         )}
       </button>
 
-      {/* Expanded — full premium calendar */}
+      {/*아래 달력 본문 */}
       {open && (
+        
         <div className="mt-1.5 rounded-2xl overflow-hidden" style={{ border: '1.5px solid #ffd6e0' }}>
-          {/* Month header */}
-          <div className="px-3 py-2 flex items-center justify-between"
+          
+          {/* 달력 헤더 부분 */}
+          <div className="px-3 py-2 items-center justify-between"
             style={{ background: 'linear-gradient(90deg, #fff0f3, #f5eef9)' }}>
+              {/* xxxx년 xx월  */}
             <span className="text-xs font-bold" style={{ color: '#3d2c35' }}>{year}년 {monthLabel}</span>
+              {/* 일정 이모지 표시 */}
             <div className="flex gap-1">
               {Object.entries(CAT_COLOR).map(([emoji, color]) => (
                 <span key={emoji} className="text-[10px] w-4 h-4 rounded-full flex items-center justify-center"
-                  style={{ background: `${color}25` }}>{emoji}</span>
+                  style={{ background: `${color}30` }}>{emoji}</span>
               ))}
             </div>
           </div>
 
+            {/* 일수 표기 칸 설정*/}
           <div className="p-2" style={{ background: 'white' }}>
-            {/* Day headers */}
+            {/* 월 ~ 금 표기*/}
             <div className="grid grid-cols-7 mb-1">
               {['일','월','화','수','목','금','토'].map((d, i) => (
                 <div key={d} className="text-center text-[9px] font-bold py-0.5 rounded-sm"
@@ -86,10 +94,12 @@ export function MiniCalendar() {
               ))}
             </div>
 
-            {/* Day cells */}
+            {/* 일수 칸 */}
             <div className="grid grid-cols-7 gap-y-1">
               {cells.map((day, i) => {
-                if (!day) return <div key={i} />
+                {/*만약 일 수 null이면 빈칸 return*/}
+                if (!day) return <div key={i}/>
+
                 const key = pad(day)
                 const ev = CALENDAR_EVENTS[key]
                 const isToday = day === todayDate

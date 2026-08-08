@@ -214,6 +214,22 @@ export const ONBOARDING_MATCHUPS = [
     ],
   },
 ]
+export const PERSONA_AXIS_IMAGES = {
+  aesthetic: { high: AestheticHigh, low: AestheticLow },
+  depth: { high: DepthHigh, low: DepthLow },
+  energetic: { high: EnergeticHigh, low: EnergeticLow },
+  immersion: { high: ImmersionHigh, low: ImmersionLow },
+  pacing: { high: PacingHigh, low: PacingLow },
+  vibe: { high: VibeHigh, low: VibeLow },
+}
+
+// score(0~100 가정)가 50 이상이면 high 사진, 미만이면 low 사진을 돌려줍니다.
+export function getPersonaImage(axisId, score) {
+  const images = PERSONA_AXIS_IMAGES[axisId]
+  if (!images) return null
+  return score >= 50 ? images.high : images.low
+}
+
 
 export function buildPersonaResult(responses) {
   const details = PERSONA_AXES.reduce((result, axis) => {
