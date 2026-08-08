@@ -69,6 +69,10 @@ export function kakaoLoginUrl() {
   return `${API_BASE_URL}/oauth2/authorization/kakao`;
 }
 
+export function naverLoginUrl() {
+  return `${API_BASE_URL}/oauth2/authorization/naver`;
+}
+
 export async function signup({ email, nickname, gender, password }) {
   const data = await request('/api/auth/signup', {
     method: 'POST',
@@ -95,5 +99,12 @@ export function updateMe({ nickname, gender }) {
   return request('/api/me', {
     method: 'PUT',
     body: JSON.stringify({ nickname, gender }),
+  });
+}
+
+export function changePassword({ currentPassword, newPassword }) {
+  return request('/api/me/password', {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, newPassword }),
   });
 }

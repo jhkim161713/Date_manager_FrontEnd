@@ -13,6 +13,7 @@ import { MyPageTab } from './tabs/MyPageTab';
 import { OnboardingTab } from './tabs/Onboardingtab';
 import { PERSONA_AXES } from './data/onboardingData';
 import { LoginModal } from './components/LoginModal';
+import { GenderPromptModal } from './components/GenderPromptModal';
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -265,6 +266,11 @@ export default function App() {
           onAuthed={loadUser}
           initialError={authError}
         />
+      )}
+
+      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 커플 매칭을 위해 먼저 고르게 함 */}
+      {authChecked && user && user.gender === 'UNKNOWN' && !getMockUser() && (
+        <GenderPromptModal onDone={(updated) => setUser(updated)} />
       )}
     </div>
   );
