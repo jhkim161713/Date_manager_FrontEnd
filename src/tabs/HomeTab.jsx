@@ -88,39 +88,85 @@ export function HomeTab({ onTabChange, personaProfile }) {
         </div>
       </div>
 
-      {/* ━━━ ③ 우리 성향 — 2열 3행 그리드 (6대 축 high/low 사진) ━━━ */}
-      <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+{/* ━━━ ③ 우리 성향 — 4열 3행 그리드 (이미지 극대화, 전체 높이 확장) ━━━ */}
+      <div className="flex-1 min-h-0 overflow-y-auto pb-6 pr-1">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="font-display font-bold text-lg" style={{ color: '#3d2c35' }}>💡 우리 성향</h2>
+            <h2 className="font-display font-bold text-base" style={{ color: '#3d2c35' }}>💡 우리 성향 분석</h2>
             <span className="text-xs font-bold rounded-full px-2.5 py-0.5" style={{ background: '#fff0f3', color: '#ff6b8a' }}>
               {personaCards.length}개 축
             </span>
           </div>
-          <button onClick={() => onTabChange('onboarding')} className="text-xs text-stone-400 hover:text-[#ff6b8a]">
+          <button onClick={() => onTabChange('onboarding')} className="text-xs text-stone-400 hover:text-[#ff6b8a] font-medium">
             테스트 다시하기
           </button>
         </div>
 
-        {/* 2열 3행 그리드 */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* 4열 3행 그리드 구조 */}
+        <div className="grid grid-cols-4 gap-3.5">
           {personaCards.map((axis) => (
-            <div key={axis.id} className="rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white"
-              style={{ border: '1.5px solid #ffd6e0', boxShadow: '0 2px 8px rgba(255,107,138,0.06)' }}>
-              <div className="relative overflow-hidden bg-pink-100" style={{ height: '110px' }}>
+            <div key={axis.id} className="rounded-3xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white flex flex-col shadow-sm"
+              style={{ border: '1.5px solid #ffd6e0', minHeight: '230px' }}> {/* 전체 카드 높이 대폭 확장 */}
+              
+              {/* 이미지 영역 극대화 (높이 170px로 설정) */}
+              <div className="relative overflow-hidden bg-pink-100 flex-shrink-0" style={{ height: '170px' }}>
                 <img src={axis.image} alt={`${axis.koreanLabel} ${axis.resultLabel}`} className="w-full h-full object-cover" />
-                <div className="absolute top-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
-                  style={{ background: 'rgba(0,0,0,0.38)', backdropFilter: 'blur(4px)' }}>
+                <div className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold text-white"
+                  style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
                   ♥ {axis.score}점
                 </div>
               </div>
-              <div className="p-2.5">
-                <Badge color={axis.color} bg={`${axis.color}15`}>{axis.label}</Badge>
-                <p className="font-bold text-sm mt-1.5 leading-snug" style={{ color: '#3d2c35' }}>{axis.koreanLabel} · {axis.resultLabel}</p>
-                <p className="text-[10px] text-stone-400 mt-0.5 truncate">{axis.lowLabel} ↔ {axis.highLabel}</p>
+              
+              {/* 텍스트 영역은 컴팩트하게 유지하여 이미지 강조 */}
+              <div className="p-3 flex flex-col justify-center flex-1 text-center">
+                <div>
+                  <Badge color={axis.color} bg={`${axis.color}15`}>{axis.label}</Badge>
+                  <p className="font-bold text-sm mt-1.5 leading-tight" style={{ color: '#3d2c35' }}>
+                    {axis.koreanLabel} · {axis.resultLabel}
+                  </p>
+                </div>
+                {/* 설명 텍스트는 한 줄로 줄임표 처리 */}
+                <p className="text-[11px] text-stone-400 mt-1 truncate">{axis.lowLabel} ↔ {axis.highLabel}</p>
               </div>
             </div>
           ))}
+
+          {/* 바로가기 카드들도 동일한 높이(minHeight: 230px) 및 스타일 적용 */}
+          <div onClick={() => onTabChange('tendency')} className="rounded-3xl border-2 border-dashed border-pink-200 bg-pink-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-pink-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
+            <span className="text-3xl mb-3">✨</span>
+            <p className="text-sm font-bold text-[#ff6b8a] leading-tight">상세 리포트</p>
+            <p className="text-xs text-stone-400 mt-1.5">성향 분석 보기</p>
+          </div>
+
+          <div onClick={() => onTabChange('builder')} className="rounded-3xl border-2 border-dashed border-purple-200 bg-purple-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-purple-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
+            <span className="text-3xl mb-3">🗺️</span>
+            <p className="text-sm font-bold text-purple-600 leading-tight">코스 빌더</p>
+            <p className="text-xs text-stone-400 mt-1.5">데이트 코스 짜기</p>
+          </div>
+
+          <div onClick={() => onTabChange('calendar')} className="rounded-3xl border-2 border-dashed border-sky-200 bg-sky-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-sky-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
+            <span className="text-3xl mb-3">📅</span>
+            <p className="text-sm font-bold text-sky-600 leading-tight">데이트 캘린더</p>
+            <p className="text-xs text-stone-400 mt-1.5">일정 관리</p>
+          </div>
+
+          <div onClick={() => onTabChange('mypage')} className="rounded-3xl border-2 border-dashed border-amber-200 bg-amber-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-amber-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
+            <span className="text-3xl mb-3">👤</span>
+            <p className="text-sm font-bold text-amber-600 leading-tight">마이페이지</p>
+            <p className="text-xs text-stone-400 mt-1.5">내 정보 설정</p>
+          </div>
+
+          <div onClick={() => onTabChange('couple')} className="rounded-3xl border-2 border-dashed border-rose-200 bg-rose-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-rose-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
+            <span className="text-3xl mb-3">👩‍❤️‍👨</span>
+            <p className="text-sm font-bold text-rose-600 leading-tight">커플 싱크</p>
+            <p className="text-xs text-stone-400 mt-1.5">싱크로율 확인</p>
+          </div>
+
+          <div onClick={() => onTabChange('curation')} className="rounded-3xl border-2 border-dashed border-emerald-200 bg-emerald-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-emerald-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
+            <span className="text-3xl mb-3">🍽️</span>
+            <p className="text-sm font-bold text-emerald-600 leading-tight">큐레이션</p>
+            <p className="text-xs text-stone-400 mt-1.5">맞춤 장소 추천</p>
+          </div>
         </div>
       </div>
     </div>
