@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "react": "^19.0.0",
+    "react-calendar": "^6.0.1",
     "react-dom": "^19.0.0",
     "react-kakao-maps-sdk": "^1.2.1"
   },

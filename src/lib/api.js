@@ -97,3 +97,8 @@ export function updateMe({ nickname, gender }) {
     body: JSON.stringify({ nickname, gender }),
   });
 }
+
+// 날씨는 백엔드가 기상청 API를 대신 호출해서 가공한 결과만 내려줌 (인증키는 프론트에 노출 안 됨)
+export function getWeather(lat, lon) {
+  return request(`/api/weather?lat=${lat}&lon=${lon}`);
+}

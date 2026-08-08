@@ -1,6 +1,6 @@
 import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback } from 'react';
-import dmLogo from '@/imports/22211.png';
+import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser } from '@/lib/api';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
@@ -22,6 +22,37 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [personaProfile, setPersonaProfile] = useState(null);
+
+  // 탭을 변경할 때 브라우저 history 상태도 함께 push
+  const changeTab = (newTab, pushHistory = true) => {
+    if (newTab === tab) return;
+    setTab(newTab);
+    if (pushHistory) {
+      window.history.pushState({ tab: newTab }, '', `#${newTab}`);
+    }
+  };
+
+  // 브라우저 뒤로가기/앞으로가기(popstate) 감지
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (event.state && event.state.tab) {
+        setTab(event.state.tab);
+      } else {
+        setTab('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // 초기 진입 시 현재 탭 상태를 history에 등록
+    if (!window.history.state) {
+      window.history.replaceState({ tab: 'home' }, '', '#home');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   const loadUser = useCallback(() => {
     const mockUser = getMockUser();
@@ -67,8 +98,13 @@ export default function App() {
 
       {/* ── Sidebar ── */}
       <aside className="flex flex-col h-screen flex-shrink-0 overflow-y-auto" style={{ width: '210px', background: 'white', borderRight: '1.5px solid #ffd6e0' }}>
-        {/* Logo */}
-        <div className="flex flex-col items-center px-4 pt-5 pb-3" style={{ borderBottom: '1.5px solid #ffd6e0' }}>
+        {/* Logo (클릭 시 홈으로 이동) */}
+        <div 
+          onClick={() => changeTab('home')}
+          className="flex flex-col items-center px-4 pt-5 pb-3 cursor-pointer transition-transform hover:scale-105" 
+          style={{ borderBottom: '1.5px solid #ffd6e0' }}
+          title="홈으로 이동"
+        >
           <img src={dmLogo} alt="DM Date Manager 로고" className="w-32 h-32 object-contain" />
           <p className="text-xs text-stone-400 mt-0.5" style={{ fontStyle: 'italic' }}>Date Manager for us</p>
         </div>
@@ -88,7 +124,7 @@ export default function App() {
                 setShowLogin(true);
                 return;
               }
-              setTab(t.id);
+              changeTab(t.id);
             }}
               className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-left transition-all hover:scale-[1.02]"
               style={{
@@ -116,7 +152,7 @@ export default function App() {
           <div className="flex-1 flex items-center gap-2 min-w-0">
             <button
               type="button"
-              onClick={() => setTab('onboarding')}
+              onClick={() => changeTab('onboarding')}
               className="text-[10px] font-bold flex-shrink-0 rounded-full px-2 py-1 transition-all hover:scale-105"
               style={{ background: '#fff0f3', color: '#ff6b8a', border: 'none', cursor: 'pointer' }}
               title="성향 테스트 다시 하기"
@@ -156,7 +192,7 @@ export default function App() {
           <div className="flex items-center gap-2 flex-shrink-0">
             {!authChecked ? null : user ? (
               <>
-                <button onClick={() => setTab('mypage')}
+                <button onClick={() => changeTab('mypage')}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
                   ⚙️ 마이페이지
@@ -199,7 +235,7 @@ export default function App() {
               </div>
             ) : (
               <>
-                {tab === 'home' && <HomeTab onTabChange={setTab} />}
+                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'couple' && <CoupleTab />}
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
@@ -209,9 +245,9 @@ export default function App() {
                     embedded
                     onComplete={(profile) => {
                       setPersonaProfile(profile);
-                      setTab('home');
+                      changeTab('home');
                     }}
-                    onSkip={() => setTab('home')}
+                    onSkip={() => changeTab('home')}
                   />
                 )}
                 {tab === 'tendency' && <TendencyTab />}
