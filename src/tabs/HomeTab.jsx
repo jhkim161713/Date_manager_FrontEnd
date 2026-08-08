@@ -3,6 +3,7 @@ import { TENDENCY_TYPES, ALL_CARDS} from '../data/dummyData';
 import { QUICK_TABS } from '../data/tabsData';
 import { Badge } from '../components/Badge';
 import { PERSONA_AXES, getPersonaImage } from '../data/onboardingData';
+import { useWeather } from '../hooks/useWeather';
 
 export function HomeTab({ onTabChange, personaProfile }) {
   const [coupleType] = useState('romantic');
@@ -23,8 +24,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
     };
   });
 
-  // weather mock
-  const weather = { icon: '⛅', temp: '27°C', desc: '맑고 산책하기 좋은 날' };
+  const { weather } = useWeather();
 
   return (
     <div className="h-full flex flex-col gap-4">
