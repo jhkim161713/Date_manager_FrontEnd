@@ -29,7 +29,8 @@ export function useWeather() {
       try {
         const { lat, lon } = await getLocation();
         const data = await getCurrentWeather(lat, lon);
-        if (!cancelled) setWeather(data);
+        // 로그인 전이라 /api/weather가 인증 실패로 빈 응답을 줄 때도 있어서 null 방어
+        if (!cancelled) setWeather(data ?? { icon: '⛅', temp: '—', desc: '날씨 정보를 불러오지 못했어요' });
       } catch (err) {
         if (!cancelled) {
           setError(err.message);
