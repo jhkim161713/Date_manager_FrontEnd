@@ -237,7 +237,7 @@ export default function App() {
             ) : (
               <>
                 {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'couple' && <CoupleTab />}
+                {tab === 'couple' && <CoupleTab user={user} />}
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}

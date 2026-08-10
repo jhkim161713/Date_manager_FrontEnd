@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
+import { CoupleMatchCelebration } from '../components/CoupleMatchCelebration';
 import {
   COUPLE_SINK_BENEFITS,
   COUPLE_SINK_COPY,
@@ -13,9 +14,13 @@ const createInviteCode = () => {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 };
 
-export function CoupleTab() {
+const GENDER_EMOJI = { MALE: '🙋‍♂️', FEMALE: '🙋‍♀️' };
+const emojiForGender = (gender) => GENDER_EMOJI[gender] ?? '🙂';
+
+export function CoupleTab({ user }) {
   const [inviteLink, setInviteLink] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [showMatchCelebration, setShowMatchCelebration] = useState(false);
 
   const showFeedback = (message) => {
     setFeedback(message);
@@ -107,6 +112,14 @@ export function CoupleTab() {
               </button>
               <span className="text-xs font-semibold" style={{ color: '#a28d97' }}>가입한 상대와 한 번만 연결돼요</span>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowMatchCelebration(true)}
+              className="mt-3 rounded-xl px-3.5 py-2 text-[11px] font-bold transition-all hover:scale-[1.03]"
+              style={{ border: '1.5px dashed #e8d5f5', color: '#8b65ad', background: '#fcfaff' }}
+            >
+              🎬 매칭 완료 효과 미리보기 (임시 버튼)
+            </button>
           </div>
 
           <div className="mx-auto w-full max-w-sm">
@@ -220,6 +233,15 @@ export function CoupleTab() {
       >
         ✓ {feedback}
       </div>
+
+      <CoupleMatchCelebration
+        show={showMatchCelebration}
+        onFinish={() => setShowMatchCelebration(false)}
+        myName={user?.nickname || '나'}
+        partnerName="상대방"
+        myEmoji={emojiForGender(user?.gender)}
+        partnerEmoji="🙂"
+      />
     </div>
   );
 }
