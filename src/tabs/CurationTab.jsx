@@ -6,15 +6,25 @@ import {
   CURATION_ITEMS,
   CURATION_MODES,
 } from '../data/curationData';
+import {
+  STAY_CATEGORIES,
+  STAY_HERO,
+  STAY_ITEMS,
+} from '../data/stayData';
 
 const formatWon = (price) => (price === 0 ? '무료' : `${price.toLocaleString('ko-KR')}원`);
 
 export function CuriationTab({ onOpenBuilder }) {
+  const [curationView, setCurationView] = useState('date');
   const [mode, setMode] = useState('passive');
   const [category, setCategory] = useState('all');
   const [sortBy, setSortBy] = useState('match');
+  const [stayCategory, setStayCategory] = useState('all');
+  const [staySortBy, setStaySortBy] = useState('match');
+  const [expandedStayId, setExpandedStayId] = useState(null);
   const [builderItemIds, setBuilderItemIds] = useState([]);
   const [likedItemIds, setLikedItemIds] = useState([]);
+  const [likedStayIds, setLikedStayIds] = useState([]);
   const [feedback, setFeedback] = useState('');
 
   const modeInfo = CURATION_MODES[mode];
@@ -35,6 +45,19 @@ export function CuriationTab({ onOpenBuilder }) {
       return b.match - a.match;
     });
   }, [category, mode, sortBy]);
+
+  const filteredStays = useMemo(() => {
+    const nextStays = STAY_ITEMS.filter((stay) => (
+      stayCategory === 'all' || stay.type === stayCategory
+    ));
+
+    return [...nextStays].sort((a, b) => {
+      if (staySortBy === 'price') return a.pricePerNight - b.pricePerNight;
+      if (staySortBy === 'rating') return b.rating - a.rating;
+      if (staySortBy === 'capacity') return b.maxGuests - a.maxGuests;
+      return b.match - a.match;
+    });
+  }, [stayCategory, staySortBy]);
 
   const builderItems = builderItemIds
     .map((id) => CURATION_ITEMS.find((item) => item.id === id))
@@ -66,6 +89,14 @@ export function CuriationTab({ onOpenBuilder }) {
       current.includes(itemId)
         ? current.filter((id) => id !== itemId)
         : [...current, itemId]
+    ));
+  };
+
+  const toggleStayLike = (stayId) => {
+    setLikedStayIds((current) => (
+      current.includes(stayId)
+        ? current.filter((id) => id !== stayId)
+        : [...current, stayId]
     ));
   };
 
@@ -104,221 +135,489 @@ export function CuriationTab({ onOpenBuilder }) {
 
   return (
     <div className="space-y-5 pb-10">
-      <SectionTitle sub="오늘의 에너지에 맞춰 우리에게 어울리는 장소를 골라보세요">
+      <SectionTitle sub="데이트 장소와 숙박을 한곳에서 이어서 골라보세요">
         데이트 큐레이션
       </SectionTitle>
 
-      <section
-        className="relative overflow-hidden rounded-[28px] px-5 py-6 md:px-7"
-        style={{
-          background: modeInfo.gradient,
-          border: '1.5px solid #f0dce2',
-          boxShadow: '0 10px 28px rgba(97, 66, 77, 0.06)',
-        }}
-      >
-        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35" />
-        <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
-          <div>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-extrabold"
-              style={{ color: modeInfo.accent }}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          className="inline-flex rounded-2xl bg-white p-1.5 shadow-sm"
+          style={{ border: '1.5px solid #f0dce2' }}
+          role="tablist"
+          aria-label="큐레이션 화면 선택"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={curationView === 'date'}
+            onClick={() => setCurationView('date')}
+            className="rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all"
+            style={{
+              color: curationView === 'date' ? 'white' : '#927d86',
+              background: curationView === 'date' ? 'linear-gradient(135deg, #e36d87, #d78aae)' : 'transparent',
+              boxShadow: curationView === 'date' ? '0 5px 14px rgba(211, 102, 133, 0.22)' : undefined,
+            }}
+          >
+            💕 데이트
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={curationView === 'stay'}
+            onClick={() => setCurationView('stay')}
+            className="rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all"
+            style={{
+              color: curationView === 'stay' ? 'white' : '#927d86',
+              background: curationView === 'stay' ? 'linear-gradient(135deg, #806bb4, #69a3b8)' : 'transparent',
+              boxShadow: curationView === 'stay' ? '0 5px 14px rgba(112, 98, 167, 0.22)' : undefined,
+            }}
+          >
+            🌙 숙박
+          </button>
+        </div>
+        <p className="text-[10px] font-semibold" style={{ color: '#aa969e' }}>
+          탭을 누르면 상단 창이 좌우로 전환돼요
+        </p>
+      </div>
+
+      <div className="overflow-hidden rounded-[28px]">
+        <div
+          className="flex items-start transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(${curationView === 'date' ? '0%' : '-100%'})` }}
+        >
+          <section
+            className="relative w-full flex-none overflow-hidden rounded-[28px] px-5 py-6 md:px-7"
+            style={{
+              background: modeInfo.gradient,
+              border: '1.5px solid #f0dce2',
+              boxShadow: '0 10px 28px rgba(97, 66, 77, 0.06)',
+            }}
+            aria-hidden={curationView !== 'date'}
+          >
+            <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35" />
+            <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
+              <div>
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-extrabold"
+                  style={{ color: modeInfo.accent }}
+                >
+                  {modeInfo.emoji} TODAY&apos;S DATE MOOD
+                </span>
+                <h3 className="font-display mt-3 text-2xl font-bold" style={{ color: '#45343d' }}>
+                  {modeInfo.title}
+                </h3>
+                <p className="mt-1.5 max-w-xl text-xs leading-5" style={{ color: '#8e7882' }}>
+                  {modeInfo.description}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white/80 p-1.5 shadow-sm" role="group" aria-label="데이트 모드 선택">
+                {Object.values(CURATION_MODES).map((item) => {
+                  const selected = mode === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => changeMode(item.id)}
+                      className="rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all"
+                      style={{
+                        background: selected ? item.accent : 'transparent',
+                        color: selected ? 'white' : '#947f88',
+                        boxShadow: selected ? `0 5px 13px ${item.accent}33` : undefined,
+                      }}
+                    >
+                      {item.emoji} {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-6 grid grid-cols-2 gap-2.5 md:grid-cols-4">
+              {modeInfo.categories.map((item) => {
+                const selected = category === item.id;
+                const count = CURATION_ITEMS.filter((curation) => (
+                  curation.mode === mode && curation.category === item.id
+                )).length;
+
+                return (
+                  <button
+                    key={`${mode}-${item.id}`}
+                    type="button"
+                    onClick={() => setCategory(selected ? 'all' : item.id)}
+                    className="group flex items-center gap-3 rounded-2xl p-3 text-left transition-all hover:-translate-y-0.5 md:p-4"
+                    style={{
+                      background: selected ? 'white' : 'rgba(255,255,255,0.62)',
+                      border: `1.5px solid ${selected ? `${item.color}75` : 'rgba(255,255,255,0.9)'}`,
+                      boxShadow: selected ? `0 7px 18px ${item.color}1f` : undefined,
+                    }}
+                  >
+                    <span
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-lg transition-transform group-hover:scale-110"
+                      style={{ background: item.background }}
+                    >
+                      {item.emoji}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-1">
+                        <strong className="text-xs" style={{ color: selected ? item.color : '#4d3b44' }}>{item.label}</strong>
+                        <small className="text-[9px] font-bold" style={{ color: '#b19fa6' }}>{count}</small>
+                      </span>
+                      <span className="mt-0.5 block truncate text-[9px]" style={{ color: '#a18d95' }}>{item.description}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section
+            className="relative w-full flex-none overflow-hidden rounded-[28px] px-5 py-6 md:px-7"
+            style={{
+              background: STAY_HERO.gradient,
+              border: '1.5px solid #e3ddef',
+              boxShadow: '0 10px 28px rgba(75, 65, 112, 0.08)',
+            }}
+            aria-hidden={curationView !== 'stay'}
+          >
+            <div className="pointer-events-none absolute -right-10 -top-20 h-52 w-52 rounded-full bg-white/45" />
+            <div className="pointer-events-none absolute -bottom-16 left-[42%] h-36 w-36 rounded-full" style={{ background: 'rgba(189, 220, 235, 0.28)' }} />
+            <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
+              <div>
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-extrabold"
+                  style={{ color: STAY_HERO.accent }}
+                >
+                  {STAY_HERO.emoji} {STAY_HERO.label}
+                </span>
+                <h3 className="font-display mt-3 text-2xl font-bold" style={{ color: '#403747' }}>
+                  {STAY_HERO.title}
+                </h3>
+                <p className="mt-1.5 max-w-xl text-xs leading-5" style={{ color: '#83788a' }}>
+                  {STAY_HERO.description}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/80 px-4 py-3 text-right shadow-sm">
+                <p className="text-[10px] font-bold" style={{ color: '#9b8ca5' }}>추천 숙소</p>
+                <strong className="mt-0.5 block text-xl" style={{ color: STAY_HERO.accent }}>{STAY_ITEMS.length}곳</strong>
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-6 grid grid-cols-2 gap-2.5 md:grid-cols-4">
+              {STAY_CATEGORIES.map((item) => {
+                const selected = stayCategory === item.id;
+                const count = STAY_ITEMS.filter((stay) => stay.type === item.id).length;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setStayCategory(selected ? 'all' : item.id)}
+                    className="group flex items-center gap-3 rounded-2xl p-3 text-left transition-all hover:-translate-y-0.5 md:p-4"
+                    style={{
+                      background: selected ? 'white' : 'rgba(255,255,255,0.65)',
+                      border: `1.5px solid ${selected ? `${item.color}72` : 'rgba(255,255,255,0.92)'}`,
+                      boxShadow: selected ? `0 7px 18px ${item.color}1f` : undefined,
+                    }}
+                  >
+                    <span
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-lg transition-transform group-hover:scale-110"
+                      style={{ background: item.background }}
+                    >
+                      {item.emoji}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-1">
+                        <strong className="text-xs" style={{ color: selected ? item.color : '#4d434f' }}>{item.label}</strong>
+                        <small className="text-[9px] font-bold" style={{ color: '#aa9eb0' }}>{count}</small>
+                      </span>
+                      <span className="mt-0.5 block truncate text-[9px]" style={{ color: '#988d9d' }}>{item.description}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {curationView === 'date' ? (
+        <>
+          {builderItems.length > 0 && (
+            <section
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+              style={{ background: '#fff7f7', border: '1.5px solid #f6d4dc' }}
             >
-              {modeInfo.emoji} TODAY&apos;S DATE MOOD
-            </span>
-            <h3 className="font-display mt-3 text-2xl font-bold" style={{ color: '#45343d' }}>
-              {modeInfo.title}
-            </h3>
-            <p className="mt-1.5 max-w-xl text-xs leading-5" style={{ color: '#8e7882' }}>
-              {modeInfo.description}
-            </p>
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-base shadow-sm">🗺️</span>
+                <div>
+                  <p className="text-xs font-extrabold" style={{ color: '#513e47' }}>
+                    코스 후보 {builderItems.length}곳을 골랐어요
+                  </p>
+                  <p className="mt-0.5 max-w-md truncate text-[10px]" style={{ color: '#a08b94' }}>
+                    {builderItems.map((item) => item.title).join(' · ')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={sendToBuilder}
+                className="rounded-xl px-4 py-2.5 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5"
+                style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)', boxShadow: '0 5px 14px rgba(255,107,138,0.2)' }}
+              >
+                코스 빌더로 보내기 →
+              </button>
+            </section>
+          )}
+
+          <section>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <h3 className="font-display text-lg font-bold" style={{ color: '#45343d' }}>
+                  {category === 'all'
+                    ? `${modeInfo.label} 전체`
+                    : modeInfo.categories.find((item) => item.id === category)?.label}
+                </h3>
+                <span className="rounded-full px-2.5 py-1 text-[10px] font-extrabold" style={{ background: '#fff0f3', color: '#e8486b' }}>
+                  {filteredItems.length}곳
+                </span>
+                {category !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setCategory('all')}
+                    className="text-[10px] font-bold underline underline-offset-2"
+                    style={{ color: '#9f8b94' }}
+                  >
+                    전체 보기
+                  </button>
+                )}
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="rounded-xl bg-white px-3 py-2 text-[10px] font-bold outline-none"
+                style={{ color: '#75616a', border: '1px solid #eadde1' }}
+                aria-label="큐레이션 정렬"
+              >
+                <option value="match">취향 매칭순</option>
+                <option value="price">가격 낮은순</option>
+                <option value="duration">짧은 코스순</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              {filteredItems.map((item) => {
+                const inBuilder = builderItemIds.includes(item.id);
+                const liked = likedItemIds.includes(item.id);
+
+                return (
+                  <article
+                    key={item.id}
+                    className="group overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
+                    style={{ border: '1.5px solid #f0dce2', boxShadow: '0 5px 18px rgba(89, 58, 70, 0.06)' }}
+                  >
+                    <div className="relative h-40 overflow-hidden bg-rose-50">
+                      <img
+                        src={item.img}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                      <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold" style={{ color: '#e8486b', backdropFilter: 'blur(6px)' }}>
+                        ♥ {item.match}% 매칭
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleLike(item.id)}
+                        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm transition-transform hover:scale-110"
+                        style={{ color: liked ? '#e8486b' : '#a9979e' }}
+                        aria-label={`${item.title} 찜하기`}
+                      >
+                        {liked ? '♥' : '♡'}
+                      </button>
+                    </div>
+
+                    <div className="p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge color={item.tagColor} bg={item.tagBg}>{item.tag}</Badge>
+                        <span className="text-[9px] font-bold" style={{ color: '#aa969e' }}>{item.duration}분</span>
+                      </div>
+                      <h4 className="mt-2.5 truncate text-sm font-extrabold" style={{ color: '#43323a' }}>{item.title}</h4>
+                      <p className="mt-1 truncate text-[10px]" style={{ color: '#9f8992' }}>{item.subtitle}</p>
+
+                      <div className="mt-3 flex items-center justify-between text-[10px]">
+                        <span style={{ color: '#8f7b84' }}>📍 {item.location}</span>
+                        <strong style={{ color: '#66515a' }}>{formatWon(item.price)} <small className="font-normal text-stone-400">/ 2인</small></strong>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleBuilderItem(item.id)}
+                        className="mt-4 w-full rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+                        style={{
+                          background: inBuilder ? '#f3edef' : '#fff0f3',
+                          color: inBuilder ? '#846f78' : '#e8486b',
+                          border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
+                        }}
+                      >
+                        {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      ) : (
+        <section>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-display text-lg font-bold" style={{ color: '#403747' }}>
+                {stayCategory === 'all'
+                  ? '숙박 추천 전체'
+                  : STAY_CATEGORIES.find((item) => item.id === stayCategory)?.label}
+              </h3>
+              <span className="rounded-full px-2.5 py-1 text-[10px] font-extrabold" style={{ background: '#f1edff', color: '#806bb4' }}>
+                {filteredStays.length}곳
+              </span>
+              {stayCategory !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setStayCategory('all')}
+                  className="text-[10px] font-bold underline underline-offset-2"
+                  style={{ color: '#968a9c' }}
+                >
+                  전체 보기
+                </button>
+              )}
+            </div>
+
+            <select
+              value={staySortBy}
+              onChange={(event) => setStaySortBy(event.target.value)}
+              className="rounded-xl bg-white px-3 py-2 text-[10px] font-bold outline-none"
+              style={{ color: '#6e6375', border: '1px solid #e2ddeb' }}
+              aria-label="숙박 정렬"
+            >
+              <option value="match">취향 매칭순</option>
+              <option value="price">1박 가격 낮은순</option>
+              <option value="rating">평점 높은순</option>
+              <option value="capacity">최대 인원순</option>
+            </select>
           </div>
 
-          <div className="rounded-2xl bg-white/80 p-1.5 shadow-sm" role="group" aria-label="데이트 모드 선택">
-            {Object.values(CURATION_MODES).map((item) => {
-              const selected = mode === item.id;
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+            {filteredStays.map((stay) => {
+              const categoryInfo = STAY_CATEGORIES.find((item) => item.id === stay.type);
+              const liked = likedStayIds.includes(stay.id);
+              const expanded = expandedStayId === stay.id;
+
               return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => changeMode(item.id)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all"
-                  style={{
-                    background: selected ? item.accent : 'transparent',
-                    color: selected ? 'white' : '#947f88',
-                    boxShadow: selected ? `0 5px 13px ${item.accent}33` : undefined,
-                  }}
+                <article
+                  key={stay.id}
+                  className="group overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
+                  style={{ border: '1.5px solid #e6dfed', boxShadow: '0 6px 20px rgba(70, 57, 89, 0.07)' }}
                 >
-                  {item.emoji} {item.label}
-                </button>
+                  <div className="relative h-48 overflow-hidden bg-violet-50">
+                    <img
+                      src={stay.img}
+                      alt={stay.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+                    <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold" style={{ color: '#806bb4', backdropFilter: 'blur(6px)' }}>
+                      ♥ {stay.match}% 매칭
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleStayLike(stay.id)}
+                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm transition-transform hover:scale-110"
+                      style={{ color: liked ? '#806bb4' : '#a79dab' }}
+                      aria-label={`${stay.title} 찜하기`}
+                    >
+                      {liked ? '♥' : '♡'}
+                    </button>
+                    <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3 text-white">
+                      <span className="rounded-full px-2.5 py-1 text-[10px] font-extrabold" style={{ background: 'rgba(49,39,58,0.58)', backdropFilter: 'blur(7px)' }}>
+                        {categoryInfo?.emoji} {stay.tag}
+                      </span>
+                      <span className="text-[10px] font-bold">★ {stay.rating} · 후기 {stay.reviewCount}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    <h4 className="truncate text-base font-extrabold" style={{ color: '#403747' }}>{stay.title}</h4>
+                    <p className="mt-1 truncate text-[10px]" style={{ color: '#95899b' }}>{stay.subtitle}</p>
+
+                    <div className="mt-3 flex items-end justify-between gap-3">
+                      <span className="text-[10px]" style={{ color: '#85798b' }}>📍 {stay.location}</span>
+                      <div className="text-right">
+                        <strong className="text-sm" style={{ color: '#594c63' }}>{formatWon(stay.pricePerNight)}</strong>
+                        <span className="ml-1 text-[9px] text-stone-400">/ 1박</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2 rounded-2xl p-3" style={{ background: '#faf8fc' }}>
+                      <div>
+                        <p className="text-[8px] font-bold" style={{ color: '#a498aa' }}>체크인</p>
+                        <strong className="mt-0.5 block text-[10px]" style={{ color: '#5e5265' }}>{stay.checkIn}</strong>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-bold" style={{ color: '#a498aa' }}>체크아웃</p>
+                        <strong className="mt-0.5 block text-[10px]" style={{ color: '#5e5265' }}>{stay.checkOut}</strong>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-bold" style={{ color: '#a498aa' }}>최대 인원</p>
+                        <strong className="mt-0.5 block text-[10px]" style={{ color: '#5e5265' }}>{stay.maxGuests}명</strong>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {stay.amenities.map((amenity) => (
+                        <span
+                          key={amenity}
+                          className="rounded-full px-2 py-1 text-[9px] font-bold"
+                          style={{ background: '#f1edfa', color: '#786b88' }}
+                        >
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
+
+                    {expanded && (
+                      <p className="mt-3 rounded-xl px-3 py-2.5 text-[10px] leading-5" style={{ background: '#fffaf7', color: '#877982' }}>
+                        {stay.description}
+                      </p>
+                    )}
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedStayId(expanded ? null : stay.id)}
+                        className="rounded-xl py-2.5 text-[11px] font-extrabold transition-colors"
+                        style={{ background: '#f5f1f8', color: '#75677f', border: '1px solid #e6dfeb' }}
+                        aria-expanded={expanded}
+                      >
+                        {expanded ? '상세 닫기' : '상세 보기'}
+                      </button>
+                      <a
+                        href={stay.bookingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-xl py-2.5 text-center text-[11px] font-extrabold text-white transition-all hover:-translate-y-0.5"
+                        style={{ background: 'linear-gradient(135deg, #806bb4, #66a4b7)', boxShadow: '0 5px 14px rgba(103, 91, 153, 0.2)' }}
+                      >
+                        예약 링크 ↗
+                      </a>
+                    </div>
+                  </div>
+                </article>
               );
             })}
           </div>
-        </div>
-
-        <div className="relative z-10 mt-6 grid grid-cols-2 gap-2.5 md:grid-cols-4">
-          {modeInfo.categories.map((item) => {
-            const selected = category === item.id;
-            const count = CURATION_ITEMS.filter((curation) => (
-              curation.mode === mode && curation.category === item.id
-            )).length;
-
-            return (
-              <button
-                key={`${mode}-${item.id}`}
-                type="button"
-                onClick={() => setCategory(selected ? 'all' : item.id)}
-                className="group flex items-center gap-3 rounded-2xl p-3 text-left transition-all hover:-translate-y-0.5 md:p-4"
-                style={{
-                  background: selected ? 'white' : 'rgba(255,255,255,0.62)',
-                  border: `1.5px solid ${selected ? `${item.color}75` : 'rgba(255,255,255,0.9)'}`,
-                  boxShadow: selected ? `0 7px 18px ${item.color}1f` : undefined,
-                }}
-              >
-                <span
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-lg transition-transform group-hover:scale-110"
-                  style={{ background: item.background }}
-                >
-                  {item.emoji}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center justify-between gap-1">
-                    <strong className="text-xs" style={{ color: selected ? item.color : '#4d3b44' }}>{item.label}</strong>
-                    <small className="text-[9px] font-bold" style={{ color: '#b19fa6' }}>{count}</small>
-                  </span>
-                  <span className="mt-0.5 block truncate text-[9px]" style={{ color: '#a18d95' }}>{item.description}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {builderItems.length > 0 && (
-        <section
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
-          style={{ background: '#fff7f7', border: '1.5px solid #f6d4dc' }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-base shadow-sm">🗺️</span>
-            <div>
-              <p className="text-xs font-extrabold" style={{ color: '#513e47' }}>
-                코스 후보 {builderItems.length}곳을 골랐어요
-              </p>
-              <p className="mt-0.5 max-w-md truncate text-[10px]" style={{ color: '#a08b94' }}>
-                {builderItems.map((item) => item.title).join(' · ')}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={sendToBuilder}
-            className="rounded-xl px-4 py-2.5 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)', boxShadow: '0 5px 14px rgba(255,107,138,0.2)' }}
-          >
-            코스 빌더로 보내기 →
-          </button>
         </section>
       )}
-
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-display text-lg font-bold" style={{ color: '#45343d' }}>
-              {category === 'all'
-                ? `${modeInfo.label} 전체`
-                : modeInfo.categories.find((item) => item.id === category)?.label}
-            </h3>
-            <span className="rounded-full px-2.5 py-1 text-[10px] font-extrabold" style={{ background: '#fff0f3', color: '#e8486b' }}>
-              {filteredItems.length}곳
-            </span>
-            {category !== 'all' && (
-              <button
-                type="button"
-                onClick={() => setCategory('all')}
-                className="text-[10px] font-bold underline underline-offset-2"
-                style={{ color: '#9f8b94' }}
-              >
-                전체 보기
-              </button>
-            )}
-          </div>
-
-          <select
-            value={sortBy}
-            onChange={(event) => setSortBy(event.target.value)}
-            className="rounded-xl bg-white px-3 py-2 text-[10px] font-bold outline-none"
-            style={{ color: '#75616a', border: '1px solid #eadde1' }}
-            aria-label="큐레이션 정렬"
-          >
-            <option value="match">취향 매칭순</option>
-            <option value="price">가격 낮은순</option>
-            <option value="duration">짧은 코스순</option>
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {filteredItems.map((item) => {
-            const inBuilder = builderItemIds.includes(item.id);
-            const liked = likedItemIds.includes(item.id);
-
-            return (
-              <article
-                key={item.id}
-                className="group overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
-                style={{ border: '1.5px solid #f0dce2', boxShadow: '0 5px 18px rgba(89, 58, 70, 0.06)' }}
-              >
-                <div className="relative h-40 overflow-hidden bg-rose-50">
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-                  <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold" style={{ color: '#e8486b', backdropFilter: 'blur(6px)' }}>
-                    ♥ {item.match}% 매칭
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => toggleLike(item.id)}
-                    className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm transition-transform hover:scale-110"
-                    style={{ color: liked ? '#e8486b' : '#a9979e' }}
-                    aria-label={`${item.title} 찜하기`}
-                  >
-                    {liked ? '♥' : '♡'}
-                  </button>
-                </div>
-
-                <div className="p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge color={item.tagColor} bg={item.tagBg}>{item.tag}</Badge>
-                    <span className="text-[9px] font-bold" style={{ color: '#aa969e' }}>{item.duration}분</span>
-                  </div>
-                  <h4 className="mt-2.5 truncate text-sm font-extrabold" style={{ color: '#43323a' }}>{item.title}</h4>
-                  <p className="mt-1 truncate text-[10px]" style={{ color: '#9f8992' }}>{item.subtitle}</p>
-
-                  <div className="mt-3 flex items-center justify-between text-[10px]">
-                    <span style={{ color: '#8f7b84' }}>📍 {item.location}</span>
-                    <strong style={{ color: '#66515a' }}>{formatWon(item.price)} <small className="font-normal text-stone-400">/ 2인</small></strong>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => toggleBuilderItem(item.id)}
-                    className="mt-4 w-full rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
-                    style={{
-                      background: inBuilder ? '#f3edef' : '#fff0f3',
-                      color: inBuilder ? '#846f78' : '#e8486b',
-                      border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
-                    }}
-                  >
-                    {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
 
       <div
         aria-live="polite"

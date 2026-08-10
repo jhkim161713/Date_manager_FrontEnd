@@ -1,5 +1,6 @@
 import { TABS } from './data/tabsData';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import './App.css';
 import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser } from '@/lib/api';
 import { HomeTab } from './tabs/HomeTab';
@@ -13,6 +14,7 @@ import { MyPageTab } from './tabs/MyPageTab';
 import { OnboardingTab } from './tabs/Onboardingtab';
 import { PERSONA_AXES } from './data/onboardingData';
 import { LoginModal } from './components/LoginModal';
+import { GenderPromptModal } from './components/GenderPromptModal';
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -22,6 +24,10 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [personaProfile, setPersonaProfile] = useState(null);
+  const personaScrollerRef = useRef(null);
+  const personaDragRef = useRef({ active: false, startX: 0, startScrollLeft: 0 });
+  const [isPersonaDragging, setIsPersonaDragging] = useState(false);
+  const [personaScrollState, setPersonaScrollState] = useState({ left: false, right: false });
 
   // 탭을 변경할 때 브라우저 history 상태도 함께 push
   const changeTab = (newTab, pushHistory = true) => {
@@ -93,6 +99,79 @@ export default function App() {
 
   const displayName = user?.nickname || user?.email || '';
 
+  const updatePersonaScrollState = useCallback(() => {
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return;
+
+    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    setPersonaScrollState({
+      left: scroller.scrollLeft > 2,
+      right: scroller.scrollLeft < maxScrollLeft - 2,
+    });
+  }, []);
+
+  useEffect(() => {
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return undefined;
+
+    const handleScroll = () => updatePersonaScrollState();
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(updatePersonaScrollState)
+      : null;
+
+    scroller.addEventListener('scroll', handleScroll, { passive: true });
+    resizeObserver?.observe(scroller);
+    updatePersonaScrollState();
+
+    return () => {
+      scroller.removeEventListener('scroll', handleScroll);
+      resizeObserver?.disconnect();
+    };
+  }, [updatePersonaScrollState]);
+
+  const scrollPersonaAxes = (direction) => {
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return;
+
+    const distance = Math.max(170, Math.round(scroller.clientWidth * 0.62));
+    scroller.scrollBy({ left: direction * distance, behavior: 'smooth' });
+  };
+
+  const handlePersonaPointerDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return;
+
+    personaDragRef.current = {
+      active: true,
+      startX: event.clientX,
+      startScrollLeft: scroller.scrollLeft,
+    };
+    scroller.setPointerCapture?.(event.pointerId);
+    setIsPersonaDragging(true);
+  };
+
+  const handlePersonaPointerMove = (event) => {
+    const drag = personaDragRef.current;
+    const scroller = personaScrollerRef.current;
+    if (!drag.active || !scroller) return;
+
+    scroller.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startX);
+  };
+
+  const stopPersonaDrag = (event) => {
+    if (!personaDragRef.current.active) return;
+
+    personaDragRef.current.active = false;
+    const scroller = personaScrollerRef.current;
+    if (scroller?.hasPointerCapture?.(event.pointerId)) {
+      scroller.releasePointerCapture(event.pointerId);
+    }
+    setIsPersonaDragging(false);
+    updatePersonaScrollState();
+  };
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#fff8f4', fontFamily: 'Nunito, sans-serif' }}>
 
@@ -145,62 +224,103 @@ export default function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Top bar */}
-        <header className="flex-shrink-0 flex items-center gap-4 px-6 py-2.5"
-          style={{ background: 'rgba(255,248,244,0.97)', borderBottom: '1.5px solid #ffd6e0', backdropFilter: 'blur(8px)' }}>
+        <header className="app-topbar">
 
           {/* ── 6대 성향 게이지 (PERSONA_AXES 동적 바인딩) ── */}
-          <div className="flex-1 flex items-center gap-2 min-w-0">
+          <div className="app-persona-row">
             <button
               type="button"
               onClick={() => changeTab('onboarding')}
-              className="text-[10px] font-bold flex-shrink-0 rounded-full px-2 py-1 transition-all hover:scale-105"
+              className="app-persona-label rounded-full px-2 py-1 text-[10px] font-bold transition-all hover:scale-105"
               style={{ background: '#fff0f3', color: '#ff6b8a', border: 'none', cursor: 'pointer' }}
               title="성향 테스트 다시 하기"
             >
               💡 성향
             </button>
-            <div className="flex gap-1.5 flex-1 min-w-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-              {PERSONA_AXES.map(({ id, koreanLabel, lowLabel, highLabel, color }) => {
-                const score = personaProfile?.scores?.[id] ?? 50;
 
-                return (
-                  <div key={id} className="flex-shrink-0 flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5 min-w-[88px]"
-                    style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-bold" style={{ color }}>{koreanLabel}</span>
-                      <span className="text-[9px] font-bold text-stone-400">{score}</span>
+            <div className="app-persona-slider">
+              <button
+                type="button"
+                className="app-persona-arrow"
+                onClick={() => scrollPersonaAxes(-1)}
+                disabled={!personaScrollState.left}
+                aria-label="이전 성향 보기"
+              >
+                ‹
+              </button>
+
+              <div
+                ref={personaScrollerRef}
+                className={`app-persona-track ${isPersonaDragging ? 'is-dragging' : ''}`}
+                onPointerDown={handlePersonaPointerDown}
+                onPointerMove={handlePersonaPointerMove}
+                onPointerUp={stopPersonaDrag}
+                onPointerCancel={stopPersonaDrag}
+                onDragStart={(event) => event.preventDefault()}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowLeft') scrollPersonaAxes(-1);
+                  if (event.key === 'ArrowRight') scrollPersonaAxes(1);
+                }}
+                tabIndex={0}
+                aria-label="6대 성향 게이지. 좌우로 드래그하거나 화살표 키로 이동할 수 있습니다."
+              >
+                {PERSONA_AXES.map(({ id, koreanLabel, lowLabel, highLabel, color }) => {
+                  const score = personaProfile?.scores?.[id] ?? 50;
+
+                  return (
+                    <div
+                      key={id}
+                      className="app-persona-axis flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5"
+                      style={{ background: `${color}10`, border: `1px solid ${color}25` }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="truncate text-[9px] font-bold" style={{ color }}>{koreanLabel}</span>
+                        <span className="text-[9px] font-bold text-stone-400">{score}</span>
+                      </div>
+                      <div className="relative h-1.5 rounded-full" style={{ background: `${color}20` }}>
+                        <div
+                          className="absolute left-0 top-0 h-full rounded-full transition-all"
+                          style={{ width: `${score}%`, background: `linear-gradient(90deg, ${color}80, ${color})` }}
+                        />
+                        <div
+                          className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-white shadow-sm"
+                          style={{ left: `calc(${score}% - 5px)`, background: color }}
+                        />
+                      </div>
+                      <div className="flex justify-between gap-1">
+                        <span className="truncate text-[8px] text-stone-400">{lowLabel}</span>
+                        <span className="truncate text-right text-[8px] text-stone-400">{highLabel}</span>
+                      </div>
                     </div>
-                    {/* Track */}
-                    <div className="relative h-1.5 rounded-full" style={{ background: `${color}20` }}>
-                      <div className="absolute left-0 top-0 h-full rounded-full transition-all"
-                        style={{ width: `${score}%`, background: `linear-gradient(90deg, ${color}80, ${color})` }} />
-                      {/* Thumb */}
-                      <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm"
-                        style={{ left: `calc(${score}% - 5px)`, background: color }} />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[8px] text-stone-400">{lowLabel}</span>
-                      <span className="text-[8px] text-stone-400">{highLabel}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="app-persona-arrow"
+                onClick={() => scrollPersonaAxes(1)}
+                disabled={!personaScrollState.right}
+                aria-label="다음 성향 보기"
+              >
+                ›
+              </button>
             </div>
           </div>
 
           {/* ── Login / Profile ── */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="app-profile-actions">
             {!authChecked ? null : user ? (
               <>
                 <button onClick={() => changeTab('mypage')}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
-                  ⚙️ 마이페이지
+                  ⚙️ <span className="app-profile-secondary-label">마이페이지</span>
                 </button>
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
                   style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
                   <span className="text-sm">🌷</span>
-                  <span className="text-sm font-bold" style={{ color: '#3d2c35' }}>{displayName}</span>
+                  <span className="app-profile-name text-sm font-bold" style={{ color: '#3d2c35' }}>{displayName}</span>
                   <span className="text-xs text-stone-400">님</span>
                 </div>
                 <button onClick={handleLogout}
@@ -235,7 +355,7 @@ export default function App() {
               </div>
             ) : (
               <>
-                {tab === 'home' && <HomeTab onTabChange={changeTab} />}
+                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'couple' && <CoupleTab />}
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
@@ -265,6 +385,11 @@ export default function App() {
           onAuthed={loadUser}
           initialError={authError}
         />
+      )}
+
+      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 커플 매칭을 위해 먼저 고르게 함 */}
+      {authChecked && user && user.gender === 'UNKNOWN' && !getMockUser() && (
+        <GenderPromptModal onDone={(updated) => setUser(updated)} />
       )}
     </div>
   );
