@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { googleLoginUrl, kakaoLoginUrl, naverLoginUrl, signup } from '@/lib/api';
+import { SignupCarousel } from '@/components/SignupCarousel';
 
 const GENDER_OPTIONS = [
   { value: 'UNKNOWN', label: '선택 안 함' },
@@ -42,9 +43,10 @@ export function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#fff8f4', fontFamily: 'Nunito, sans-serif' }}>
-      <div className="rounded-3xl p-7 w-full max-w-xs relative"
+      <div className="rounded-3xl w-full max-w-xs md:max-w-3xl md:grid md:grid-cols-2 overflow-hidden"
         style={{ background: 'white', boxShadow: '0 20px 60px rgba(255,107,138,0.18)' }}>
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center text-xl"
+      <div className="p-7">
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl mx-auto mb-2"
           style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' }}>💕</div>
 
         <h2 className="font-display font-bold text-xl text-center mt-2 mb-1" style={{ color: '#3d2c35' }}>회원가입</h2>
@@ -129,6 +131,12 @@ export function SignupPage() {
           onClick={() => { window.location.href = '/'; }}>
           이미 계정이 있으신가요? <span style={{ color: '#ff6b8a', fontWeight: 700 }}>로그인</span>
         </p>
+      </div>
+
+      {/* 기능 소개 캐러셀 - 모바일 폭에서는 숨김 */}
+      <div className="hidden md:block">
+        <SignupCarousel />
+      </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, tryMockLogin } from '@/lib/api';
+import { googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, tryMockLogin, adminCheck } from '@/lib/api';
 
 // 로그인 전용 모달. 회원가입은 별도 페이지(/signup)에서 처리한다.
 export function LoginModal({ onClose, onAuthed, initialError }) {
@@ -45,6 +45,12 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
         return;
       }
       await login({ email, password });
+      // 관리자 계정으로 로그인한 경우 메인 앱 대신 바로 관리자 페이지로 이동
+      const { isAdmin } = await adminCheck().catch(() => ({ isAdmin: false }));
+      if (isAdmin) {
+        window.location.href = '/admin';
+        return;
+      }
       onAuthed();
       onClose();
     } catch (e) {

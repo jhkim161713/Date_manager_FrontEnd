@@ -113,3 +113,39 @@ export function changePassword({ currentPassword, newPassword }) {
     body: JSON.stringify({ currentPassword, newPassword }),
   });
 }
+
+export function adminCheck() {
+  return request('/api/admin/check');
+}
+
+export function adminListUsers({ page = 1, search = '' } = {}) {
+  const params = new URLSearchParams({ page, size: 15 });
+  if (search.trim()) params.set('search', search.trim());
+  return request(`/api/admin/users?${params.toString()}`);
+}
+
+export function adminListCouples() {
+  return request('/api/admin/couples');
+}
+
+export function adminUpdateUser(id, { nickname, gender }) {
+  return request(`/api/admin/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ nickname, gender }),
+  });
+}
+
+export function adminDeleteUser(id) {
+  return request(`/api/admin/users/${id}`, { method: 'DELETE' });
+}
+
+export function adminUpdateCouple(id, { status }) {
+  return request(`/api/admin/couples/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function adminDeleteCouple(id) {
+  return request(`/api/admin/couples/${id}`, { method: 'DELETE' });
+}

@@ -22,6 +22,7 @@ export function MyPageTab({ onUpdated }) {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState(null);
   const [pwNotice, setPwNotice] = useState(null);
+  const [pwOpen, setPwOpen] = useState(false);
 
   const mockUser = getMockUser();
 
@@ -97,9 +98,10 @@ export function MyPageTab({ onUpdated }) {
   };
 
   return (
-    <div className="max-w-md">
+    <div className="max-w-md md:max-w-3xl">
       <SectionTitle sub="내 정보를 확인하고 수정할 수 있어요">마이페이지 ⚙️</SectionTitle>
 
+      <div className="md:grid md:grid-cols-2 md:gap-4 md:items-start">
       <div className="rounded-3xl p-6"
         style={{ background: 'white', border: '1.5px solid #ffd6e0', boxShadow: '0 2px 12px rgba(255,107,138,0.08)' }}>
         {loading ? (
@@ -154,39 +156,48 @@ export function MyPageTab({ onUpdated }) {
       </div>
 
       {!loading && profile && (
-        <div className="rounded-3xl p-6 mt-4"
+        <div className="rounded-3xl p-6 mt-4 md:mt-0"
           style={{ background: 'white', border: '1.5px solid #ffd6e0', boxShadow: '0 2px 12px rgba(255,107,138,0.08)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: '#3d2c35' }}>비밀번호 변경 🔑</h3>
-
-          <div className="mb-3">
-            <label className="text-xs font-bold text-stone-400 mb-1.5 block">현재 비밀번호</label>
-            <div className="rounded-2xl px-4 py-3" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
-              <input type="password" className="w-full text-sm outline-none bg-transparent"
-                placeholder="소셜 로그인 계정은 비워두세요"
-                value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
-                style={{ color: '#3d2c35' }} />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="text-xs font-bold text-stone-400 mb-1.5 block">새 비밀번호</label>
-            <div className="rounded-2xl px-4 py-3" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
-              <input type="password" className="w-full text-sm outline-none bg-transparent"
-                value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                style={{ color: '#3d2c35' }} />
-            </div>
-          </div>
-
-          <button onClick={handlePasswordSave} disabled={pwSaving}
-            className="w-full py-3 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 6px 20px rgba(255,107,138,0.3)' }}>
-            {pwSaving ? '변경 중...' : '비밀번호 변경하기'}
+          <button onClick={() => setPwOpen(o => !o)}
+            className="w-full flex items-center justify-between">
+            <h3 className="text-sm font-bold" style={{ color: '#3d2c35' }}>비밀번호 변경 🔑</h3>
+            <span className="text-xs text-stone-400">{pwOpen ? '접기 ▲' : '펼치기 ▼'}</span>
           </button>
 
-          {pwError && <p className="text-center text-xs mt-3" style={{ color: '#e8486b' }}>{pwError}</p>}
-          {pwNotice && <p className="text-center text-xs mt-3" style={{ color: '#4dbfa8' }}>{pwNotice}</p>}
+          {pwOpen && (
+            <div className="mt-4">
+              <div className="mb-3">
+                <label className="text-xs font-bold text-stone-400 mb-1.5 block">현재 비밀번호</label>
+                <div className="rounded-2xl px-4 py-3" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                  <input type="password" className="w-full text-sm outline-none bg-transparent"
+                    placeholder="소셜 로그인 계정은 비워두세요"
+                    value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                    style={{ color: '#3d2c35' }} />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-xs font-bold text-stone-400 mb-1.5 block">새 비밀번호</label>
+                <div className="rounded-2xl px-4 py-3" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                  <input type="password" className="w-full text-sm outline-none bg-transparent"
+                    value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                    style={{ color: '#3d2c35' }} />
+                </div>
+              </div>
+
+              <button onClick={handlePasswordSave} disabled={pwSaving}
+                className="w-full py-3 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 6px 20px rgba(255,107,138,0.3)' }}>
+                {pwSaving ? '변경 중...' : '비밀번호 변경하기'}
+              </button>
+
+              {pwError && <p className="text-center text-xs mt-3" style={{ color: '#e8486b' }}>{pwError}</p>}
+              {pwNotice && <p className="text-center text-xs mt-3" style={{ color: '#4dbfa8' }}>{pwNotice}</p>}
+            </div>
+          )}
         </div>
       )}
+      </div>
     </div>
   )
 }

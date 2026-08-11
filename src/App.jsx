@@ -1,7 +1,7 @@
 import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback } from 'react';
 import dmLogo from '@/imports/Logo.png';
-import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser } from '@/lib/api';
+import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck } from '@/lib/api';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
 import { TendencyTab } from './tabs/TendencyTab';
@@ -74,16 +74,26 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const oauthToken = params.get('token');
     const oauthError = params.get('error');
-    if (oauthToken) {
-      setToken(oauthToken);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-    if (oauthError) {
-      setAuthError(oauthError);
-      setShowLogin(true);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-    loadUser().finally(() => setAuthChecked(true));
+
+    (async () => {
+      if (oauthToken) {
+        setToken(oauthToken);
+        window.history.replaceState({}, '', window.location.pathname);
+        // 소셜 로그인으로 들어온 계정이 관리자 계정이면 메인 앱 대신 관리자 페이지로 이동
+        const { isAdmin } = await adminCheck().catch(() => ({ isAdmin: false }));
+        if (isAdmin) {
+          window.location.href = '/admin';
+          return;
+        }
+      }
+      if (oauthError) {
+        setAuthError(oauthError);
+        setShowLogin(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      await loadUser();
+      setAuthChecked(true);
+    })();
   }, [loadUser]);
 
   const handleLogout = () => {
