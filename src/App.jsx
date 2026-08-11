@@ -16,6 +16,15 @@ import { PERSONA_AXES } from './data/onboardingData';
 import { LoginModal } from './components/LoginModal';
 import { GenderPromptModal } from './components/GenderPromptModal';
 
+// 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
+const MOBILE_NAV_TABS = [
+  { id: 'home', label: '홈', emoji: '🏠' },
+  { id: 'couple', label: '커플싱크', emoji: '💞' },
+  { id: 'curiation', label: '큐레이션', emoji: '🎬' },
+  { id: 'calendar', label: '캘린더', emoji: '📅' },
+  { id: 'mypage', label: 'MY', emoji: '👤' },
+];
+
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('home');
@@ -185,8 +194,8 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#fff8f4', fontFamily: 'Nunito, sans-serif' }}>
 
-      {/* ── Sidebar ── */}
-      <aside className="flex flex-col h-screen flex-shrink-0 overflow-y-auto" style={{ width: '210px', background: 'white', borderRight: '1.5px solid #ffd6e0' }}>
+      {/* ── Sidebar (데스크톱 전용, 모바일에서는 하단 네비로 대체) ── */}
+      <aside className="hidden md:flex flex-col h-screen flex-shrink-0 overflow-y-auto" style={{ width: '210px', background: 'white', borderRight: '1.5px solid #ffd6e0' }}>
         {/* Logo (클릭 시 홈으로 이동) */}
         <div 
           onClick={() => changeTab('home')}
@@ -351,7 +360,7 @@ export default function App() {
 
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="w-full px-8 py-7 pb-16">
+          <div className="w-full px-4 md:px-8 py-4 md:py-7 pb-24 md:pb-16">
             {tab !== 'home' && tab !== 'onboarding' && !user ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <span className="text-5xl mb-3">🔒</span>
@@ -386,6 +395,29 @@ export default function App() {
             )}
           </div>
         </main>
+
+        {/* ── 모바일 하단 네비게이션 (데스크톱에서는 숨김) ── */}
+        <nav className="flex md:hidden flex-shrink-0 items-center justify-around px-1 pt-1.5 pb-1"
+          style={{ background: 'white', borderTop: '1.5px solid #ffd6e0' }}>
+          {MOBILE_NAV_TABS.map(t => {
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => {
+                if (t.id !== 'home' && !user) {
+                  alert('로그인 후 이용 가능합니다! 🌸');
+                  setShowLogin(true);
+                  return;
+                }
+                changeTab(t.id);
+              }}
+                className="flex flex-col items-center gap-0.5 py-1 transition-all"
+                style={{ minWidth: '56px' }}>
+                <span className="text-lg" style={{ opacity: active ? 1 : 0.55 }}>{t.emoji}</span>
+                <span className="text-[10px] font-bold" style={{ color: active ? '#ff6b8a' : '#bbb' }}>{t.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Login Modal */}

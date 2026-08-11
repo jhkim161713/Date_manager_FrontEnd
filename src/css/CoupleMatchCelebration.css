@@ -110,6 +110,12 @@
   box-shadow: 0 10px 24px rgba(232, 72, 107, 0.32);
 }
 
+.cmc-avatar-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .cmc-avatar-name {
   position: absolute;
   top: 100%;
@@ -287,6 +293,47 @@
   0% { opacity: 0; filter: blur(6px); transform: translate(calc(-50% + var(--leaf-from-x)), calc(-50% + var(--leaf-from-y))) rotate(calc(var(--leaf-rotation) * 0.4)) scale(0.3); }
   70% { opacity: 1; filter: blur(0); transform: translate(-50%, -50%) rotate(0deg) scale(1.25); }
   100% { opacity: 1; filter: blur(0); transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+}
+
+/* 좁은 폰 화면(안드로이드 등)에서는 하트 링/아바타/텍스트가 서로 너무 가까이 붙어 보여서
+   각 요소 사이 여백을 조금 더 넓게 잡는다. */
+@media (max-width: 480px) {
+  .cmc-stage {
+    width: min(92%, 460px);
+    height: min(90%, 460px);
+  }
+
+  .cmc-ring {
+    /* 하트 배치 좌표(sin/cos)가 원을 기준으로 계산되므로, width/height를 다른 기준(가로%, 세로%)으로 잡으면
+       타원처럼 보인다. 두 값을 같은 vw 기준으로 맞춰서 정원 형태를 유지한다. */
+    width: clamp(260px, 53vw, 380px);
+    height: clamp(260px, 53vw, 380px);
+  }
+
+  .cmc-heart {
+    font-size: clamp(11px, 1.6vw, 16px);
+  }
+
+  .cmc-avatar {
+    width: clamp(68px, 16vw, 96px);
+    height: clamp(68px, 16vw, 96px);
+  }
+
+  .cmc-avatar--left {
+    left: 13%;
+  }
+
+  .cmc-avatar--right {
+    right: 13%;
+  }
+
+  .cmc-avatar-name {
+    margin-top: 12px;
+  }
+
+  .cmc-copy {
+    width: min(88%, 300px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

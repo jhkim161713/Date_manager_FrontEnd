@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
-import { CoupleMatchCelebration } from '../components/CoupleMatchCelebration';
+import { CoupleMatchCelebration, avatarForGender } from '../components/CoupleMatchCelebration';
 import {
   COUPLE_SINK_BENEFITS,
   COUPLE_SINK_COPY,
@@ -14,8 +14,7 @@ const createInviteCode = () => {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 };
 
-const GENDER_EMOJI = { MALE: '🙋‍♂️', FEMALE: '🙋‍♀️' };
-const emojiForGender = (gender) => GENDER_EMOJI[gender] ?? '🙂';
+const opposite = (gender) => (gender === 'MALE' ? 'FEMALE' : 'MALE');
 
 export function CoupleTab({ user }) {
   const [inviteLink, setInviteLink] = useState('');
@@ -130,7 +129,9 @@ export function CoupleTab({ user }) {
               </div>
               <div className="flex items-center justify-center gap-3">
                 <div className="text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full text-2xl" style={{ background: 'linear-gradient(145deg, #ffe1e8, #fff3f0)' }}>🧑🏻</div>
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full overflow-hidden" style={{ background: 'linear-gradient(145deg, #ffe1e8, #fff3f0)' }}>
+                    <img src={avatarForGender(user?.gender)} alt="나" className="w-full h-full object-cover" />
+                  </div>
                   <p className="mt-2 text-xs font-extrabold" style={{ color: '#5c4651' }}>나</p>
                 </div>
                 <div className="flex min-w-20 flex-1 items-center" aria-hidden="true">
@@ -239,8 +240,8 @@ export function CoupleTab({ user }) {
         onFinish={() => setShowMatchCelebration(false)}
         myName={user?.nickname || '나'}
         partnerName="상대방"
-        myEmoji={emojiForGender(user?.gender)}
-        partnerEmoji="🙂"
+        myPhoto={avatarForGender(user?.gender)}
+        partnerPhoto={avatarForGender(opposite(user?.gender))}
       />
     </div>
   );

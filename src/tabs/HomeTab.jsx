@@ -43,13 +43,13 @@ export function HomeTab({ onTabChange, personaProfile }) {
         </div>
 
         {/* 배너 내부 컨텐츠 (세로 정렬로 겹침 방지) */}
-        <div className="relative z-10 px-6 py-5 flex flex-col justify-between h-full">
+        <div className="relative z-10 px-4 md:px-6 py-5 flex flex-col justify-between h-full">
           <div>
             <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-bold mb-2"
               style={{ background: 'rgba(255,255,255,0.22)', color: 'white' }}>
               💕 우리 커플 맞춤 큐레이션
             </span>
-            <h2 className="font-display font-bold text-white leading-tight" style={{ fontSize: '1.6rem' }}>
+            <h2 className="font-display font-bold text-white leading-tight text-xl md:text-[1.6rem]">
               오늘 어떤 데이트 어때요?
             </h2>
             {matched && (
@@ -102,8 +102,8 @@ export function HomeTab({ onTabChange, personaProfile }) {
           </button>
         </div>
 
-        {/* 4열 3행 그리드 구조 */}
-        <div className="grid grid-cols-4 gap-3.5">
+        {/* 4열 3행 그리드 구조 (모바일에서는 2열) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3.5">
           {personaCards.map((axis) => (
             <div key={axis.id} className="rounded-3xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white flex flex-col shadow-sm"
               style={{ border: '1.5px solid #ffd6e0', minHeight: '230px' }}> {/* 전체 카드 높이 대폭 확장 */}
@@ -162,7 +162,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
             <p className="text-xs text-stone-400 mt-1.5">싱크로율 확인</p>
           </div>
 
-          <div onClick={() => onTabChange('curation')} className="rounded-3xl border-2 border-dashed border-emerald-200 bg-emerald-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-emerald-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
+          <div onClick={() => onTabChange('curiation')} className="rounded-3xl border-2 border-dashed border-emerald-200 bg-emerald-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-emerald-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
             <span className="text-3xl mb-3">🍽️</span>
             <p className="text-sm font-bold text-emerald-600 leading-tight">큐레이션</p>
             <p className="text-xs text-stone-400 mt-1.5">맞춤 장소 추천</p>

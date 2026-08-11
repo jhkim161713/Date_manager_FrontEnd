@@ -7,7 +7,7 @@ export function CalendarTab() {
   const [view, setView] = useState('월간');
 
   return (
-    <div className="max-w-[70%] h-full mx-[10px] rounded-2xl overflow-hidden shadow-sm" style={{ border: '3px solid #f5d0dc' }}>
+    <div className="w-full md:max-w-[70%] h-full mx-auto md:mx-[10px] rounded-2xl overflow-hidden shadow-sm" style={{ border: '3px solid #f5d0dc' }}>
       {/* 상단 타이틀 바 */}
       <div className="flex items-center gap-2 px-4 py-3" style={{ background: '#fff0f4' }}>
         <span className="text-lg">📅</span>

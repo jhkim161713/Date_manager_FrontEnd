@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import '../css/CoupleMatchCelebration.css';
+import avatarFemale from '../imports/avatar-female.jpg';
+import avatarMale from '../imports/avatar-male.jpg';
+
+export const avatarForGender = (gender) => (gender === 'MALE' ? avatarMale : avatarFemale);
 
 // 순서: (스크림 + "상대방이 수락했습니다") -> 스크림/문구 사라짐 -> (아바타 + 하트링 + "두 마음이 하나로 연결됐어요") -> 종료
 const TIMINGS = {
@@ -37,8 +41,8 @@ export function CoupleMatchCelebration({
   onFinish,
   myName = '나',
   partnerName = '상대방',
-  myEmoji = '🙂',
-  partnerEmoji = '🙂',
+  myPhoto = avatarFemale,
+  partnerPhoto = avatarMale,
 }) {
   const [stage, setStage] = useState(0);
 
@@ -71,11 +75,15 @@ export function CoupleMatchCelebration({
       <div className={`cmc-scrim ${phase2 ? '' : 'cmc-show'}`} />
 
       <div className={`cmc-avatar cmc-avatar--left ${phase2 ? 'cmc-show' : ''}`}>
-        <div className="cmc-avatar-photo">{myEmoji}</div>
+        <div className="cmc-avatar-photo">
+          <img src={myPhoto} alt={myName} />
+        </div>
         <span className="cmc-avatar-name">{myName}</span>
       </div>
       <div className={`cmc-avatar cmc-avatar--right ${phase2 ? 'cmc-show' : ''}`}>
-        <div className="cmc-avatar-photo">{partnerEmoji}</div>
+        <div className="cmc-avatar-photo">
+          <img src={partnerPhoto} alt={partnerName} />
+        </div>
         <span className="cmc-avatar-name">{partnerName}</span>
       </div>
 
