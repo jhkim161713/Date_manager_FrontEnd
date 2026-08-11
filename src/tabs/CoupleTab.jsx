@@ -1,18 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { CoupleMatchCelebration, avatarForGender } from '../components/CoupleMatchCelebration';
+import { createCoupleInvite, acceptCoupleInvite, getCoupleStatus, disconnectCouple } from '../lib/api';
 import {
   COUPLE_SINK_BENEFITS,
   COUPLE_SINK_COPY,
   COUPLE_SINK_STEPS,
 } from '../data/coupleSink';
-
-const createInviteCode = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID().split('-')[0].toUpperCase();
-  }
-  return Math.random().toString(36).slice(2, 10).toUpperCase();
-};
 
 const opposite = (gender) => (gender === 'MALE' ? 'FEMALE' : 'MALE');
 
@@ -20,21 +14,75 @@ export function CoupleTab({ user }) {
   const [inviteLink, setInviteLink] = useState('');
   const [feedback, setFeedback] = useState('');
   const [showMatchCelebration, setShowMatchCelebration] = useState(false);
+  const [status, setStatus] = useState({ loading: true, linked: false, partner: null });
+  const [acceptToken, setAcceptToken] = useState('');
+  const [accepting, setAccepting] = useState(false);
+  const [creatingInvite, setCreatingInvite] = useState(false);
 
   const showFeedback = (message) => {
     setFeedback(message);
     window.setTimeout(() => setFeedback(''), 2200);
   };
 
-  const makeInviteLink = () => {
-    const baseUrl = window.location.origin || 'https://date-manager.app';
-    setInviteLink(`${baseUrl}/couple/connect/${createInviteCode()}`);
-    showFeedback('초대 링크가 만들어졌어요');
+  const loadStatus = async () => {
+    try {
+      const data = await getCoupleStatus();
+      setStatus({ loading: false, linked: data.linked, partner: data.partner });
+    } catch (error) {
+      setStatus({ loading: false, linked: false, partner: null });
+    }
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
+
+  const makeInviteLink = async () => {
+    setCreatingInvite(true);
+    try {
+      const data = await createCoupleInvite();
+      setInviteLink(data.inviteUrl);
+      showFeedback('초대 링크가 만들어졌어요');
+    } catch (error) {
+      showFeedback(error.message || '초대 링크를 만들지 못했어요');
+    } finally {
+      setCreatingInvite(false);
+    }
+  };
+
+  const handleAcceptInvite = async () => {
+    const token = acceptToken.trim().split('/').pop();
+    if (!token) {
+      showFeedback('토큰(링크)을 입력해주세요');
+      return;
+    }
+    setAccepting(true);
+    try {
+      await acceptCoupleInvite(token);
+      showFeedback('커플 연결이 완료됐어요 💕');
+      setAcceptToken('');
+      await loadStatus();
+      setShowMatchCelebration(true);
+    } catch (error) {
+      showFeedback(error.message || '초대를 수락하지 못했어요');
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectCouple();
+      showFeedback('연결을 해제했어요');
+      await loadStatus();
+    } catch (error) {
+      showFeedback(error.message || '연결 해제에 실패했어요');
+    }
   };
 
   const copyInviteLink = async () => {
     if (!inviteLink) {
-      makeInviteLink();
+      await makeInviteLink();
       return;
     }
 
@@ -54,7 +102,7 @@ export function CoupleTab({ user }) {
 
   const shareInviteLink = async () => {
     if (!inviteLink) {
-      makeInviteLink();
+      await makeInviteLink();
       return;
     }
 
@@ -104,10 +152,11 @@ export function CoupleTab({ user }) {
               <button
                 type="button"
                 onClick={makeInviteLink}
-                className="rounded-2xl px-5 py-3 text-sm font-extrabold text-white transition-all hover:-translate-y-0.5"
+                disabled={creatingInvite}
+                className="rounded-2xl px-5 py-3 text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60"
                 style={{ background: 'linear-gradient(135deg, #ff6b8a, #e96fa6)', boxShadow: '0 8px 20px rgba(232, 72, 107, 0.24)' }}
               >
-                {inviteLink ? '새 링크 만들기' : '초대 링크 만들기'}
+                {creatingInvite ? '만드는 중...' : inviteLink ? '새 링크 만들기' : '초대 링크 만들기'}
               </button>
               <span className="text-xs font-semibold" style={{ color: '#a28d97' }}>가입한 상대와 한 번만 연결돼요</span>
             </div>
@@ -125,7 +174,9 @@ export function CoupleTab({ user }) {
             <div className="relative rounded-[26px] bg-white px-6 py-6" style={{ border: '1px solid rgba(255, 214, 224, 0.9)', boxShadow: '0 15px 35px rgba(101, 66, 80, 0.1)' }}>
               <div className="mb-6 flex items-center justify-between">
                 <span className="text-xs font-extrabold" style={{ color: '#5c4651' }}>우리의 연결</span>
-                <span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: '#fff0f3', color: '#e8486b' }}>초대 대기 중</span>
+                <span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: status.linked ? '#f0fbf6' : '#fff0f3', color: status.linked ? '#2fa876' : '#e8486b' }}>
+                  {status.loading ? '확인 중...' : status.linked ? '연결됨' : '초대 대기 중'}
+                </span>
               </div>
               <div className="flex items-center justify-center gap-3">
                 <div className="text-center">
@@ -140,13 +191,29 @@ export function CoupleTab({ user }) {
                   <span className="h-px flex-1 border-t-2 border-dashed" style={{ borderColor: '#f2bdca' }} />
                 </div>
                 <div className="text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed text-2xl" style={{ background: '#fbf8f6', borderColor: '#dfd2d7', color: '#b9a7ae' }}>+</div>
-                  <p className="mt-2 text-xs font-extrabold" style={{ color: '#a28d97' }}>내 사람</p>
+                  {status.linked ? (
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full overflow-hidden" style={{ background: 'linear-gradient(145deg, #ffe1e8, #fff3f0)' }}>
+                      <img src={avatarForGender(status.partner?.gender)} alt={status.partner?.nickname || '내 사람'} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed text-2xl" style={{ background: '#fbf8f6', borderColor: '#dfd2d7', color: '#b9a7ae' }}>+</div>
+                  )}
+                  <p className="mt-2 text-xs font-extrabold" style={{ color: status.linked ? '#5c4651' : '#a28d97' }}>
+                    {status.linked ? (status.partner?.nickname || '내 사람') : '내 사람'}
+                  </p>
                 </div>
               </div>
-              <p className="mt-6 text-center text-[11px] leading-5" style={{ color: '#a28d97' }}>
-                상대가 링크를 열고 초대를 수락하면<br />둘만의 커플 공간이 열려요.
-              </p>
+              {status.linked ? (
+                <button type="button" onClick={handleDisconnect}
+                  className="mt-6 w-full rounded-xl py-2.5 text-[11px] font-extrabold"
+                  style={{ background: '#f7f2fb', color: '#9a75bb' }}>
+                  연결 해제하기
+                </button>
+              ) : (
+                <p className="mt-6 text-center text-[11px] leading-5" style={{ color: '#a28d97' }}>
+                  상대가 링크를 열고 초대를 수락하면<br />둘만의 커플 공간이 열려요.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -190,6 +257,33 @@ export function CoupleTab({ user }) {
               공유하기 ↗
             </button>
           </div>
+
+          {!status.linked && (
+            <div className="mt-5 rounded-2xl p-4" style={{ background: '#f9f6ff', border: '1.5px dashed #e3d3f5' }}>
+              <label className="block text-[11px] font-extrabold" style={{ color: '#6d5662' }}>
+                받은 초대 링크(또는 토큰) 수락하기 <span style={{ color: '#b09da5', fontWeight: 600 }}>— 다른 계정으로 테스트할 때 사용</span>
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={acceptToken}
+                  onChange={e => setAcceptToken(e.target.value)}
+                  placeholder="상대가 보낸 링크를 붙여넣으세요"
+                  className="min-w-0 flex-1 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none placeholder:font-normal placeholder:text-stone-400"
+                  style={{ border: '1.5px solid #f0dbe1', background: 'white', color: '#5c4651' }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAcceptInvite}
+                  disabled={accepting}
+                  className="flex-shrink-0 rounded-xl px-4 py-2.5 text-xs font-extrabold text-white transition-all disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)' }}
+                >
+                  {accepting ? '연결 중...' : '수락하기'}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {COUPLE_SINK_BENEFITS.map((benefit) => (
@@ -239,9 +333,9 @@ export function CoupleTab({ user }) {
         show={showMatchCelebration}
         onFinish={() => setShowMatchCelebration(false)}
         myName={user?.nickname || '나'}
-        partnerName="상대방"
+        partnerName={status.partner?.nickname || '상대방'}
         myPhoto={avatarForGender(user?.gender)}
-        partnerPhoto={avatarForGender(opposite(user?.gender))}
+        partnerPhoto={avatarForGender(status.partner?.gender || opposite(user?.gender))}
       />
     </div>
   );
