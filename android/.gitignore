@@ -92,10 +92,10 @@ lint/tmp/
 # Cordova plugins for Capacitor
 capacitor-cordova-android-plugins
 
-# Copied web assets
-app/src/main/assets/public
-
-# Generated Config files
-app/src/main/assets/capacitor.config.json
-app/src/main/assets/capacitor.plugins.json
+# Copied web assets - 저장소만 받아도 최신 프론트엔드 기능이 그대로 빌드되도록 커밋 대상에 포함시킴
+# (원래 Capacitor 기본 템플릿은 이 파일들을 제외하지만, 팀 프로젝트에서는 매번 프론트엔드를
+# 따로 빌드/sync 안 해도 바로 APK를 만들 수 있게 하는 게 더 편해서 포함하기로 함)
+# app/src/main/assets/public
+# app/src/main/assets/capacitor.config.json
+# app/src/main/assets/capacitor.plugins.json
 app/src/main/res/xml/config.xml
