@@ -169,3 +169,24 @@ export function getCoupleStatus() {
 export function disconnectCouple() {
   return request('/api/couple', { method: 'DELETE' });
 }
+
+// 내 구독 상태 조회 (구독 없으면 { hasSubscription: false })
+export function getMySubscription() {
+  return request('/api/subscriptions/me');
+}
+
+// 토스 결제위젯으로 카드 등록 인증(requestBillingAuth)까지 마친 뒤 받은 authKey/customerKey로 빌링키 발급
+export function issueBillingKey({ authKey, customerKey, planCode }) {
+  return request('/api/subscriptions/billing-key', {
+    method: 'POST',
+    body: JSON.stringify({ authKey, customerKey, planCode }),
+  });
+}
+
+// 발급된 빌링키로 정기결제 승인 요청 (카드 재인증 불필요)
+export function chargeSubscription({ amount, orderName }) {
+  return request('/api/subscriptions/charge', {
+    method: 'POST',
+    body: JSON.stringify({ amount, orderName }),
+  });
+}

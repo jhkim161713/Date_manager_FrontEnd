@@ -15,6 +15,7 @@ import { OnboardingTab } from './tabs/Onboardingtab';
 import { PERSONA_AXES } from './data/onboardingData';
 import { LoginModal } from './components/LoginModal';
 import { GenderPromptModal } from './components/GenderPromptModal';
+import { SubscriptionModal } from './components/SubscriptionModal';
 
 // 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
 const MOBILE_NAV_TABS = [
@@ -32,6 +33,19 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState(null);
+  // 토스 카드등록 인증 완료 후 리다이렉트로 돌아왔는지를 최초 렌더링 시점에 동기적으로 읽어둔다.
+  // useEffect 안에서 읽으면 다른 이펙트(popstate 등)의 history.replaceState 실행 순서에 따라
+  // 쿼리스트링이 이미 사라진 뒤일 수 있어서, 여기서 먼저 캡처해 state로 고정시켜둔다.
+  const initialBillingAuth = (() => {
+    const p = new URLSearchParams(window.location.search);
+    const authKey = p.get('authKey');
+    const customerKey = p.get('customerKey');
+    return authKey && customerKey ? { authKey, customerKey } : null;
+  })();
+  const [showSubscription, setShowSubscription] = useState(
+    () => Boolean(initialBillingAuth) || new URLSearchParams(window.location.search).get('billingError') === '1'
+  );
+  const [pendingBillingAuth, setPendingBillingAuth] = useState(initialBillingAuth);
   const [personaProfile, setPersonaProfile] = useState(null);
   const personaScrollerRef = useRef(null);
   const personaDragRef = useRef({ active: false, startX: 0, startScrollLeft: 0 });
@@ -88,6 +102,12 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const oauthToken = params.get('token');
     const oauthError = params.get('error');
+
+    // 토스 카드등록 콜백 파라미터는 이미 최초 렌더링 시점(initialBillingAuth)에 state로 캡처해뒀으니
+    // 여기서는 주소창만 깔끔하게 정리한다.
+    if (params.get('authKey') || params.get('billingError')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
 
     (async () => {
       if (oauthToken) {
@@ -336,6 +356,11 @@ export default function App() {
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
                   ⚙️ <span className="app-profile-secondary-label">마이페이지</span>
                 </button>
+                <button onClick={() => setShowSubscription(true)}
+                  className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
+                  style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
+                  💳 <span className="app-profile-secondary-label">구독</span>
+                </button>
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
                   style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
                   <span className="text-sm">🌷</span>
@@ -432,6 +457,14 @@ export default function App() {
       {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 커플 매칭을 위해 먼저 고르게 함 */}
       {authChecked && user && user.gender === 'UNKNOWN' && !getMockUser() && (
         <GenderPromptModal onDone={(updated) => setUser(updated)} />
+      )}
+
+      {showSubscription && user && (
+        <SubscriptionModal
+          user={user}
+          pendingBillingAuth={pendingBillingAuth}
+          onClose={() => { setShowSubscription(false); setPendingBillingAuth(null); }}
+        />
       )}
     </div>
   );
