@@ -249,3 +249,26 @@ export function getCoupleStatus() {
 export function disconnectCouple() {
   return request('/api/couple', { method: 'DELETE' });
 }
+
+// 내 구독 상태 조회 (구독 없으면 { hasSubscription: false })
+export function getMySubscription() {
+  return request('/api/subscriptions/me');
+}
+
+// 토스 결제위젯으로 카드 등록 인증(requestBillingAuth)까지 마친 뒤 받은 authKey/customerKey로 빌링키 발급
+export function issueBillingKey({ authKey, customerKey, planCode }) {
+  return request('/api/subscriptions/billing-key', {
+    method: 'POST',
+    body: JSON.stringify({ authKey, customerKey, planCode }),
+  });
+}
+
+// 결제 실패(PAST_DUE) 상태의 구독을 저장된 빌링키로 수동 재결제 시도 (카드 재인증 불필요)
+export function retryChargeSubscription() {
+  return request('/api/subscriptions/charge', { method: 'POST' });
+}
+
+// 구독 해지 - 이미 낸 이용 기간(expiresAt)까지는 유지되고, 이후 자동 갱신만 안 됨
+export function cancelSubscription() {
+  return request('/api/subscriptions/cancel', { method: 'POST' });
+}
