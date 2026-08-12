@@ -1,12 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
-import { getMySubscription, issueBillingKey } from '@/lib/api';
+import { getMySubscription, issueBillingKey, retryChargeSubscription, cancelSubscription } from '@/lib/api';
 
 // 토스페이먼츠 클라이언트 키(공개 키라 프론트에 노출해도 안전함) - 팀원 개인 테스트 상점의 API 개별연동 키
 const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_ma60RZblrq5vYRA526lZrwzYWBn1';
 
-// 테스트 단계 가격 - 상용화 목적이 아니라 결제 흐름 검증용이라 990원으로 둠
+// 테스트 단계 가격 - 상용화 목적이 아니라 결제 흐름 검증용이라 990원으로 둠. 백엔드 SubscriptionService의
+// MONTHLY_AMOUNT와 반드시 맞춰야 함(실제 결제 금액은 서버가 고정값으로 처리하므로 여긴 표시용).
 const PLAN = { code: 'PREMIUM_MONTHLY', label: '프리미엄 월간 구독', amount: 990 };
+
+const STATUS_LABEL = {
+  ACTIVE: { text: '구독중', color: '#4dbfa8' },
+  PAST_DUE: { text: '결제 실패', color: '#e8486b' },
+  CANCELED: { text: '해지됨', color: '#a89a9e' },
+};
+
+function formatDate(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+}
 
 // 카드 등록 인증(requestBillingAuth)이 끝나면 토스가 successUrl로 authKey/customerKey를 쿼리스트링에
 // 실어 리다이렉트한다. App.jsx가 그 쿼리스트링을 읽어서 이 모달을 다시 열고 발급을 마무리한다.
@@ -60,7 +72,35 @@ export function SubscriptionModal({ user, onClose, pendingBillingAuth }) {
     }
   };
 
+  const handleRetry = async () => {
+    setError(null);
+    setProcessing(true);
+    try {
+      const sub = await retryChargeSubscription();
+      setSubscription(sub);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!window.confirm('구독을 해지할까요? 이용 만료일까지는 계속 사용할 수 있어요.')) return;
+    setError(null);
+    setProcessing(true);
+    try {
+      const sub = await cancelSubscription();
+      setSubscription(sub);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const hasBilling = subscription?.hasBillingKey;
+  const statusInfo = subscription ? STATUS_LABEL[subscription.status] : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -75,14 +115,44 @@ export function SubscriptionModal({ user, onClose, pendingBillingAuth }) {
 
         {loading || processing ? (
           <p className="text-sm text-stone-400 text-center py-6">
-            {processing ? '카드 등록 처리 중...' : '불러오는 중...'}
+            {processing ? '처리 중...' : '불러오는 중...'}
           </p>
         ) : hasBilling ? (
-          <div className="rounded-2xl p-5 text-center" style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
-            <p className="text-sm font-bold" style={{ color: '#3d2c35' }}>{subscription.planCode}</p>
-            <p className="text-xs text-stone-400 mt-1">상태: {subscription.status}</p>
-            <p className="text-xs mt-3" style={{ color: '#4dbfa8' }}>카드 등록 완료 ✅</p>
-          </div>
+          <>
+            <div className="rounded-2xl p-5 text-center" style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
+              <p className="text-sm font-bold" style={{ color: '#3d2c35' }}>{subscription.planCode}</p>
+              <p className="text-xs font-bold mt-1" style={{ color: statusInfo?.color }}>
+                {statusInfo?.text ?? subscription.status}
+              </p>
+              {subscription.status === 'CANCELED' ? (
+                <p className="text-xs text-stone-400 mt-3">이용 만료일: {formatDate(subscription.expiresAt)}</p>
+              ) : (
+                <p className="text-xs text-stone-400 mt-3">다음 결제일: {formatDate(subscription.expiresAt)}</p>
+              )}
+            </div>
+
+            {subscription.status === 'PAST_DUE' && (
+              <div className="rounded-2xl p-4 mt-4" style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3' }}>
+                <p className="text-xs font-bold" style={{ color: '#e8486b' }}>결제에 실패했어요</p>
+                {subscription.lastPaymentError && (
+                  <p className="text-xs text-stone-500 mt-1">{subscription.lastPaymentError}</p>
+                )}
+                <button onClick={handleRetry}
+                  className="w-full mt-3 py-2.5 rounded-xl font-bold text-white text-xs transition-all hover:opacity-90"
+                  style={{ background: '#e8486b' }}>
+                  다시 결제 시도하기
+                </button>
+              </div>
+            )}
+
+            {subscription.status === 'ACTIVE' && (
+              <button onClick={handleCancel}
+                className="w-full mt-4 py-2.5 rounded-xl font-bold text-xs transition-all hover:bg-stone-50"
+                style={{ border: '1.5px solid #ffd6e0', color: '#a89a9e' }}>
+                구독 해지하기
+              </button>
+            )}
+          </>
         ) : (
           <>
             <div className="rounded-2xl p-5 mb-4" style={{ background: '#fff8f4', border: '1.5px solid #ffd6e0' }}>

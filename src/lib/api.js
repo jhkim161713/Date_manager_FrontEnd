@@ -183,10 +183,12 @@ export function issueBillingKey({ authKey, customerKey, planCode }) {
   });
 }
 
-// 발급된 빌링키로 정기결제 승인 요청 (카드 재인증 불필요)
-export function chargeSubscription({ amount, orderName }) {
-  return request('/api/subscriptions/charge', {
-    method: 'POST',
-    body: JSON.stringify({ amount, orderName }),
-  });
+// 결제 실패(PAST_DUE) 상태의 구독을 저장된 빌링키로 수동 재결제 시도 (카드 재인증 불필요)
+export function retryChargeSubscription() {
+  return request('/api/subscriptions/charge', { method: 'POST' });
+}
+
+// 구독 해지 - 이미 낸 이용 기간(expiresAt)까지는 유지되고, 이후 자동 갱신만 안 됨
+export function cancelSubscription() {
+  return request('/api/subscriptions/cancel', { method: 'POST' });
 }
