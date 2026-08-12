@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
-import { getMe, updateMe, changePassword, getMockUser, setMockUser } from '@/lib/api';
+import { Avatar } from '../components/Avatar';
+import { getMe, updateMe, changePassword, uploadProfilePhoto, getMockUser, setMockUser } from '@/lib/api';
 
+// 커플 매칭 로직이 성별 기반으로 분기하기 때문에 여기서도 "선택 안 함"은 빼고 남성/여성만 고르게 한다
+// (LoginModal 회원가입 폼, ProfileConfirmModal과 동일한 정책 - 마이페이지에서 되돌릴 수 있으면 의미 없음).
 const GENDER_OPTIONS = [
-  { value: 'UNKNOWN', label: '선택 안 함' },
   { value: 'MALE', label: '남성' },
   { value: 'FEMALE', label: '여성' },
 ];
@@ -23,6 +25,9 @@ export function MyPageTab({ onUpdated }) {
   const [pwError, setPwError] = useState(null);
   const [pwNotice, setPwNotice] = useState(null);
   const [pwOpen, setPwOpen] = useState(false);
+
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState(null);
 
   const mockUser = getMockUser();
 
@@ -73,6 +78,27 @@ export function MyPageTab({ onUpdated }) {
     }
   };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 같은 파일 다시 선택해도 onChange가 또 발생하도록 초기화
+    if (!file) return;
+    setPhotoError(null);
+    if (mockUser) {
+      setPhotoError('테스트 계정은 프로필 사진을 바꿀 수 없어요');
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const updated = await uploadProfilePhoto(file);
+      setProfile(updated);
+      onUpdated?.();
+    } catch (e) {
+      setPhotoError(e.message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const handlePasswordSave = async () => {
     setPwError(null);
     setPwNotice(null);
@@ -110,6 +136,19 @@ export function MyPageTab({ onUpdated }) {
           <p className="text-sm text-center py-6" style={{ color: '#e8486b' }}>{error}</p>
         ) : (
           <>
+            <div className="mb-5 flex items-center gap-4">
+              <Avatar profileImageUrl={profile.profileImageUrl} gender={profile.gender} size={72} />
+              <div>
+                <label className="rounded-2xl px-3 py-2 text-xs font-bold cursor-pointer inline-block transition-all hover:opacity-90"
+                  style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35' }}>
+                  {photoUploading ? '업로드 중...' : '사진 변경'}
+                  <input type="file" accept="image/*" className="hidden" disabled={photoUploading}
+                    onChange={handlePhotoChange} />
+                </label>
+                {photoError && <p className="text-xs mt-1.5" style={{ color: '#e8486b' }}>{photoError}</p>}
+              </div>
+            </div>
+
             <div className="mb-4">
               <label className="text-xs font-bold text-stone-400 mb-1.5 block">이메일</label>
               <div className="rounded-2xl px-4 py-3" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4', color: '#3d2c35' }}>

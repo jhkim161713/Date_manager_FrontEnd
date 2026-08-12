@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, signup, tryMockLogin, adminCheck } from '@/lib/api';
+import {
+  googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, signup, tryMockLogin, adminCheck,
+  checkEmailAvailable, checkNicknameAvailable, uploadProfilePhoto,
+} from '@/lib/api';
 import { SignupCarousel } from '@/components/SignupCarousel';
 
+// 커플 매칭 로직이 성별 기반으로 분기하기 때문에 "선택 안 함(UNKNOWN)"은 일부러 넣지 않는다 -
+// 소셜 로그인 첫 가입 시 뜨는 ProfileConfirmModal과 동일한 정책.
 const GENDER_OPTIONS = [
-  { value: 'UNKNOWN', label: '선택 안 함' },
   { value: 'MALE', label: '남성' },
   { value: 'FEMALE', label: '여성' },
 ];
@@ -15,9 +19,15 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
-  const [gender, setGender] = useState('UNKNOWN');
+  const [gender, setGender] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null); // 회원가입 시 선택적 업로드 - 안 골라도 가입 가능
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(initialError ?? null);
+
+  // 회원가입 화면 전용: 중복확인은 지금은 API만 먼저 열어두는 단계라 결과를 보여주기만 하고
+  // 제출을 막지는 않는다 (막는 UX 게이트는 프로젝트 막판에 켜기로 팀에서 정함)
+  const [nicknameCheck, setNicknameCheck] = useState(null); // { checking, available, message }
+  const [emailCheck, setEmailCheck] = useState(null);
 
   // 소셜로그인 페이지로 이동했다가 로그인하지 않고 뒤로가기를 누르면
   // bfcache로 인해 loading 상태가 "이동 중..."에 멈춰있는 채로 복원되므로 초기화해준다
@@ -34,6 +44,32 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
   const switchMode = (next) => {
     setMode(next);
     setError(null);
+    setNicknameCheck(null);
+    setEmailCheck(null);
+    setGender(null);
+    setPhotoFile(null);
+  };
+
+  const handleCheckNickname = async () => {
+    if (!nickname.trim()) return;
+    setNicknameCheck({ checking: true });
+    try {
+      const { available } = await checkNicknameAvailable(nickname.trim());
+      setNicknameCheck({ checking: false, available, message: available ? '사용 가능한 닉네임이에요' : '이미 사용 중인 닉네임이에요' });
+    } catch (e) {
+      setNicknameCheck({ checking: false, available: null, message: e.message });
+    }
+  };
+
+  const handleCheckEmail = async () => {
+    if (!email.trim()) return;
+    setEmailCheck({ checking: true });
+    try {
+      const { available } = await checkEmailAvailable(email.trim());
+      setEmailCheck({ checking: false, available, message: available ? '사용 가능한 이메일이에요' : '이미 가입된 이메일이에요' });
+    } catch (e) {
+      setEmailCheck({ checking: false, available: null, message: e.message });
+    }
   };
 
   // 소셜로그인은 프론트에서 API를 직접 호출하는 게 아니라, 백엔드의 OAuth2 시작 URL로
@@ -54,9 +90,19 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
         setError('이메일, 닉네임, 비밀번호를 모두 입력해주세요');
         return;
       }
+      if (!gender) {
+        setError('성별을 선택해주세요');
+        return;
+      }
       setLoading('email');
       try {
+        // signup()이 성공하면 내부적으로 토큰을 저장하므로, 그 직후 uploadProfilePhoto가
+        // 방금 만든 계정으로 인증된 상태에서 호출된다. 사진은 선택 사항이라 실패해도
+        // 가입 자체는 이미 끝난 상태이니 조용히 넘어간다(가입을 막지 않음).
         await signup({ email, nickname, gender, password });
+        if (photoFile) {
+          await uploadProfilePhoto(photoFile).catch(() => {});
+        }
         onAuthed();
         onClose();
       } catch (e) {
@@ -145,18 +191,48 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
 
           <div className="space-y-2.5">
             {isSignup && (
-              <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
-                <span className="text-sm">🌸</span>
-                <input className="flex-1 text-sm outline-none bg-transparent" placeholder="닉네임"
-                  value={nickname} onChange={e => setNickname(e.target.value)}
-                  style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <div className="flex-1 rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                    <span className="text-sm">🌸</span>
+                    <input className="flex-1 text-sm outline-none bg-transparent" placeholder="닉네임"
+                      value={nickname} onChange={e => { setNickname(e.target.value); setNicknameCheck(null); }}
+                      style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
+                  </div>
+                  <button type="button" onClick={handleCheckNickname} disabled={!nickname.trim() || nicknameCheck?.checking}
+                    className="rounded-2xl px-3 py-3 text-xs font-bold whitespace-nowrap disabled:opacity-50"
+                    style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35' }}>
+                    {nicknameCheck?.checking ? '확인 중...' : '중복확인'}
+                  </button>
+                </div>
+                {nicknameCheck?.message && (
+                  <p className="text-[11px] mt-1 px-1" style={{ color: nicknameCheck.available ? '#4dbfa8' : '#e8486b' }}>
+                    {nicknameCheck.message}
+                  </p>
+                )}
               </div>
             )}
-            <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
-              <span className="text-sm">🌷</span>
-              <input type="email" className="flex-1 text-sm outline-none bg-transparent" placeholder="이메일"
-                value={email} onChange={e => setEmail(e.target.value)}
-                style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <div className="flex-1 rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                  <span className="text-sm">🌷</span>
+                  <input type="email" className="flex-1 text-sm outline-none bg-transparent" placeholder="이메일"
+                    value={email} onChange={e => { setEmail(e.target.value); setEmailCheck(null); }}
+                    style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
+                </div>
+                {isSignup && (
+                  <button type="button" onClick={handleCheckEmail} disabled={!email.trim() || emailCheck?.checking}
+                    className="rounded-2xl px-3 py-3 text-xs font-bold whitespace-nowrap disabled:opacity-50"
+                    style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35' }}>
+                    {emailCheck?.checking ? '확인 중...' : '중복확인'}
+                  </button>
+                )}
+              </div>
+              {isSignup && emailCheck?.message && (
+                <p className="text-[11px] mt-1 px-1" style={{ color: emailCheck.available ? '#4dbfa8' : '#e8486b' }}>
+                  {emailCheck.message}
+                </p>
+              )}
             </div>
             <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
               <span className="text-sm">🔑</span>
@@ -181,6 +257,19 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {isSignup && (
+              <div>
+                <label className="text-xs font-bold text-stone-400 mb-1.5 block px-1">프로필 사진 (선택)</label>
+                <label className="rounded-2xl px-4 py-2.5 text-xs font-bold cursor-pointer flex items-center gap-2"
+                  style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4', color: '#3d2c35' }}>
+                  <span>🖼️</span>
+                  <span className="truncate">{photoFile ? photoFile.name : '사진 선택하기 (안 골라도 가입 가능)'}</span>
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} />
+                </label>
               </div>
             )}
           </div>

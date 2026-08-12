@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
+import { Avatar } from '../components/Avatar';
 import {
   COUPLE_SINK_BENEFITS,
   COUPLE_SINK_COPY,
@@ -13,7 +14,7 @@ const createInviteCode = () => {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 };
 
-export function CoupleTab() {
+export function CoupleTab({ user }) {
   const [inviteLink, setInviteLink] = useState('');
   const [feedback, setFeedback] = useState('');
 
@@ -117,7 +118,7 @@ export function CoupleTab() {
               </div>
               <div className="flex items-center justify-center gap-3">
                 <div className="text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full text-2xl" style={{ background: 'linear-gradient(145deg, #ffe1e8, #fff3f0)' }}>🧑🏻</div>
+                  <Avatar profileImageUrl={user?.profileImageUrl} gender={user?.gender} size={64} className="mx-auto" />
                   <p className="mt-2 text-xs font-extrabold" style={{ color: '#5c4651' }}>나</p>
                 </div>
                 <div className="flex min-w-20 flex-1 items-center" aria-hidden="true">

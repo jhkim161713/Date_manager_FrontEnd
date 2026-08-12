@@ -13,7 +13,8 @@ import { MyPageTab } from './tabs/MyPageTab';
 import { OnboardingTab } from './tabs/Onboardingtab';
 import { PERSONA_AXES } from './data/onboardingData';
 import { LoginModal } from './components/LoginModal';
-import { GenderPromptModal } from './components/GenderPromptModal';
+import { ProfileConfirmModal } from './components/ProfileConfirmModal';
+import { Avatar } from './components/Avatar';
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -210,7 +211,7 @@ export default function App() {
                 </button>
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
                   style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
-                  <span className="text-sm">🌷</span>
+                  <Avatar profileImageUrl={user.profileImageUrl} gender={user.gender} size={22} />
                   <span className="text-sm font-bold" style={{ color: '#3d2c35' }}>{displayName}</span>
                   <span className="text-xs text-stone-400">님</span>
                 </div>
@@ -247,7 +248,7 @@ export default function App() {
             ) : (
               <>
                 {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'couple' && <CoupleTab />}
+                {tab === 'couple' && <CoupleTab user={user} />}
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
@@ -278,9 +279,9 @@ export default function App() {
         />
       )}
 
-      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 커플 매칭을 위해 먼저 고르게 함 */}
+      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 닉네임 확인 + 성별 확정을 먼저 받음 */}
       {authChecked && user && user.gender === 'UNKNOWN' && !getMockUser() && (
-        <GenderPromptModal onDone={(updated) => setUser(updated)} />
+        <ProfileConfirmModal user={user} onDone={(updated) => setUser(updated)} />
       )}
     </div>
   );

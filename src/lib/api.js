@@ -61,6 +61,25 @@ async function request(path, options = {}) {
   return data;
 }
 
+// 프로필 사진 업로드는 파일(FormData)이라 request()의 'Content-Type: application/json'과
+// 충돌한다 - multipart/form-data는 브라우저가 boundary까지 포함해서 직접 설정해야 하므로
+// Content-Type 헤더를 아예 안 넣고(fetch가 FormData를 보면 알아서 채워줌) 별도 함수로 뺐다.
+export async function uploadProfilePhoto(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_BASE_URL}/api/me/photo`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(data?.error || `요청 실패 (${res.status})`);
+  }
+  return data;
+}
+
 export function googleLoginUrl() {
   return `${API_BASE_URL}/oauth2/authorization/google`;
 }
@@ -71,6 +90,14 @@ export function kakaoLoginUrl() {
 
 export function naverLoginUrl() {
   return `${API_BASE_URL}/oauth2/authorization/naver`;
+}
+
+export function checkEmailAvailable(email) {
+  return request(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+}
+
+export function checkNicknameAvailable(nickname) {
+  return request(`/api/auth/check-nickname?nickname=${encodeURIComponent(nickname)}`);
 }
 
 export async function signup({ email, nickname, gender, password }) {
@@ -109,18 +136,25 @@ export function changePassword({ currentPassword, newPassword }) {
   });
 }
 
+// 아래 admin* 함수들은 전부 관리자 전용 API (백엔드가 app.admin-email과 로그인 이메일을
+// 비교해서 403을 돌려줄 수 있음). 페이지네이션이 있는 곳은 page=1이 첫 페이지 - 백엔드가
+// spring.data.web.pageable.one-indexed-parameters=true라서 그렇다(0으로 보내면 안 됨).
 export function adminCheck() {
   return request('/api/admin/check');
 }
 
-export function adminListUsers({ page = 1, search = '' } = {}) {
-  const params = new URLSearchParams({ page, size: 15 });
+export function adminDashboard() {
+  return request('/api/admin/dashboard');
+}
+
+export function adminListUsers({ page = 1, search = '', filter = 'all' } = {}) {
+  const params = new URLSearchParams({ page, size: 15, filter });
   if (search.trim()) params.set('search', search.trim());
   return request(`/api/admin/users?${params.toString()}`);
 }
 
-export function adminListCouples() {
-  return request('/api/admin/couples');
+export function adminListCouples({ filter = 'all' } = {}) {
+  return request(`/api/admin/couples?filter=${filter}`);
 }
 
 export function adminUpdateUser(id, { nickname, gender }) {
@@ -143,4 +177,50 @@ export function adminUpdateCouple(id, { status }) {
 
 export function adminDeleteCouple(id) {
   return request(`/api/admin/couples/${id}`, { method: 'DELETE' });
+}
+
+export function adminListSubscriptions({ page = 1, search = '', status = 'all' } = {}) {
+  const params = new URLSearchParams({ page, size: 15, status });
+  if (search.trim()) params.set('search', search.trim());
+  return request(`/api/admin/subscriptions?${params.toString()}`);
+}
+
+export function adminCreateSubscription({ userEmail, planCode }) {
+  return request('/api/admin/subscriptions', {
+    method: 'POST',
+    body: JSON.stringify({ userEmail, planCode }),
+  });
+}
+
+export function adminUpdateSubscription(id, { planCode, status, expiresAt, paymentProvider }) {
+  return request(`/api/admin/subscriptions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ planCode, status, expiresAt, paymentProvider }),
+  });
+}
+
+export function adminDeleteSubscription(id) {
+  return request(`/api/admin/subscriptions/${id}`, { method: 'DELETE' });
+}
+
+export function adminListNotices({ page = 1, size = 10 } = {}) {
+  return request(`/api/admin/notices?page=${page}&size=${size}`);
+}
+
+export function adminCreateNotice({ title, content }) {
+  return request('/api/admin/notices', {
+    method: 'POST',
+    body: JSON.stringify({ title, content }),
+  });
+}
+
+export function adminUpdateNotice(id, { title, content }) {
+  return request(`/api/admin/notices/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ title, content }),
+  });
+}
+
+export function adminDeleteNotice(id) {
+  return request(`/api/admin/notices/${id}`, { method: 'DELETE' });
 }
