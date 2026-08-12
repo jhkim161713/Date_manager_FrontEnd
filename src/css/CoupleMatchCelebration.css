@@ -1,0 +1,354 @@
+.cmc-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 214, 224, 0.4) 30%, transparent 62%),
+    linear-gradient(135deg, rgba(255, 241, 237, 0.96), rgba(247, 239, 255, 0.96));
+  backdrop-filter: blur(6px) saturate(1.05);
+  animation: cmcCoverEnter 480ms ease-out both;
+}
+
+.cmc-cover.cmc-leaving {
+  animation: cmcCoverLeave 720ms ease-in both;
+}
+
+.cmc-stage {
+  position: relative;
+  width: min(82%, 460px);
+  height: min(82%, 380px);
+  display: grid;
+  place-items: center;
+}
+
+.cmc-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(300px, 64%, 440px);
+  height: clamp(320px, 96%, 440px);
+  transform: translate(-50%, -50%);
+}
+
+.cmc-heart {
+  position: absolute;
+  left: var(--leaf-left);
+  top: var(--leaf-top);
+  transform: translate(-50%, -50%);
+  font-size: clamp(14px, 2vw, 20px);
+  opacity: 0;
+  filter: drop-shadow(0 2px 4px rgba(232, 72, 107, 0.25));
+  animation: cmcHeartGather 820ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--leaf-delay);
+}
+
+.cmc-copy {
+  position: relative;
+  z-index: 3;
+  width: min(80%, 300px);
+  text-align: center;
+}
+
+.cmc-accepted-copy {
+  position: absolute;
+}
+
+.cmc-message {
+  margin: 0;
+}
+.cmc-message span {
+  display: block;
+}
+
+.cmc-motto {
+  font-family: 'Hi Melody', 'Gaegu', 'Nanum Pen Script', 'Malgun Gothic', sans-serif;
+  font-size: clamp(1.3rem, 4.2vw, 1.85rem);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: transparent;
+  background: linear-gradient(135deg, #ff6b8a 0%, #c4a0e8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  filter: blur(8px);
+  opacity: 0;
+}
+
+.cmc-motto.cmc-show {
+  animation: cmcMottoRise 1200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cmc-accepted-copy.cmc-fade-out {
+  transition: opacity 380ms ease;
+  opacity: 0 !important;
+}
+
+.cmc-avatar {
+  position: absolute;
+  top: 50%;
+  z-index: 6;
+  width: clamp(80px, 19vw, 108px);
+  height: clamp(80px, 19vw, 108px);
+  opacity: 0;
+}
+
+.cmc-avatar-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(2.2rem, 7vw, 3rem);
+  background: linear-gradient(145deg, #ffe1e8, #fff3f0);
+  border: 4px solid #ffffff;
+  box-shadow: 0 10px 24px rgba(232, 72, 107, 0.32);
+}
+
+.cmc-avatar-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cmc-avatar-name {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  white-space: nowrap;
+  font-family: 'Hi Melody', 'Gaegu', 'Nanum Pen Script', 'Malgun Gothic', sans-serif;
+  font-size: clamp(0.78rem, 2.4vw, 0.92rem);
+  font-weight: 400;
+  color: #7a4a56;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 3px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(232, 72, 107, 0.22);
+}
+
+.cmc-avatar--left {
+  left: 22%;
+  transform: translate(0, -50%);
+}
+
+.cmc-avatar--right {
+  right: 22%;
+  transform: translate(0, -50%);
+}
+
+.cmc-avatar--left.cmc-show {
+  animation: cmcAvatarInLeft 700ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.cmc-avatar--right.cmc-show {
+  animation: cmcAvatarInRight 700ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes cmcAvatarInLeft {
+  0% { opacity: 0; transform: translate(-40px, -50%) scale(0.7); }
+  100% { opacity: 1; transform: translate(0, -50%) scale(1); }
+}
+@keyframes cmcAvatarInRight {
+  0% { opacity: 0; transform: translate(40px, -50%) scale(0.7); }
+  100% { opacity: 1; transform: translate(0, -50%) scale(1); }
+}
+
+.cmc-waterline {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 53%;
+  z-index: 4;
+  height: 46%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 214, 224, 0.08) 26%, transparent 70%);
+  border-top: 1px solid rgba(255, 255, 255, 0.85);
+  opacity: 0;
+}
+
+.cmc-waterline.cmc-show {
+  animation: cmcWaterRecede 1500ms ease-out both;
+}
+
+.cmc-accepted-text {
+  font-family: 'Hi Melody', 'Gaegu', 'Nanum Pen Script', 'Malgun Gothic', sans-serif;
+  font-size: clamp(1.3rem, 4.2vw, 1.85rem);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: #fff6f8;
+  opacity: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), 0 10px 26px rgba(255, 138, 165, 0.35);
+}
+
+.cmc-accepted-text.cmc-show {
+  animation: cmcAcceptedRise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cmc-impact {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: min(52%, 260px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.cmc-impact::before,
+.cmc-impact::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(255, 138, 165, 0.7);
+  border-radius: 50%;
+  opacity: 0;
+  animation: cmcImpactRing 1000ms cubic-bezier(0.12, 0.8, 0.2, 1) both;
+}
+.cmc-impact::after {
+  animation-delay: 130ms;
+}
+
+.cmc-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(255, 214, 224, 0.7), transparent 46%);
+  opacity: 0;
+  animation: cmcImpactFlash 700ms ease-out both;
+}
+
+.cmc-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: rgba(30, 16, 22, 0.4);
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.cmc-scrim.cmc-show {
+  opacity: 1;
+}
+
+.cmc-skip {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 10;
+  border: 1px solid rgba(232, 72, 107, 0.25);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #8a5a68;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes cmcCoverEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cmcCoverLeave {
+  from { opacity: 1; }
+  to { opacity: 0; visibility: hidden; }
+}
+@keyframes cmcMottoRise {
+  0% { opacity: 0; filter: blur(12px); transform: translateY(44px) scaleY(0.9); letter-spacing: 0.2em; }
+  55% { opacity: 0.62; filter: blur(3px); }
+  78% { transform: translateY(-3px) scaleY(1.02); }
+  100% { opacity: 1; filter: blur(0); transform: translateY(0) scaleY(1); letter-spacing: 0.12em; }
+}
+@keyframes cmcWaterRecede {
+  0% { opacity: 0.84; transform: translateY(36px) skewY(-1.5deg); }
+  75% { opacity: 0.35; }
+  100% { opacity: 0; transform: translateY(-92px) skewY(1deg); }
+}
+@keyframes cmcAcceptedRise {
+  0% { opacity: 0; filter: blur(8px); transform: translateY(46px) scale(0.9); }
+  64% { opacity: 1; filter: blur(0); transform: translateY(-5px) scale(1.04); }
+  100% { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
+}
+@keyframes cmcImpactRing {
+  0% { opacity: 0.94; transform: scale(0.15); box-shadow: 0 0 38px rgba(255, 225, 120, 0.8); }
+  100% { opacity: 0; transform: scale(1.42); box-shadow: 0 0 0 rgba(255, 225, 120, 0); }
+}
+@keyframes cmcImpactFlash {
+  0% { opacity: 0; } 14% { opacity: 1; } 100% { opacity: 0; }
+}
+@keyframes cmcHeartGather {
+  0% { opacity: 0; filter: blur(6px); transform: translate(calc(-50% + var(--leaf-from-x)), calc(-50% + var(--leaf-from-y))) rotate(calc(var(--leaf-rotation) * 0.4)) scale(0.3); }
+  70% { opacity: 1; filter: blur(0); transform: translate(-50%, -50%) rotate(0deg) scale(1.25); }
+  100% { opacity: 1; filter: blur(0); transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+}
+
+/* 좁은 폰 화면(안드로이드 등)에서는 하트 링/아바타/텍스트가 서로 너무 가까이 붙어 보여서
+   각 요소 사이 여백을 조금 더 넓게 잡는다. */
+@media (max-width: 480px) {
+  .cmc-stage {
+    width: min(92%, 460px);
+    height: min(90%, 460px);
+  }
+
+  .cmc-ring {
+    /* 하트 배치 좌표(sin/cos)가 원을 기준으로 계산되므로, width/height를 다른 기준(가로%, 세로%)으로 잡으면
+       타원처럼 보인다. 두 값을 같은 vw 기준으로 맞춰서 정원 형태를 유지한다. */
+    width: clamp(260px, 53vw, 380px);
+    height: clamp(260px, 53vw, 380px);
+  }
+
+  .cmc-heart {
+    font-size: clamp(11px, 1.6vw, 16px);
+  }
+
+  .cmc-avatar {
+    width: clamp(68px, 16vw, 96px);
+    height: clamp(68px, 16vw, 96px);
+  }
+
+  .cmc-avatar--left {
+    left: 13%;
+  }
+
+  .cmc-avatar--right {
+    right: 13%;
+  }
+
+  .cmc-avatar-name {
+    margin-top: 12px;
+  }
+
+  .cmc-copy {
+    width: min(88%, 300px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmc-cover,
+  .cmc-cover.cmc-leaving,
+  .cmc-motto.cmc-show,
+  .cmc-avatar--left.cmc-show,
+  .cmc-avatar--right.cmc-show,
+  .cmc-waterline.cmc-show,
+  .cmc-accepted-text.cmc-show,
+  .cmc-impact::before,
+  .cmc-impact::after,
+  .cmc-flash,
+  .cmc-heart {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

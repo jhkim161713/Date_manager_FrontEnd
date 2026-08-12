@@ -129,6 +129,11 @@ export function updateMe({ nickname, gender }) {
   });
 }
 
+// 날씨는 백엔드가 기상청 API를 대신 호출해서 가공한 결과만 내려줌 (인증키는 프론트에 노출 안 됨)
+export function getWeather(lat, lon) {
+  return request(`/api/weather?lat=${lat}&lon=${lon}`);
+}
+
 export function changePassword({ currentPassword, newPassword }) {
   return request('/api/me/password', {
     method: 'PUT',
@@ -223,4 +228,24 @@ export function adminUpdateNotice(id, { title, content }) {
 
 export function adminDeleteNotice(id) {
   return request(`/api/admin/notices/${id}`, { method: 'DELETE' });
+}
+
+// 커플 초대 링크 생성 (24시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
+export function createCoupleInvite() {
+  return request('/api/couple/invite', { method: 'POST' });
+}
+
+// 초대 링크의 토큰으로 수락 -> 성공하면 실제 Couple/CoupleMember가 생성됨
+export function acceptCoupleInvite(token) {
+  return request(`/api/couple/invite/${token}/accept`, { method: 'POST' });
+}
+
+// 내 커플 연결 상태 + 상대방 정보 조회
+export function getCoupleStatus() {
+  return request('/api/couple/status');
+}
+
+// 커플 연결 해제
+export function disconnectCouple() {
+  return request('/api/couple', { method: 'DELETE' });
 }
