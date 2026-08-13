@@ -311,11 +311,16 @@ export function createAiChatSession(title) {
   });
 }
 
-// 메시지 보내고 AI 응답 받기 - 세션의 지난 대화 전체를 백엔드가 기억해서 문맥 있는 답을 줌
-export function sendAiChatMessage(sessionId, text) {
+// 메시지 보내고 AI 응답 받기 - 세션의 지난 대화 전체를 백엔드가 기억해서 문맥 있는 답을 줌.
+// lat/lon은 선택값 - 위치 권한이 없으면 안 보내도 되고, 그 경우 백엔드는 날씨 없이 현재 시각만 참고한다.
+export function sendAiChatMessage(sessionId, text, { lat, lon } = {}) {
   return request(`/api/aichat/sessions/${sessionId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      text,
+      lat: lat != null ? String(lat) : undefined,
+      lon: lon != null ? String(lon) : undefined,
+    }),
   });
 }
 
