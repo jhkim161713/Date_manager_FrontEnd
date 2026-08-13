@@ -141,6 +141,12 @@ export function changePassword({ currentPassword, newPassword }) {
   });
 }
 
+// 회원 자진 탈퇴 (soft-delete). 서버는 상태만 바꾸고 세션을 무효화하지 않으므로,
+// 성공 후 프론트에서 직접 토큰을 지워야 실제로 로그아웃된다.
+export function withdrawMe() {
+  return request('/api/me', { method: 'DELETE' });
+}
+
 // 아래 admin* 함수들은 전부 관리자 전용 API (백엔드가 app.admin-email과 로그인 이메일을
 // 비교해서 403을 돌려줄 수 있음). 페이지네이션이 있는 곳은 page=1이 첫 페이지 - 백엔드가
 // spring.data.web.pageable.one-indexed-parameters=true라서 그렇다(0으로 보내면 안 됨).
@@ -152,8 +158,8 @@ export function adminDashboard() {
   return request('/api/admin/dashboard');
 }
 
-export function adminListUsers({ page = 1, search = '', filter = 'all' } = {}) {
-  const params = new URLSearchParams({ page, size: 15, filter });
+export function adminListUsers({ page = 1, search = '', field = 'email', filter = 'all' } = {}) {
+  const params = new URLSearchParams({ page, size: 15, field, filter });
   if (search.trim()) params.set('search', search.trim());
   return request(`/api/admin/users?${params.toString()}`);
 }
@@ -248,6 +254,15 @@ export function getCoupleStatus() {
 // 커플 연결 해제
 export function disconnectCouple() {
   return request('/api/couple', { method: 'DELETE' });
+}
+
+// 실제로 처음 만난 날짜 등록/수정 (이 사이트에서 연결된 날짜인 connectedAt과는 별개 값).
+// metDate를 null로 보내면 등록을 취소(초기화)한다.
+export function updateMetDate(metDate) {
+  return request('/api/couple/met-date', {
+    method: 'PUT',
+    body: JSON.stringify({ metDate }),
+  });
 }
 
 // 내 구독 상태 조회 (구독 없으면 { hasSubscription: false })

@@ -18,6 +18,7 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [nickname, setNickname] = useState('');
   const [gender, setGender] = useState(null);
   const [photoFile, setPhotoFile] = useState(null); // 회원가입 시 선택적 업로드 - 안 골라도 가입 가능
@@ -48,6 +49,7 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
     setEmailCheck(null);
     setGender(null);
     setPhotoFile(null);
+    setPasswordConfirm('');
   };
 
   const handleCheckNickname = async () => {
@@ -94,6 +96,10 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
         setError('성별을 선택해주세요');
         return;
       }
+      if (password !== passwordConfirm) {
+        setError('비밀번호가 일치하지 않습니다');
+        return;
+      }
       setLoading('email');
       try {
         // signup()이 성공하면 내부적으로 토큰을 저장하므로, 그 직후 uploadProfilePhoto가
@@ -126,10 +132,14 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
         return;
       }
       await login({ email, password });
-      // 관리자 계정으로 로그인한 경우 메인 앱 대신 바로 관리자 페이지로 이동
+      // 관리자 계정으로 로그인한 경우 메인 앱 대신 바로 관리자 페이지로 이동.
+      // href 대신 replace를 쓰는 이유: href는 현재 '/'(로그인 전 상태) 페이지를 히스토리에
+      // 그대로 남겨두는데, 뒤로가기를 누르면 그 로그인 전 스냅샷이 되살아나 실제로는
+      // 로그인된 상태인데도 로그아웃된 것처럼 보였다. replace는 그 항목 자체를 지우고
+      // '/admin'으로 바꿔치기하므로 뒤로가기로는 그 스냅샷에 아예 도달할 수 없게 된다.
       const { isAdmin } = await adminCheck().catch(() => ({ isAdmin: false }));
       if (isAdmin) {
-        window.location.href = '/admin';
+        window.location.replace('/admin');
         return;
       }
       onAuthed();
@@ -145,11 +155,19 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(61,44,53,0.45)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}>
-      <div className={`rounded-3xl w-full overflow-hidden ${isSignup ? 'max-w-xs md:max-w-3xl md:grid md:grid-cols-2' : 'max-w-xs'}`}
-        style={{ background: 'white', boxShadow: '0 20px 60px rgba(255,107,138,0.18)' }}
-        onClick={e => e.stopPropagation()}>
+      style={{ background: 'rgba(61,44,53,0.45)', backdropFilter: 'blur(4px)' }}>
+      <div className={`relative rounded-3xl w-full overflow-hidden ${isSignup ? 'max-w-xs md:max-w-3xl md:grid md:grid-cols-2' : 'max-w-xs'}`}
+        style={{ background: 'white', boxShadow: '0 20px 60px rgba(255,107,138,0.18)' }}>
+        {/* 배경 클릭으로는 안 닫히고, 이 버튼을 눌러야만 닫힘 (입력 중이던 내용이 실수로 날아가는 걸 방지) */}
+        {/* 회원가입 화면은 오른쪽에 캐러셀 이미지가 깔려서 배경색과 섞이기 쉬우므로,
+            투명 대신 흰 배경을 줘서 눈에 띄게 한다 (로그인 화면은 배경이 단순해서 기존 투명 유지) */}
+        <button onClick={onClose} aria-label="닫기"
+          className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all ${isSignup ? 'hover:opacity-80' : 'hover:bg-black/5'}`}
+          style={isSignup
+            ? { background: 'white', color: '#3d2c35', boxShadow: '0 2px 8px rgba(61,44,53,0.18)' }
+            : { color: '#a89aa0' }}>
+          ✕
+        </button>
         <div className="p-7">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl mx-auto mb-2"
             style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' }}>💕</div>
@@ -240,6 +258,22 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
                 value={password} onChange={e => setPassword(e.target.value)}
                 style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
             </div>
+
+            {isSignup && (
+              <div>
+                <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                  <span className="text-sm">🔑</span>
+                  <input type="password" className="flex-1 text-sm outline-none bg-transparent" placeholder="비밀번호 확인"
+                    value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)}
+                    style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
+                </div>
+                {passwordConfirm && (
+                  <p className="text-[11px] mt-1 px-1" style={{ color: password === passwordConfirm ? '#4dbfa8' : '#e8486b' }}>
+                    {password === passwordConfirm ? '비밀번호가 일치합니다' : '비밀번호가 일치하지 않습니다'}
+                  </p>
+                )}
+              </div>
+            )}
 
             {isSignup && (
               <div>

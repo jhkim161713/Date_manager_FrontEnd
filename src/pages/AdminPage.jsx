@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { adminCheck, getMockUser } from '@/lib/api';
+import { adminCheck, clearMockUser, clearToken, getMockUser } from '@/lib/api';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUserDirectory } from '@/pages/admin/AdminUserDirectory';
 import { AdminCoupleDirectory } from '@/pages/admin/AdminCoupleDirectory';
@@ -49,6 +49,16 @@ export function AdminPage() {
     })();
   }, []);
 
+  // 뒤로가기로는 로그아웃되지 않고, 이 버튼을 눌러야만 실제로 로그아웃된다(토큰 삭제 후 메인으로 이동).
+  // href 대신 replace를 쓰는 이유: href로 남겨두면 뒤로가기를 눌렀을 때 로그아웃 전(관리자
+  // 화면이 정상 표시되던) '/admin' 스냅샷이 bfcache로 되살아나, 실제로는 토큰이 지워졌는데도
+  // 화면만 로그인된 것처럼 보이는 반대 방향의 혼동이 생길 수 있다.
+  const handleLogout = () => {
+    clearToken();
+    clearMockUser();
+    window.location.replace('/');
+  };
+
   if (status === 'checking') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#fff8f4' }}>
@@ -76,7 +86,7 @@ export function AdminPage() {
           <span className="text-xl">💕</span>
           <span className="font-display font-bold text-sm" style={{ color: '#3d2c35' }}>DM 관리자</span>
         </div>
-        <nav className="flex flex-col gap-1 px-3">
+        <nav className="flex flex-col gap-1 px-3 flex-1">
           {NAV_ITEMS.map(item => (
             <button key={item.id} onClick={() => setNav(item.id)}
               className="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-sm font-bold text-left transition-all"
@@ -94,7 +104,15 @@ export function AdminPage() {
       {/* Main content */}
       <div className="flex-1 p-4 md:p-8 overflow-x-hidden">
         <div className="max-w-5xl mx-auto">
-          <h1 className="font-display font-bold text-2xl mb-6" style={{ color: '#3d2c35' }}>{PAGE_TITLE[nav]}</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="font-display font-bold text-2xl" style={{ color: '#3d2c35' }}>{PAGE_TITLE[nav]}</h1>
+            <button onClick={handleLogout}
+              className="flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all hover:opacity-80"
+              style={{ border: '1.5px solid #ffd6e0', color: '#a89aa0' }}>
+              <span>🚪</span>
+              <span>로그아웃</span>
+            </button>
+          </div>
           {nav === 'dashboard' && <AdminDashboard />}
           {nav === 'users' && <AdminUserDirectory />}
           {nav === 'couples' && <AdminCoupleDirectory />}

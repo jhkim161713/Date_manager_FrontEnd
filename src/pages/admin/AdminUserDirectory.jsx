@@ -12,6 +12,7 @@ export function AdminUserDirectory() {
   const [userPage, setUserPage] = useState(1);
   const [userTotalPages, setUserTotalPages] = useState(1);
   const [userTotalElements, setUserTotalElements] = useState(0);
+  const [searchField, setSearchField] = useState('email'); // 'email' | 'nickname' - 게시판 제목/작성자처럼 검색 대상을 먼저 고름
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [usersLoading, setUsersLoading] = useState(false);
@@ -22,10 +23,10 @@ export function AdminUserDirectory() {
   const [editGender, setEditGender] = useState('UNKNOWN');
   const [savingUser, setSavingUser] = useState(false);
 
-  const loadUsers = async (page, search, filter) => {
+  const loadUsers = async (page, search, field, filter) => {
     setUsersLoading(true);
     try {
-      const data = await adminListUsers({ page, search, filter });
+      const data = await adminListUsers({ page, search, field, filter });
       setUsers(data.content);
       setUserTotalPages(data.totalPages || 1);
       setUserTotalElements(data.totalElements ?? data.content.length);
@@ -38,31 +39,31 @@ export function AdminUserDirectory() {
   };
 
   useEffect(() => {
-    loadUsers(1, '', 'free');
+    loadUsers(1, '', 'email', 'free');
   }, []);
 
   const switchUserFilter = (filter) => {
     setUserFilter(filter);
     setSearchInput('');
     setSearchQuery('');
-    loadUsers(1, '', filter);
+    loadUsers(1, '', searchField, filter);
   };
 
   const submitSearch = (e) => {
     e.preventDefault();
     setSearchQuery(searchInput);
-    loadUsers(1, searchInput, userFilter);
+    loadUsers(1, searchInput, searchField, userFilter);
   };
 
   const clearSearch = () => {
     setSearchInput('');
     setSearchQuery('');
-    loadUsers(1, '', userFilter);
+    loadUsers(1, '', searchField, userFilter);
   };
 
   const goToPage = (page) => {
     if (page < 1 || page > userTotalPages) return;
-    loadUsers(page, searchQuery, userFilter);
+    loadUsers(page, searchQuery, searchField, userFilter);
   };
 
   const startEditUser = (u) => {
@@ -87,7 +88,7 @@ export function AdminUserDirectory() {
       // 로컬 배열을 직접 patch하지 않고 현재 페이지를 다시 불러온다 - 필터가 바뀔 여지가
       // 없는 편집이라 지금은 큰 의미 없어 보이지만, 총 인원수(userTotalElements) 등
       // 서버 계산값과 어긋나지 않게 항상 서버 응답을 신뢰하는 편이 안전하다.
-      await loadUsers(userPage, searchQuery, userFilter);
+      await loadUsers(userPage, searchQuery, searchField, userFilter);
     } catch (e) {
       setActionError(e.message);
     } finally {
@@ -105,7 +106,7 @@ export function AdminUserDirectory() {
       // 지금 페이지의 마지막 1명을 탈퇴시킨 경우, 그대로 두면 빈 페이지가 보이므로
       // 자연스럽게 이전 페이지로 이동시킨다 (2페이지 이상 있을 때만 해당).
       const nextPage = users.length === 1 && userPage > 1 ? userPage - 1 : userPage;
-      await loadUsers(nextPage, searchQuery, userFilter);
+      await loadUsers(nextPage, searchQuery, searchField, userFilter);
     } catch (e) {
       setActionError(e.message);
     }
@@ -130,9 +131,14 @@ export function AdminUserDirectory() {
           </div>
         </div>
         <form onSubmit={submitSearch} className="flex items-center gap-1.5">
+          <select value={searchField} onChange={e => setSearchField(e.target.value)}
+            className="text-xs px-2 py-1.5 rounded-xl" style={{ border: '1.5px solid #ffd6e0' }}>
+            <option value="email">이메일</option>
+            <option value="nickname">닉네임</option>
+          </select>
           <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
-            placeholder="이메일 또는 닉네임 검색"
-            className="text-xs px-3 py-1.5 rounded-xl w-48" style={{ border: '1.5px solid #ffd6e0' }} />
+            placeholder={searchField === 'email' ? '이메일 검색' : '닉네임 검색'}
+            className="text-xs px-3 py-1.5 rounded-xl w-40" style={{ border: '1.5px solid #ffd6e0' }} />
           <button type="submit"
             className="rounded-xl px-3 py-1.5 text-xs font-bold text-white"
             style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' }}>검색</button>

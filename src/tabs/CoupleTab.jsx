@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { Avatar, avatarSrc } from '../components/Avatar';
 import { CoupleMatchCelebration } from '../components/CoupleMatchCelebration';
-import { createCoupleInvite, acceptCoupleInvite, getCoupleStatus, disconnectCouple } from '../lib/api';
+import { createCoupleInvite, acceptCoupleInvite, getCoupleStatus, disconnectCouple, updateMetDate } from '../lib/api';
 import {
   COUPLE_SINK_BENEFITS,
   COUPLE_SINK_COPY,
@@ -11,14 +11,30 @@ import {
 
 const opposite = (gender) => (gender === 'MALE' ? 'FEMALE' : 'MALE');
 
+// "며칠째"는 자정 기준 날짜 차이 + 1(만난 당일을 1일째로 침) - MyPageTab의 daysSince와 동일한 계산.
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const start = new Date(dateStr);
+  const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  return Math.floor((todayMidnight - startMidnight) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
 export function CoupleTab({ user }) {
   const [inviteLink, setInviteLink] = useState('');
   const [feedback, setFeedback] = useState('');
   const [showMatchCelebration, setShowMatchCelebration] = useState(false);
-  const [status, setStatus] = useState({ loading: true, linked: false, partner: null });
+  const [status, setStatus] = useState({ loading: true, linked: false, partner: null, metDate: null });
   const [acceptToken, setAcceptToken] = useState('');
   const [accepting, setAccepting] = useState(false);
   const [creatingInvite, setCreatingInvite] = useState(false);
+
+  const [metDateInput, setMetDateInput] = useState('');
+  const [metDateSaving, setMetDateSaving] = useState(false);
+  const [metDateError, setMetDateError] = useState('');
 
   const showFeedback = (message) => {
     setFeedback(message);
@@ -28,15 +44,30 @@ export function CoupleTab({ user }) {
   const loadStatus = async () => {
     try {
       const data = await getCoupleStatus();
-      setStatus({ loading: false, linked: data.linked, partner: data.partner });
+      setStatus({ loading: false, linked: data.linked, partner: data.partner, metDate: data.metDate });
+      setMetDateInput(data.metDate || '');
     } catch (error) {
-      setStatus({ loading: false, linked: false, partner: null });
+      setStatus({ loading: false, linked: false, partner: null, metDate: null });
     }
   };
 
   useEffect(() => {
     loadStatus();
   }, []);
+
+  const handleSaveMetDate = async () => {
+    setMetDateError('');
+    setMetDateSaving(true);
+    try {
+      await updateMetDate(metDateInput || null);
+      setStatus(s => ({ ...s, metDate: metDateInput || null }));
+      showFeedback(metDateInput ? '만난 날짜를 저장했어요' : '만난 날짜를 초기화했어요');
+    } catch (error) {
+      setMetDateError(error.message || '저장하지 못했어요');
+    } finally {
+      setMetDateSaving(false);
+    }
+  };
 
   const makeInviteLink = async () => {
     setCreatingInvite(true);
@@ -202,11 +233,41 @@ export function CoupleTab({ user }) {
                 </div>
               </div>
               {status.linked ? (
-                <button type="button" onClick={handleDisconnect}
-                  className="mt-6 w-full rounded-xl py-2.5 text-[11px] font-extrabold"
-                  style={{ background: '#f7f2fb', color: '#9a75bb' }}>
-                  연결 해제하기
-                </button>
+                <>
+                  <div className="mt-5">
+                    <label className="block text-[10px] font-extrabold mb-1.5" style={{ color: '#6d5662' }}>만난 날짜</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={metDateInput}
+                        max={todayStr()}
+                        onChange={e => setMetDateInput(e.target.value)}
+                        className="min-w-0 flex-1 rounded-xl px-3 py-2 text-xs font-semibold outline-none"
+                        style={{ border: '1.5px solid #f0dbe1', background: 'white', color: '#5c4651' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveMetDate}
+                        disabled={metDateSaving || metDateInput === (status.metDate || '')}
+                        className="flex-shrink-0 rounded-xl px-3 py-2 text-[11px] font-extrabold text-white transition-all disabled:opacity-50"
+                        style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)' }}
+                      >
+                        {metDateSaving ? '저장 중' : '저장'}
+                      </button>
+                    </div>
+                    {status.metDate && (
+                      <p className="mt-1.5 text-[11px] font-bold" style={{ color: '#e8486b' }}>
+                        만난 지 {daysSince(status.metDate)}일째 💗
+                      </p>
+                    )}
+                    {metDateError && <p className="mt-1 text-[10px]" style={{ color: '#e8486b' }}>{metDateError}</p>}
+                  </div>
+                  <button type="button" onClick={handleDisconnect}
+                    className="mt-4 w-full rounded-xl py-2.5 text-[11px] font-extrabold"
+                    style={{ background: '#f7f2fb', color: '#9a75bb' }}>
+                    연결 해제하기
+                  </button>
+                </>
               ) : (
                 <p className="mt-6 text-center text-[11px] leading-5" style={{ color: '#a28d97' }}>
                   상대가 링크를 열고 초대를 수락하면<br />둘만의 커플 공간이 열려요.

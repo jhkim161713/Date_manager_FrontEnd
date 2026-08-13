@@ -99,6 +99,20 @@ export default function App() {
       .catch(() => { clearToken(); setUser(null); return null; });
   }, []);
 
+  // 관리자 로그인 시 이 페이지는 onAuthed()를 호출하지 않은 채(user=null인 상태로)
+  // /admin으로 이동한다. 그 뒤 브라우저 뒤로가기를 누르면 bfcache가 그 당시의 user=null
+  // 스냅샷을 그대로 복원해서 실제로는 로그인돼 있는데도 로그아웃된 것처럼 보인다.
+  // pageshow(persisted)로 복원을 감지해서 실제 로그인 상태를 다시 확인해준다.
+  useEffect(() => {
+    const handlePageShow = (event) => {
+      if (event.persisted) {
+        loadUser();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, [loadUser]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthToken = params.get('token');
@@ -114,10 +128,12 @@ export default function App() {
       if (oauthToken) {
         setToken(oauthToken);
         window.history.replaceState({}, '', window.location.pathname);
-        // 소셜 로그인으로 들어온 계정이 관리자 계정이면 메인 앱 대신 관리자 페이지로 이동
+        // 소셜 로그인으로 들어온 계정이 관리자 계정이면 메인 앱 대신 관리자 페이지로 이동.
+        // replace를 쓰는 이유는 LoginModal의 관리자 리다이렉트와 동일 - href로 남겨두면
+        // 뒤로가기 시 로그인 전 스냅샷이 되살아나 로그아웃된 것처럼 보이는 문제가 생긴다.
         const { isAdmin } = await adminCheck().catch(() => ({ isAdmin: false }));
         if (isAdmin) {
-          window.location.href = '/admin';
+          window.location.replace('/admin');
           return;
         }
       }
@@ -416,7 +432,10 @@ export default function App() {
                   />
                 )}
                 {tab === 'tendency' && <TendencyTab />}
-                {tab === 'mypage' && <MyPageTab onUpdated={loadUser} />}
+                {tab === 'mypage' && (
+                  <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
+                    onWithdrawn={() => { handleLogout(); changeTab('home', false); }} />
+                )}
               </>
             )}
           </div>
