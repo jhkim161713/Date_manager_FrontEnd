@@ -187,7 +187,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
                   </div>
                 </div>
                 <div className="p-3 flex flex-col justify-center flex-1 text-center">
-                  <Badge color={axis.color} bg={`${axis.color}15`}>{axis.label} 매칭</Badge>
+                  <Badge color={axis.color} bg={`${axis.color}15`}>{axis.koreanLabel} 매칭</Badge>
                   <p className="font-bold text-sm mt-1.5 leading-tight truncate" style={{ color: '#3d2c35' }}>
                     {place.name}
                   </p>
@@ -211,7 +211,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
                 <span className="text-3xl opacity-40">⏳</span>
               </div>
               <div className="p-3 flex flex-col justify-center flex-1 text-center">
-                <Badge color={pacingAxis.color} bg={`${pacingAxis.color}15`}>{pacingAxis.label} 매칭</Badge>
+                <Badge color={pacingAxis.color} bg={`${pacingAxis.color}15`}>{pacingAxis.koreanLabel} 매칭</Badge>
                 <p className="font-bold text-sm mt-1.5 leading-tight" style={{ color: '#3d2c35' }}>
                   준비 중이에요
                 </p>
