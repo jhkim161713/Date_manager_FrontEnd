@@ -3,16 +3,26 @@
   flex-shrink: 0;
   align-items: center;
   gap: 1rem;
-  padding: 0.625rem 1.5rem;
+  padding-block: 0.625rem;
+  /* Tailwind md:px-8 클래스를 같이 줬는데도 실측(개발자도구)에서 본문(32px)과 안 맞고 16px로
+     나와서, 원인 규명 대신 실측값 기준으로 명시적 미디어쿼리로 직접 맞춤(2026-08-13). */
+  padding-inline: 1rem;
   background: rgba(255, 248, 244, 0.97);
   border-bottom: 1.5px solid #ffd6e0;
   backdrop-filter: blur(8px);
+}
+
+@media (min-width: 768px) {
+  .app-topbar {
+    padding-inline: 2rem;
+  }
 }
 
 .app-persona-row {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 44px; /* 비로그인 시 내용이 비어도 헤더 높이가 로그인 상태와 동일하게 유지되도록 */
   align-items: center;
   gap: 0.5rem;
 }
@@ -25,7 +35,9 @@
   display: grid;
   flex: 1 1 auto;
   min-width: 0;
-  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  /* 화살표 버튼이 렌더링 안 되면(스크롤 불필요) 이 칸이 0으로 줄어들도록 auto로 둠 -
+     고정 28px면 버튼이 없어도 빈 칸이 그대로 남아 카드 줄이 밀려 보임(2026-08-13). */
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.25rem;
 }
@@ -103,21 +115,12 @@
 }
 
 @media (max-width: 1199px) {
+  /* 예전엔 헤더 전체를 두 줄로 줄바꿈(flex-wrap:wrap)했는데, 성향 줄이 억지로 다음 줄에 끼어
+     들어가면서 찌그러져 보이는 문제가 있었음. 한 줄을 유지하고 카드 트랙 자체가 화살표로
+     좌우 스크롤하도록 바꿈(2026-08-13) - .app-profile-actions는 고정폭, .app-persona-row가
+     남는 공간만큼 줄어들고 그 안에서 스크롤됨. */
   .app-topbar {
-    flex-wrap: wrap;
-    align-items: stretch;
-    gap: 0.45rem 0.75rem;
     padding-block: 0.55rem;
-  }
-
-  .app-persona-row {
-    flex: 1 0 100%;
-    order: 1;
-  }
-
-  .app-profile-actions {
-    order: 2;
-    margin-left: auto;
   }
 
   .app-persona-axis {
@@ -126,14 +129,6 @@
 }
 
 @media (max-width: 720px) {
-  .app-topbar {
-    padding-inline: 0.75rem;
-  }
-
-  .app-persona-slider {
-    grid-template-columns: 26px minmax(0, 1fr) 26px;
-  }
-
   .app-persona-arrow {
     width: 26px;
     height: 26px;
@@ -142,11 +137,6 @@
   .app-persona-axis {
     flex-basis: 78px;
     padding-inline: 0.5rem !important;
-  }
-
-  .app-profile-actions {
-    width: 100%;
-    justify-content: flex-end;
   }
 
   .app-profile-name {

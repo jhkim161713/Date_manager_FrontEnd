@@ -5,7 +5,6 @@ import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck } from '@/lib/api';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
-import { TendencyTab } from './tabs/TendencyTab';
 import { MiniCalendar } from './components/MiniCalendar';
 import { BuilderTab } from './tabs/BuilderTab';
 import { CuriationTab } from './tabs/CurationTab';
@@ -17,6 +16,9 @@ import { LoginModal } from './components/LoginModal';
 import { ProfileConfirmModal } from './components/ProfileConfirmModal';
 import { Avatar } from './components/Avatar';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { PlaceStyleDebugTab } from './tabs/PlaceStyleDebugTab';
+import { AiChatTab } from './tabs/AiChatTab';
+import { BoardTab } from './tabs/BoardTab';
 
 // 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
 const MOBILE_NAV_TABS = [
@@ -56,6 +58,13 @@ export default function App() {
   // 탭을 변경할 때 브라우저 history 상태도 함께 push
   const changeTab = (newTab, pushHistory = true) => {
     if (newTab === tab) return;
+    // 성향테스트는 나중에 없어질 수도 있는 기능이라 탭 자체(nav 항목)는 그대로 두되, 누르면
+    // 브라우저 기본 alert()로 "준비중입니다"만 띄우고 실제 이동은 막음. 목업 데이터로만 동작하던
+    // 탭이라 TendencyTab.jsx/tendencyData.js는 삭제함(2026-08-13).
+    if (newTab === 'tendency') {
+      window.alert('준비중입니다');
+      return;
+    }
     setTab(newTab);
     if (pushHistory) {
       window.history.pushState({ tab: newTab }, '', `#${newTab}`);
@@ -279,31 +288,30 @@ export default function App() {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Top bar */}
+        {/* Top bar - 좌우 여백은 App.css의 .app-topbar에서 직접 관리(실측 기준, 2026-08-13) */}
         <header className="app-topbar">
 
           {/* ── 6대 성향 게이지 (PERSONA_AXES 동적 바인딩) ── */}
+          {/* 비로그인 상태에서는 의미 없는 중립값(50점)만 보여서 내용은 숨기지만, 이 div의
+              flex:1이 로그인 버튼을 오른쪽으로 밀어내는 역할도 하고 있어 div 자체는 남겨둔다. */}
+          {!user ? (
+            <div className="app-persona-row" />
+          ) : (
           <div className="app-persona-row">
-            <button
-              type="button"
-              onClick={() => changeTab('onboarding')}
-              className="app-persona-label rounded-full px-2 py-1 text-[10px] font-bold transition-all hover:scale-105"
-              style={{ background: '#fff0f3', color: '#ff6b8a', border: 'none', cursor: 'pointer' }}
-              title="성향 테스트 다시 하기"
-            >
-              💡 성향
-            </button>
-
             <div className="app-persona-slider">
-              <button
-                type="button"
-                className="app-persona-arrow"
-                onClick={() => scrollPersonaAxes(-1)}
-                disabled={!personaScrollState.left}
-                aria-label="이전 성향 보기"
-              >
-                ‹
-              </button>
+              {/* 화면이 넓어서 6개 카드가 다 보이면(스크롤할 게 없으면) 화살표를 아예 안 그림 -
+                  예전엔 disabled로 흐리게만 처리해서, 큰 화면에서도 쓸모없는 작은 화살표가 계속
+                  왼쪽 기준점처럼 남아있어 다른 요소와 정렬이 어긋나 보이는 원인이 됐었음(2026-08-13). */}
+              {personaScrollState.left && (
+                <button
+                  type="button"
+                  className="app-persona-arrow"
+                  onClick={() => scrollPersonaAxes(-1)}
+                  aria-label="이전 성향 보기"
+                >
+                  ‹
+                </button>
+              )}
 
               <div
                 ref={personaScrollerRef}
@@ -352,17 +360,19 @@ export default function App() {
                 })}
               </div>
 
-              <button
-                type="button"
-                className="app-persona-arrow"
-                onClick={() => scrollPersonaAxes(1)}
-                disabled={!personaScrollState.right}
-                aria-label="다음 성향 보기"
-              >
-                ›
-              </button>
+              {personaScrollState.right && (
+                <button
+                  type="button"
+                  className="app-persona-arrow"
+                  onClick={() => scrollPersonaAxes(1)}
+                  aria-label="다음 성향 보기"
+                >
+                  ›
+                </button>
+              )}
             </div>
           </div>
+          )}
 
           {/* ── Login / Profile ── */}
           <div className="app-profile-actions">
@@ -431,7 +441,9 @@ export default function App() {
                     onSkip={() => changeTab('home')}
                   />
                 )}
-                {tab === 'tendency' && <TendencyTab />}
+                {tab === 'aichat' && <AiChatTab />}
+                {tab === 'board' && <BoardTab />}
+                {tab === 'placeDebug' && <PlaceStyleDebugTab />}
                 {tab === 'mypage' && (
                   <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
                     onWithdrawn={() => { handleLogout(); changeTab('home', false); }} />
