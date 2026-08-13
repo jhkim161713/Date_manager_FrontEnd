@@ -1,17 +1,19 @@
+// 숙박은 데이트(패시브/액티브)와 컨셉이 달라 색을 구분하되, 완전히 새 색 대신 앱 브랜드
+// 퍼플을 그대로 쓴다. 카테고리 4개도 큐레이션 탭과 같은 이유로 숙박 대표색 하나로 통일(2026-08-13).
 export const STAY_HERO = {
   label: 'STAY CURATION',
   emoji: '🌙',
   title: '데이트의 여운을 이어가는 숙박',
   description: '우리의 일정과 취향에 맞는 숙소를 골라 편안한 하루의 마무리를 준비해 보세요.',
-  accent: '#8b6fb2',
+  accent: '#c4a0e8', // 브랜드 퍼플
   gradient: 'linear-gradient(125deg, #f7f1ff 0%, #fff8f4 52%, #eef7ff 100%)',
 };
 
 export const STAY_CATEGORIES = [
-  { id: 'hotel', label: '호텔', emoji: '🏨', description: '도심 속 편안한 휴식', color: '#7d73b7', background: '#f1efff' },
-  { id: 'resort', label: '리조트', emoji: '🌊', description: '풍경과 시설을 한곳에서', color: '#4d91a8', background: '#eaf8fb' },
-  { id: 'pension', label: '펜션', emoji: '🏡', description: '둘만의 아늑한 공간', color: '#cb7a68', background: '#fff0ec' },
-  { id: 'hanok', label: '한옥', emoji: '🌿', description: '고즈넉한 감성의 하룻밤', color: '#8b7a55', background: '#f6f1e6' },
+  { id: 'hotel', label: '호텔', emoji: '🏨', description: '도심 속 편안한 휴식', color: '#c4a0e8', background: '#f5eefb' },
+  { id: 'resort', label: '리조트', emoji: '🌊', description: '풍경과 시설을 한곳에서', color: '#c4a0e8', background: '#f5eefb' },
+  { id: 'pension', label: '펜션', emoji: '🏡', description: '둘만의 아늑한 공간', color: '#c4a0e8', background: '#f5eefb' },
+  { id: 'hanok', label: '한옥', emoji: '🌿', description: '고즈넉한 감성의 하룻밤', color: '#c4a0e8', background: '#f5eefb' },
 ];
 
 // 현재 예약 링크는 화면 동작을 확인하기 위한 데모 주소입니다.

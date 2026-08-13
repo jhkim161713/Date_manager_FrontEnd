@@ -5,7 +5,6 @@ import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck } from '@/lib/api';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
-import { TendencyTab } from './tabs/TendencyTab';
 import { MiniCalendar } from './components/MiniCalendar';
 import { BuilderTab } from './tabs/BuilderTab';
 import { CuriationTab } from './tabs/CurationTab';
@@ -19,6 +18,7 @@ import { Avatar } from './components/Avatar';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { PlaceStyleDebugTab } from './tabs/PlaceStyleDebugTab';
 import { AiChatTab } from './tabs/AiChatTab';
+import { BoardTab } from './tabs/BoardTab';
 
 // 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
 const MOBILE_NAV_TABS = [
@@ -58,6 +58,13 @@ export default function App() {
   // 탭을 변경할 때 브라우저 history 상태도 함께 push
   const changeTab = (newTab, pushHistory = true) => {
     if (newTab === tab) return;
+    // 성향테스트는 나중에 없어질 수도 있는 기능이라 탭 자체(nav 항목)는 그대로 두되, 누르면
+    // 브라우저 기본 alert()로 "준비중입니다"만 띄우고 실제 이동은 막음. 목업 데이터로만 동작하던
+    // 탭이라 TendencyTab.jsx/tendencyData.js는 삭제함(2026-08-13).
+    if (newTab === 'tendency') {
+      window.alert('준비중입니다');
+      return;
+    }
     setTab(newTab);
     if (pushHistory) {
       window.history.pushState({ tab: newTab }, '', `#${newTab}`);
@@ -418,8 +425,8 @@ export default function App() {
                     onSkip={() => changeTab('home')}
                   />
                 )}
-                {tab === 'tendency' && <TendencyTab />}
                 {tab === 'aichat' && <AiChatTab />}
+                {tab === 'board' && <BoardTab />}
                 {tab === 'placeDebug' && <PlaceStyleDebugTab />}
                 {tab === 'mypage' && <MyPageTab onUpdated={loadUser} />}
               </>

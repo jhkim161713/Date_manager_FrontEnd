@@ -1,17 +1,22 @@
+// 모드 3개(패시브/액티브/숙박)는 서로 다른 컨셉이라 각자 색을 유지하되, 전부 앱 브랜드 색상
+// 체계 안에서 가져온다 - 패시브=브랜드 핑크, 액티브=데이트 캘린더 탭과 같은 오렌지, 숙박=브랜드
+// 퍼플. 반면 한 모드 안의 카테고리 4개는 굳이 각자 다른 색일 필요가 없어서(이미 이모지+텍스트로
+// 구분됨) 전부 그 모드의 대표색 하나로 통일했다(2026-08-13, 예전엔 카테고리마다 색이 다 달라서
+// 화면에 색이 너무 많다는 지적이 있었음).
 export const CURATION_MODES = {
   passive: {
     id: 'passive',
     label: '패시브 모드',
     emoji: '🌿',
     title: '천천히 머물며 즐기는 데이트',
-    description: '대화와 감상에 집중하고 싶은 날을 위한 편안한 큐레이션이에요.',
-    accent: '#d86882',
+    description: '대화와 감상을 나누며 천천히 즐기는 데이트를 준비해보세요.',
+    accent: '#ff6b8a', // 브랜드 핑크
     gradient: 'linear-gradient(125deg, #fff0f3 0%, #fff8f4 55%, #f5effb 100%)',
     categories: [
-      { id: 'restaurant', label: '맛집', emoji: '🍽️', description: '분위기 좋은 한 끼', color: '#ef765f', background: '#fff0eb' },
-      { id: 'exhibition', label: '전시', emoji: '🖼️', description: '나란히 걷는 감상', color: '#9870bd', background: '#f5effa' },
-      { id: 'theater', label: '연극', emoji: '🎭', description: '함께 빠지는 이야기', color: '#df9235', background: '#fff6e7' },
-      { id: 'cafe', label: '카페', emoji: '☕', description: '오래 나누는 대화', color: '#98694f', background: '#f8f0eb' },
+      { id: 'restaurant', label: '맛집', emoji: '🍽️', description: '분위기 좋은 한 끼', color: '#ff6b8a', background: '#fff0f3' },
+      { id: 'exhibition', label: '전시', emoji: '🖼️', description: '나란히 걷는 감상', color: '#ff6b8a', background: '#fff0f3' },
+      { id: 'theater', label: '연극', emoji: '🎭', description: '함께 빠지는 이야기', color: '#ff6b8a', background: '#fff0f3' },
+      { id: 'cafe', label: '카페', emoji: '☕', description: '오래 나누는 대화', color: '#ff6b8a', background: '#fff0f3' },
     ],
   },
   active: {
@@ -19,14 +24,14 @@ export const CURATION_MODES = {
     label: '액티브 모드',
     emoji: '⚡',
     title: '함께 움직이며 채우는 데이트',
-    description: '새로운 경험과 생생한 에너지가 필요한 날을 위한 큐레이션이에요.',
-    accent: '#ee7f49',
+    description: '새로운 경험과 활기찬 에너지로 채우는 데이트를 준비해보세요.',
+    accent: '#f9a030', // 데이트 캘린더 탭과 같은 오렌지(앱에 이미 있는 색 재사용)
     gradient: 'linear-gradient(125deg, #fff4e8 0%, #fff9f3 52%, #eef8f1 100%)',
     categories: [
-      { id: 'festival', label: '페스티벌', emoji: '🎉', description: '음악과 축제의 열기', color: '#e96f78', background: '#fff0f2' },
-      { id: 'exhibition', label: '전시', emoji: '🪩', description: '직접 참여하는 전시', color: '#8b6dc0', background: '#f4f0fb' },
-      { id: 'activity', label: '액티비티', emoji: '🧗', description: '함께하는 작은 도전', color: '#3d9b86', background: '#eaf8f4' },
-      { id: 'restaurant', label: '맛집', emoji: '🔥', description: '활동 뒤 든든한 한 끼', color: '#ed8252', background: '#fff1e9' },
+      { id: 'festival', label: '페스티벌', emoji: '🎉', description: '음악과 축제의 열기', color: '#f9a030', background: '#fff4e8' },
+      { id: 'exhibition', label: '전시', emoji: '🪩', description: '직접 참여하는 전시', color: '#f9a030', background: '#fff4e8' },
+      { id: 'activity', label: '액티비티', emoji: '🧗', description: '함께하는 작은 도전', color: '#f9a030', background: '#fff4e8' },
+      { id: 'restaurant', label: '맛집', emoji: '🔥', description: '활동 뒤 든든한 한 끼', color: '#f9a030', background: '#fff4e8' },
     ],
   },
 };

@@ -238,6 +238,13 @@ export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
   return request(`/api/places?${params.toString()}`);
 }
 
+// 접속 좌표에서 가까운 순으로 장소를 가져온다 - 홈탭 지역 기반 추천용. 백엔드가 하버사인 거리
+// 계산까지 끝내서 정렬된 상태로 내려주므로 프론트에서 다시 거리 계산할 필요 없음.
+export function getNearbyPlaces(lat, lon, limit = 300) {
+  const params = new URLSearchParams({ lat, lon, limit });
+  return request(`/api/places/nearby?${params.toString()}`);
+}
+
 // 커플 초대 링크 생성 (24시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
 export function createCoupleInvite() {
   return request('/api/couple/invite', { method: 'POST' });

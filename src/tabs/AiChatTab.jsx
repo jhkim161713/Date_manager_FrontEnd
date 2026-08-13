@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { createAiChatSession, getAiChatMessages, sendAiChatMessage } from '@/lib/api';
 
+// ⚠️ 이 프론트엔드 화면은 백엔드 AI 챗봇 API가 실제로 동작하는지 확인하려고 형식상 만든
+// 임시 UI입니다. 실제 화면은 팀원이 새로 작업할 예정이니, 이 내용은 참고만 하시고
+// 전부 지우고 새로 짜셔도 됩니다. (백엔드 API 3개는 그대로 써도 되는 실제 구현이에요:
+// POST /api/aichat/sessions, POST /api/aichat/sessions/{id}/messages, GET .../messages)
+
 const SESSION_STORAGE_KEY = 'dm_ai_chat_session_id';
 
 export function AiChatTab() {

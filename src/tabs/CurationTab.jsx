@@ -201,7 +201,7 @@ export function CuriationTab({ onOpenBuilder }) {
                   className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-extrabold"
                   style={{ color: modeInfo.accent }}
                 >
-                  {modeInfo.emoji} TODAY&apos;S DATE MOOD
+                  {modeInfo.emoji} DATE MOOD
                 </span>
                 <h3 className="font-display mt-3 text-2xl font-bold" style={{ color: '#45343d' }}>
                   {modeInfo.title}
