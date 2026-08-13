@@ -7,6 +7,10 @@ import { SignupCarousel } from '@/components/SignupCarousel';
 
 // 커플 매칭 로직이 성별 기반으로 분기하기 때문에 "선택 안 함(UNKNOWN)"은 일부러 넣지 않는다 -
 // 소셜 로그인 첫 가입 시 뜨는 ProfileConfirmModal과 동일한 정책.
+// 브라우저 기본 검증(type="email") 대신, 중복확인 버튼을 눌렀을 때 이 정규식으로 형식을 먼저
+// 체크해서 앱 톤에 맞는 커스텀 메시지를 보여준다.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const GENDER_OPTIONS = [
   { value: 'MALE', label: '남성' },
   { value: 'FEMALE', label: '여성' },
@@ -63,6 +67,10 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
 
   const handleCheckEmail = async () => {
     if (!email.trim()) return;
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailCheck({ checking: false, available: false, message: '올바른 이메일 형식을 입력하세요' });
+      return;
+    }
     setEmailCheck({ checking: true });
     try {
       const { available } = await checkEmailAvailable(email.trim());
@@ -189,7 +197,9 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
             <div className="flex-1 h-px" style={{ background: '#ffd6e0' }} />
           </div>
 
-          <div className="space-y-2.5">
+          {/* form으로 감싸서, 이메일/비밀번호(혹은 회원가입 필드)를 다 채운 뒤 Enter를 누르면
+              브라우저 기본 동작으로 자동 제출되게 한다 - 버튼 클릭과 완전히 동일한 handleSubmit 호출. */}
+          <form className="space-y-2.5" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
             {isSignup && (
               <div>
                 <div className="flex items-center gap-1.5">
@@ -216,7 +226,7 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
               <div className="flex items-center gap-1.5">
                 <div className="flex-1 rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
                   <span className="text-sm">🌷</span>
-                  <input type="email" className="flex-1 text-sm outline-none bg-transparent" placeholder="이메일"
+                  <input type="text" className="flex-1 text-sm outline-none bg-transparent" placeholder="이메일"
                     value={email} onChange={e => { setEmail(e.target.value); setEmailCheck(null); }}
                     style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
                 </div>
@@ -246,7 +256,7 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
                 <label className="text-xs font-bold text-stone-400 mb-1.5 block px-1">성별</label>
                 <div className="flex gap-2">
                   {GENDER_OPTIONS.map(opt => (
-                    <button key={opt.value} onClick={() => setGender(opt.value)}
+                    <button key={opt.value} type="button" onClick={() => setGender(opt.value)}
                       className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all"
                       style={{
                         border: '1.5px solid #ffd6e0',
@@ -272,13 +282,13 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
                 </label>
               </div>
             )}
-          </div>
 
-          <button onClick={handleSubmit} disabled={loading !== null}
-            className="mt-3 w-full py-3 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 6px 20px rgba(255,107,138,0.3)' }}>
-            {loading === 'email' ? (isSignup ? '가입 중...' : '처리 중...') : (isSignup ? '회원가입 💖' : '로그인 💖')}
-          </button>
+            <button type="submit" disabled={loading !== null}
+              className="mt-3 w-full py-3 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 6px 20px rgba(255,107,138,0.3)' }}>
+              {loading === 'email' ? (isSignup ? '가입 중...' : '처리 중...') : (isSignup ? '회원가입 💖' : '로그인 💖')}
+            </button>
+          </form>
 
           {error && <p className="text-center text-xs mt-3" style={{ color: '#e8486b' }}>{error}</p>}
 

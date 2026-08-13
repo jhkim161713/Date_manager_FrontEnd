@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TENDENCY_TYPES, ALL_CARDS} from '../data/dummyData';
 import { QUICK_TABS } from '../data/tabsData';
 import { Badge } from '../components/Badge';
-import { PERSONA_AXES, getPersonaImage } from '../data/onboardingData';
+import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
+import { getPlaces } from '../lib/api';
+
+// 유저 성향 축(personaProfile, 목업) <-> 장소 성향 점수(PlaceStyle, 실제 백엔드) 필드 매핑.
+// 유저 쪽 "pacing"(즉흥·계획)은 장소 쪽에 대응하는 축이 없어서 매칭 대상에서 제외한다.
+const AXIS_TO_PLACE_SCORE = {
+  energetic: 'scoreEnergy',
+  immersion: 'scoreImmersion',
+  vibe: 'scoreVibe',
+  aesthetic: 'scoreAesthetic',
+  depth: 'scoreDepth',
+};
 
 export function HomeTab({ onTabChange, personaProfile }) {
   const [coupleType] = useState('romantic');
@@ -11,20 +22,40 @@ export function HomeTab({ onTabChange, personaProfile }) {
 
   const filtered = ALL_CARDS;
 
-  // 6대 성향 점수(없으면 기본값 50 = 중립)를 기준으로 축마다 high/low 사진을 고릅니다.
-  const personaCards = PERSONA_AXES.map((axis) => {
-    const score = personaProfile?.scores?.[axis.id] ?? 50;
-    const isHigh = score >= 50;
-    return {
-      ...axis,
-      score,
-      isHigh,
-      image: getPersonaImage(axis.id, score),
-      resultLabel: isHigh ? axis.highLabel : axis.lowLabel,
-    };
-  });
+  // 축 소개 카드는 더 이상 이미지로 렌더링하지 않고(추천 장소 카드로 대체됨), 상단 "N개 축"
+  // 표시에만 축 개수가 필요해서 PERSONA_AXES.length를 그대로 씀.
+  const personaAxisCount = PERSONA_AXES.length;
 
   const { weather } = useWeather();
+
+  // 성향 기반 추천 장소: 유저 성향(personaProfile, 목업)은 그대로 두고, 매칭할 장소만 실제
+  // /api/places(PlaceStyle 포함, 82,128건 중 표본)를 가져와서 프론트에서 축별로 거리 계산.
+  const [placePool, setPlacePool] = useState([]);
+  useEffect(() => {
+    getPlaces({ size: 200 })
+      .then((page) => setPlacePool(page.content))
+      .catch(() => setPlacePool([]));
+  }, []);
+
+  const recommendationsByAxis = useMemo(() => {
+    return PERSONA_AXES
+      .filter((axis) => AXIS_TO_PLACE_SCORE[axis.id])
+      .map((axis) => {
+        const scoreField = AXIS_TO_PLACE_SCORE[axis.id];
+        const userScore = personaProfile?.scores?.[axis.id] ?? 50;
+        const ranked = placePool
+          .filter((p) => p[scoreField] != null)
+          .map((p) => ({ ...p, distance: Math.abs(p[scoreField] - userScore) }))
+          .sort((a, b) => a.distance - b.distance)
+          .slice(0, 2);
+        return { axis, places: ranked };
+      })
+      .filter((entry) => entry.places.length > 0);
+  }, [placePool, personaProfile]);
+
+  // pacing(즉흥·계획)은 장소 쪽에 대응 점수가 없어 매칭 로직이 아직 없음 - 자리만 비워두고,
+  // 나중에 매칭 방식이 정해지면 이 자리에 실제 추천 장소가 채워지게 될 예정.
+  const pacingAxis = PERSONA_AXES.find((axis) => axis.id === 'pacing');
 
   return (
     <div className="h-full flex flex-col gap-4">
@@ -65,11 +96,6 @@ export function HomeTab({ onTabChange, personaProfile }) {
               style={{ background: 'white', color: '#ff6b8a', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
               🧭 AI 코스 추천
             </button>
-            <button onClick={() => onTabChange('tendency')}
-              className="rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105"
-              style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)' }}>
-              💡 성향 재테스트
-            </button>
           </div>
         </div>
       </div>
@@ -94,79 +120,60 @@ export function HomeTab({ onTabChange, personaProfile }) {
           <div className="flex items-center gap-2">
             <h2 className="font-display font-bold text-base" style={{ color: '#3d2c35' }}>💡 우리 성향 분석</h2>
             <span className="text-xs font-bold rounded-full px-2.5 py-0.5" style={{ background: '#fff0f3', color: '#ff6b8a' }}>
-              {personaCards.length}개 축
+              {personaAxisCount}개 축
             </span>
           </div>
-          <button onClick={() => onTabChange('onboarding')} className="text-xs text-stone-400 hover:text-[#ff6b8a] font-medium">
-            테스트 다시하기
-          </button>
         </div>
 
-        {/* 4열 3행 그리드 구조 (모바일에서는 2열) */}
+        {/* 축 소개 카드(감각·공간~프리미엄) 6개는 빼고, 성향 매칭 추천 장소 카드로 그리드를 채움
+            - 축(성향)당 2곳씩, 총 5축×2=10개 + pacing 자리 2개(빈 카드, 매칭 로직 생기면 채움)
+            = 12개 유지(2026-08-13). */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3.5">
-          {personaCards.map((axis) => (
-            <div key={axis.id} className="rounded-3xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white flex flex-col shadow-sm"
-              style={{ border: '1.5px solid #ffd6e0', minHeight: '230px' }}> {/* 전체 카드 높이 대폭 확장 */}
-              
-              {/* 이미지 영역 극대화 (높이 170px로 설정) */}
-              <div className="relative overflow-hidden bg-pink-100 flex-shrink-0" style={{ height: '170px' }}>
-                <img src={axis.image} alt={`${axis.koreanLabel} ${axis.resultLabel}`} className="w-full h-full object-cover" />
-                <div className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold text-white"
-                  style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
-                  ♥ {axis.score}점
+          {recommendationsByAxis.flatMap(({ axis, places }) =>
+            places.map((place) => (
+              <div key={`${axis.id}-${place.id}`} onClick={() => onTabChange('curiation')}
+                className="rounded-3xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white flex flex-col shadow-sm"
+                style={{ border: '1.5px solid #ffd6e0', minHeight: '230px' }}>
+                <div className="relative overflow-hidden bg-pink-100 flex-shrink-0" style={{ height: '170px' }}>
+                  {place.imageUrl ? (
+                    <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl">📍</div>
+                  )}
+                  <div className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold text-white"
+                    style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
+                    📍 {place.category}
+                  </div>
+                </div>
+                <div className="p-3 flex flex-col justify-center flex-1 text-center">
+                  <Badge color={axis.color} bg={`${axis.color}15`}>{axis.label} 매칭</Badge>
+                  <p className="font-bold text-sm mt-1.5 leading-tight truncate" style={{ color: '#3d2c35' }}>
+                    {place.name}
+                  </p>
+                  <p className="text-[11px] text-stone-400 mt-1 truncate">{axis.koreanLabel} 성향에 맞는 장소</p>
                 </div>
               </div>
-              
-              {/* 텍스트 영역은 컴팩트하게 유지하여 이미지 강조 */}
+            ))
+          )}
+
+          {/* pacing 축 자리 - 매칭 로직 없어서 일단 빈 카드 2개. 나중에 매칭 방식이 정해지면
+              여기가 위 카드들과 똑같은 형태의 실제 추천 장소로 교체될 자리(2026-08-13). */}
+          {pacingAxis && [0, 1].map((i) => (
+            <div key={`pacing-empty-${i}`}
+              className="rounded-3xl overflow-hidden bg-white flex flex-col shadow-sm"
+              style={{ border: '1.5px dashed #ffd6e0', minHeight: '230px' }}>
+              <div className="relative flex-shrink-0 flex items-center justify-center" style={{ height: '170px', background: `${pacingAxis.color}10` }}>
+                <span className="text-3xl opacity-40">⏳</span>
+              </div>
               <div className="p-3 flex flex-col justify-center flex-1 text-center">
-                <div>
-                  <Badge color={axis.color} bg={`${axis.color}15`}>{axis.label}</Badge>
-                  <p className="font-bold text-sm mt-1.5 leading-tight" style={{ color: '#3d2c35' }}>
-                    {axis.koreanLabel} · {axis.resultLabel}
-                  </p>
-                </div>
-                {/* 설명 텍스트는 한 줄로 줄임표 처리 */}
-                <p className="text-[11px] text-stone-400 mt-1 truncate">{axis.lowLabel} ↔ {axis.highLabel}</p>
+                <Badge color={pacingAxis.color} bg={`${pacingAxis.color}15`}>{pacingAxis.label} 매칭</Badge>
+                <p className="font-bold text-sm mt-1.5 leading-tight" style={{ color: '#3d2c35' }}>
+                  준비 중이에요
+                </p>
+                <p className="text-[11px] text-stone-400 mt-1 truncate">{pacingAxis.koreanLabel} 매칭 로직 추가 예정</p>
               </div>
             </div>
           ))}
-
-          {/* 바로가기 카드들도 동일한 높이(minHeight: 230px) 및 스타일 적용 */}
-          <div onClick={() => onTabChange('tendency')} className="rounded-3xl border-2 border-dashed border-pink-200 bg-pink-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-pink-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
-            <span className="text-3xl mb-3">✨</span>
-            <p className="text-sm font-bold text-[#ff6b8a] leading-tight">상세 리포트</p>
-            <p className="text-xs text-stone-400 mt-1.5">성향 분석 보기</p>
-          </div>
-
-          <div onClick={() => onTabChange('builder')} className="rounded-3xl border-2 border-dashed border-purple-200 bg-purple-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-purple-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
-            <span className="text-3xl mb-3">🗺️</span>
-            <p className="text-sm font-bold text-purple-600 leading-tight">코스 빌더</p>
-            <p className="text-xs text-stone-400 mt-1.5">데이트 코스 짜기</p>
-          </div>
-
-          <div onClick={() => onTabChange('calendar')} className="rounded-3xl border-2 border-dashed border-sky-200 bg-sky-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-sky-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
-            <span className="text-3xl mb-3">📅</span>
-            <p className="text-sm font-bold text-sky-600 leading-tight">데이트 캘린더</p>
-            <p className="text-xs text-stone-400 mt-1.5">일정 관리</p>
-          </div>
-
-          <div onClick={() => onTabChange('mypage')} className="rounded-3xl border-2 border-dashed border-amber-200 bg-amber-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-amber-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
-            <span className="text-3xl mb-3">👤</span>
-            <p className="text-sm font-bold text-amber-600 leading-tight">마이페이지</p>
-            <p className="text-xs text-stone-400 mt-1.5">내 정보 설정</p>
-          </div>
-
-          <div onClick={() => onTabChange('couple')} className="rounded-3xl border-2 border-dashed border-rose-200 bg-rose-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-rose-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
-            <span className="text-3xl mb-3">👩‍❤️‍👨</span>
-            <p className="text-sm font-bold text-rose-600 leading-tight">커플 싱크</p>
-            <p className="text-xs text-stone-400 mt-1.5">싱크로율 확인</p>
-          </div>
-
-          <div onClick={() => onTabChange('curiation')} className="rounded-3xl border-2 border-dashed border-emerald-200 bg-emerald-50/50 flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-emerald-100/50 transition-colors text-center shadow-sm" style={{ minHeight: '230px' }}>
-            <span className="text-3xl mb-3">🍽️</span>
-            <p className="text-sm font-bold text-emerald-600 leading-tight">큐레이션</p>
-            <p className="text-xs text-stone-400 mt-1.5">맞춤 장소 추천</p>
-          </div>
         </div>
       </div>
     </div>

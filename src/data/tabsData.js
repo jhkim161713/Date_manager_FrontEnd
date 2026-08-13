@@ -6,6 +6,8 @@ export const TABS = [
   { id: 'calendar',     label: '데이트 캘린더',   emoji: '📅' },
   { id: 'onboarding',   label: '페르소나 검사',   emoji: '🃏' }, 
   { id: 'tendency',     label: '성향테스트',     emoji: '💡' },
+  { id: 'aichat',       label: 'AI 데이트 상담', emoji: '🤖' },
+  { id: 'placeDebug',   label: '🔧 성향점수 디버그', emoji: '🔧' },
 ];
 
 export const QUICK_TABS = [

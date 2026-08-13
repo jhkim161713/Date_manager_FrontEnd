@@ -230,6 +230,14 @@ export function adminDeleteNotice(id) {
   return request(`/api/admin/notices/${id}`, { method: 'DELETE' });
 }
 
+// 장소 목록 조회 - 실제 places/place_styles 테이블 데이터를 그대로 내려받는다(성향점수 검증용).
+// 인증이 필요 없는 공개 API(PlaceController가 permitAll).
+export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (category) params.set('category', category);
+  return request(`/api/places?${params.toString()}`);
+}
+
 // 커플 초대 링크 생성 (24시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
 export function createCoupleInvite() {
   return request('/api/couple/invite', { method: 'POST' });
@@ -271,4 +279,25 @@ export function retryChargeSubscription() {
 // 구독 해지 - 이미 낸 이용 기간(expiresAt)까지는 유지되고, 이후 자동 갱신만 안 됨
 export function cancelSubscription() {
   return request('/api/subscriptions/cancel', { method: 'POST' });
+}
+
+// AI 챗봇 - 새 대화 세션 시작 (title은 선택, 안 넘기면 백엔드가 null로 저장)
+export function createAiChatSession(title) {
+  return request('/api/aichat/sessions', {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  });
+}
+
+// 메시지 보내고 AI 응답 받기 - 세션의 지난 대화 전체를 백엔드가 기억해서 문맥 있는 답을 줌
+export function sendAiChatMessage(sessionId, text) {
+  return request(`/api/aichat/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+}
+
+// 세션의 메시지 이력 전체 조회 (오래된 순)
+export function getAiChatMessages(sessionId) {
+  return request(`/api/aichat/sessions/${sessionId}/messages`);
 }
