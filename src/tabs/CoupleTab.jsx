@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { Avatar, avatarSrc } from '../components/Avatar';
 import { CoupleMatchCelebration } from '../components/CoupleMatchCelebration';
-import { createCoupleInvite, acceptCoupleInvite, getCoupleStatus, disconnectCouple, updateMetDate } from '../lib/api';
+import { createCoupleInvite, acceptCoupleInvite, getCoupleStatus, disconnectCouple, updateMetDate, ackAdminReconnect } from '../lib/api';
 import {
   COUPLE_SINK_BENEFITS,
   COUPLE_SINK_COPY,
@@ -44,10 +44,13 @@ export function CoupleTab({ user }) {
   const loadStatus = async () => {
     try {
       const data = await getCoupleStatus();
-      setStatus({ loading: false, linked: data.linked, partner: data.partner, metDate: data.metDate });
+      setStatus({
+        loading: false, linked: data.linked, partner: data.partner, metDate: data.metDate,
+        reconnectedByAdminAt: data.reconnectedByAdminAt,
+      });
       setMetDateInput(data.metDate || '');
     } catch (error) {
-      setStatus({ loading: false, linked: false, partner: null, metDate: null });
+      setStatus({ loading: false, linked: false, partner: null, metDate: null, reconnectedByAdminAt: null });
     }
   };
 
@@ -103,12 +106,26 @@ export function CoupleTab({ user }) {
   };
 
   const handleDisconnect = async () => {
+    if (!window.confirm(
+      '정말 연결을 해제할까요?\n' +
+      '해제하면 만난 날짜, 연결 기간 등 함께 쌓아온 기록은 같은 상대와 다시 연결하기 전까지 보이지 않게 돼요.'
+    )) return;
     try {
       await disconnectCouple();
       showFeedback('연결을 해제했어요');
       await loadStatus();
     } catch (error) {
       showFeedback(error.message || '연결 해제에 실패했어요');
+    }
+  };
+
+  // 관리자가 방금 "다시 연결"을 눌러준 경우에만 뜨는 배너를 확인 처리한다.
+  const handleAckAdminReconnect = async () => {
+    setStatus(s => ({ ...s, reconnectedByAdminAt: null }));
+    try {
+      await ackAdminReconnect();
+    } catch {
+      // 실패해도 화면에서는 이미 닫혔으니 조용히 무시(다음 새로고침 때만 다시 뜨는 정도)
     }
   };
 
@@ -234,6 +251,19 @@ export function CoupleTab({ user }) {
               </div>
               {status.linked ? (
                 <>
+                  {/* 관리자가 방금 "다시 연결"을 눌러준 경우에만 뜨는 알림 */}
+                  {status.reconnectedByAdminAt && (
+                    <div className="mt-5 rounded-2xl px-4 py-3" style={{ background: '#f7f2fb', border: '1.5px solid #e8d5f5' }}>
+                      <p className="text-[11px] font-bold" style={{ color: '#8b65ad' }}>
+                        💌 관리자가 커플 연결을 다시 이어줬어요! 연결일이 오늘로 새로 시작됐어요.
+                      </p>
+                      <button type="button" onClick={handleAckAdminReconnect}
+                        className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+                        style={{ background: 'white', color: '#8b65ad', border: '1.5px solid #e8d5f5' }}>
+                        확인했어요
+                      </button>
+                    </div>
+                  )}
                   <div className="mt-5">
                     <label className="block text-[10px] font-extrabold mb-1.5" style={{ color: '#6d5662' }}>만난 날짜</label>
                     <div className="flex items-center gap-2">

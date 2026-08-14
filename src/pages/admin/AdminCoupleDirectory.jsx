@@ -8,13 +8,14 @@ import { FilterTabButton, formatDate } from '@/components/admin/AdminShared';
 export function AdminCoupleDirectory() {
   const [couples, setCouples] = useState([]);
   const [coupleFilter, setCoupleFilter] = useState('free'); // 'free' | 'subscribed'
+  const [statusFilter, setStatusFilter] = useState('active'); // 'active' | 'all' - 해제된 예전 커플 포함 여부
   const [couplesLoading, setCouplesLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
 
-  const loadCouples = async (filter) => {
+  const loadCouples = async (filter, status) => {
     setCouplesLoading(true);
     try {
-      const data = await adminListCouples({ filter });
+      const data = await adminListCouples({ filter, status });
       setCouples(data);
     } catch (e) {
       setActionError(e.message);
@@ -24,12 +25,17 @@ export function AdminCoupleDirectory() {
   };
 
   useEffect(() => {
-    loadCouples('free');
+    loadCouples('free', 'active');
   }, []);
 
   const switchCoupleFilter = (filter) => {
     setCoupleFilter(filter);
-    loadCouples(filter);
+    loadCouples(filter, statusFilter);
+  };
+
+  const switchStatusFilter = (status) => {
+    setStatusFilter(status);
+    loadCouples(coupleFilter, status);
   };
 
   // 커플 상태만 ACTIVE<->DISCONNECTED로 토글한다. 실제 row나 멤버 연결은 그대로 남아있고
@@ -39,7 +45,7 @@ export function AdminCoupleDirectory() {
     const nextStatus = c.status === 'ACTIVE' ? 'DISCONNECTED' : 'ACTIVE';
     try {
       await adminUpdateCouple(c.id, { status: nextStatus });
-      await loadCouples(coupleFilter);
+      await loadCouples(coupleFilter, statusFilter);
     } catch (e) {
       setActionError(e.message);
     }
@@ -68,11 +74,17 @@ export function AdminCoupleDirectory() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <h2 className="text-sm font-bold" style={{ color: '#3d2c35' }}>커플 매칭 목록 ({couples.length}쌍)</h2>
         <div className="flex gap-1">
           <FilterTabButton active={coupleFilter === 'free'} onClick={() => switchCoupleFilter('free')}>일반회원</FilterTabButton>
           <FilterTabButton active={coupleFilter === 'subscribed'} onClick={() => switchCoupleFilter('subscribed')}>구독회원</FilterTabButton>
+        </div>
+        {/* 연결 상태 필터 - 기본은 활성 커플만, "전체"를 눌러야 해제된 예전 커플까지 보인다
+            (예전엔 필터가 없어서 해제된 커플까지 다 섞여 나와 관리자 통계가 부풀려졌었음) */}
+        <div className="flex gap-1">
+          <FilterTabButton active={statusFilter === 'active'} onClick={() => switchStatusFilter('active')}>연결됨만</FilterTabButton>
+          <FilterTabButton active={statusFilter === 'all'} onClick={() => switchStatusFilter('all')}>전체(해제 포함)</FilterTabButton>
         </div>
       </div>
       <div className="overflow-x-auto">

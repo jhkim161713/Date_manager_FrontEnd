@@ -3,7 +3,8 @@ import { SectionTitle } from '../components/SectionTitle';
 import { Avatar } from '../components/Avatar';
 import {
   getMe, updateMe, changePassword, uploadProfilePhoto, getMockUser, setMockUser,
-  getMySubscription, cancelSubscription, getCoupleStatus, disconnectCouple, updateMetDate, withdrawMe,
+  getMySubscription, cancelSubscription, getCoupleStatus, disconnectCouple, updateMetDate,
+  ackAdminReconnect, withdrawMe,
 } from '@/lib/api';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -127,16 +128,31 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm('정말 연결을 해제할까요?')) return;
+    if (!window.confirm(
+      '정말 연결을 해제할까요?\n' +
+      '해제하면 만난 날짜, 연결 기간 등 함께 쌓아온 기록은 같은 상대와 다시 연결하기 전까지 보이지 않게 돼요.'
+    )) return;
     setDisconnecting(true);
     try {
       await disconnectCouple();
-      setCoupleStatus({ linked: false, partner: null, connectedAt: null, metDate: null });
+      setCoupleStatus({ linked: false, partner: null, connectedAt: null, metDate: null, reconnectedByAdminAt: null });
       setMetDateInput('');
     } catch (e) {
       setMetDateError(e.message || '연결 해제에 실패했어요');
     } finally {
       setDisconnecting(false);
+    }
+  };
+
+  // 관리자가 방금 "다시 연결"을 눌러준 경우, 마이페이지에 배너로 알려주고 확인하면 서버에도
+  // 확인 처리(ackAdminReconnect)해서 다음 조회부터는 배너가 다시 안 뜨게 한다.
+  const handleAckAdminReconnect = async () => {
+    setCoupleStatus(s => (s ? { ...s, reconnectedByAdminAt: null } : s));
+    try {
+      await ackAdminReconnect();
+    } catch {
+      // 확인 처리 실패해도 화면에서는 이미 배너를 닫았으니 조용히 무시 - 다음 새로고침 때
+      // 배너가 다시 뜨는 정도의 사소한 불편만 남는다.
     }
   };
 
@@ -352,6 +368,19 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
             <p className="text-xs text-stone-400 text-center py-8">불러오는 중...</p>
           ) : coupleStatus.linked ? (
             <>
+              {/* 관리자가 방금 "다시 연결"을 눌러준 경우에만 뜨는 알림 - 확인을 눌러야 사라진다 */}
+              {coupleStatus.reconnectedByAdminAt && (
+                <div className="mb-4 rounded-2xl px-4 py-3" style={{ background: '#f7f2fb', border: '1.5px solid #e8d5f5' }}>
+                  <p className="text-xs font-bold" style={{ color: '#8b65ad' }}>
+                    💌 관리자가 커플 연결을 다시 이어줬어요! 연결일이 오늘로 새로 시작됐어요.
+                  </p>
+                  <button onClick={handleAckAdminReconnect}
+                    className="mt-2 text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+                    style={{ background: 'white', color: '#8b65ad', border: '1.5px solid #e8d5f5' }}>
+                    확인했어요
+                  </button>
+                </div>
+              )}
               <div className="flex items-center justify-center gap-3 mb-5">
                 <div className="text-center">
                   <Avatar profileImageUrl={profile.profileImageUrl} gender={profile.gender} size={64} className="mx-auto" />

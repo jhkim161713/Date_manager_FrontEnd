@@ -164,8 +164,9 @@ export function adminListUsers({ page = 1, search = '', field = 'email', filter 
   return request(`/api/admin/users?${params.toString()}`);
 }
 
-export function adminListCouples({ filter = 'all' } = {}) {
-  return request(`/api/admin/couples?filter=${filter}`);
+// status: 'active'(기본, 해제된 예전 커플 제외) | 'all'(해제된 커플까지 포함)
+export function adminListCouples({ filter = 'all', status = 'active' } = {}) {
+  return request(`/api/admin/couples?filter=${filter}&status=${status}`);
 }
 
 export function adminUpdateUser(id, { nickname, gender }) {
@@ -278,6 +279,12 @@ export function updateMetDate(metDate) {
     method: 'PUT',
     body: JSON.stringify({ metDate }),
   });
+}
+
+// 관리자가 "다시 연결" 해줬다는 배너를 사용자가 확인했을 때 호출 - 이후 getCoupleStatus()의
+// reconnectedByAdminAt이 다시 null로 돌아와 배너가 사라진다.
+export function ackAdminReconnect() {
+  return request('/api/couple/ack-admin-reconnect', { method: 'POST' });
 }
 
 // 내 구독 상태 조회 (구독 없으면 { hasSubscription: false })
