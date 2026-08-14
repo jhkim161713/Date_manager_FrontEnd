@@ -5,6 +5,7 @@ import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
 import { getCoupleStatus, getNearbyPlaces } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
+import { HOME_CATEGORIES } from '../data/curationCategories';
 
 // 공연류 카테고리는 place.address에 공연장(시설) 주소가 이미 들어있어서(KOPIS 동기화 시
 // facility.adres()로 채움, 백엔드 변경 불필요) 카드에 "공연장소"로 표시한다(2026-08-13).
@@ -39,13 +40,18 @@ export function HomeTab({ onTabChange, personaProfile }) {
   // 백엔드에서 접속 좌표 기준으로 가까운 순 300건을 가져온다(거리 계산은 백엔드가 SQL로 처리,
   // 82,128건 전체가 아니라 이미 지역이 좁혀진 상태로 내려와서 대전·안동처럼 먼 곳이 안 섞임).
   const [nearbyPlacePool, setNearbyPlacePool] = useState([]);
+  // "내 주변" 카테고리 칩 - 전체 9개 대분류 중 하나로 근처 장소 풀 자체를 좁힌다(2026-08-14).
+  // 'all'이면 카테고리 필터 없이 예전처럼 전체를 받아온다.
+  const [homeCategory, setHomeCategory] = useState('all');
   useEffect(() => {
+    const selected = HOME_CATEGORIES.find((item) => item.id === homeCategory);
+    const categoryParam = selected ? selected.categories.join(',') : '';
     getCurrentLocation().then(({ lat, lon }) => {
-      getNearbyPlaces(lat, lon, 300)
+      getNearbyPlaces(lat, lon, 300, categoryParam)
         .then(setNearbyPlacePool)
         .catch(() => setNearbyPlacePool([]));
     });
-  }, []);
+  }, [homeCategory]);
 
   // 올리브영처럼 지점이 많은 체인점이 이름만 다르고 사실상 같은 브랜드라 후보를 도배하는 문제
   // 완화용 - 같은 이름(브랜드)은 대표로 1곳만 후보에 남긴다. nearbyPlacePool이 이미 가까운
@@ -115,7 +121,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
           <div>
             <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-bold mb-2"
               style={{ background: 'rgba(255,255,255,0.22)', color: 'white' }}>
-              {coupleLinked ? '💕 우리 커플 맞춤 큐레이션' : '🎭 문화생활 맞춤 큐레이션'}
+              {coupleLinked ? '💕 내 파트너 맞춤 큐레이션' : '🎭 문화생활 맞춤 큐레이션'}
             </span>
             <h2 className="font-display font-bold text-white leading-tight text-xl md:text-[1.6rem]">
               {coupleLinked ? '오늘은 이런 데이트 어때요?' : '이번 주엔 이런 문화생활 어때요?'}
@@ -166,6 +172,40 @@ export function HomeTab({ onTabChange, personaProfile }) {
           </button>
         </div>
 
+        {/* 내 주변 카테고리 칩 - 고르면 위 nearbyPlacePool 자체가 그 카테고리로 좁혀짐(2026-08-14) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-3" style={{ scrollbarWidth: 'none' }}>
+          <button
+            type="button"
+            onClick={() => setHomeCategory('all')}
+            className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+            style={{
+              background: homeCategory === 'all' ? '#4f3d46' : 'white',
+              color: homeCategory === 'all' ? 'white' : '#7c6a72',
+              border: '1.5px solid #f0dce2',
+            }}
+          >
+            전체
+          </button>
+          {HOME_CATEGORIES.map((item) => {
+            const selected = homeCategory === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setHomeCategory(selected ? 'all' : item.id)}
+                className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+                style={{
+                  background: selected ? item.color : 'white',
+                  color: selected ? 'white' : item.color,
+                  border: `1.5px solid ${item.color}40`,
+                }}
+              >
+                {item.emoji} {item.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* 축 소개 카드(감각·공간~프리미엄) 6개는 빼고, 성향 매칭 추천 장소 카드로 그리드를 채움
             - 축(성향)당 2곳씩, 총 5축×2=10개 + pacing 자리 2개(빈 카드, 매칭 로직 생기면 채움)
             = 12개 유지(2026-08-13). */}
@@ -187,7 +227,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
                   </div>
                 </div>
                 <div className="p-3 flex flex-col justify-center flex-1 text-center">
-                  <Badge color={axis.color} bg={`${axis.color}15`}>{axis.label} 매칭</Badge>
+                  <Badge color={axis.color} bg={`${axis.color}15`}>{axis.koreanLabel} 매칭</Badge>
                   <p className="font-bold text-sm mt-1.5 leading-tight truncate" style={{ color: '#3d2c35' }}>
                     {place.name}
                   </p>
@@ -211,7 +251,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
                 <span className="text-3xl opacity-40">⏳</span>
               </div>
               <div className="p-3 flex flex-col justify-center flex-1 text-center">
-                <Badge color={pacingAxis.color} bg={`${pacingAxis.color}15`}>{pacingAxis.label} 매칭</Badge>
+                <Badge color={pacingAxis.color} bg={`${pacingAxis.color}15`}>{pacingAxis.koreanLabel} 매칭</Badge>
                 <p className="font-bold text-sm mt-1.5 leading-tight" style={{ color: '#3d2c35' }}>
                   준비 중이에요
                 </p>

@@ -245,14 +245,43 @@ export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
   return request(`/api/places?${params.toString()}`);
 }
 
+// 큐레이션 탭(데이트/숙박 카드)용 조회 API. matchScore는 아직 항상 null - 온보딩 성향값을 저장하는
+// 파이프라인이 없어서(2026-08-14 기준 미구현) 프론트가 최신순으로 대체 정렬한다.
+export function getCurationPlaces({ category = '', subCategory = '', page = 1, size = 20 } = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (category) params.set('category', category);
+  if (subCategory) params.set('subCategory', subCategory);
+  return request(`/api/places/curation?${params.toString()}`);
+}
+
+// 큐레이션 탭 "내 주변만 보기" 토글용 - 좌표 기준 가까운 순 + 카테고리 필터를 동시에 적용한다.
+// nearby 계열이라 이미 거리순으로 오기 때문에 별도 정렬 옵션이 필요 없다.
+export function getNearbyCurationPlaces({ lat, lon, category = '', subCategory = '', limit = 30 }) {
+  const params = new URLSearchParams({ lat, lon, limit });
+  if (category) params.set('category', category);
+  if (subCategory) params.set('subCategory', subCategory);
+  return request(`/api/places/curation/nearby?${params.toString()}`);
+}
+
+// 큐레이션 탭 카테고리 칩에 "OO곳" 개수를 표시하기 위한 대분류별 집계. { "맛집": 1234, ... } 형태.
+export function getPlaceCategoryCounts() {
+  return request('/api/places/category-counts');
+}
+
+// 숙박 탭처럼 대분류 하나를 세부분류 칩으로 한 번 더 쪼갤 때 쓰는 집계. { "호텔": 6501, ... } 형태.
+export function getPlaceSubCategoryCounts(category) {
+  return request(`/api/places/category-counts/sub?category=${encodeURIComponent(category)}`);
+}
+
 // 접속 좌표에서 가까운 순으로 장소를 가져온다 - 홈탭 지역 기반 추천용. 백엔드가 하버사인 거리
 // 계산까지 끝내서 정렬된 상태로 내려주므로 프론트에서 다시 거리 계산할 필요 없음.
-export function getNearbyPlaces(lat, lon, limit = 300) {
+export function getNearbyPlaces(lat, lon, limit = 300, category = '') {
   const params = new URLSearchParams({ lat, lon, limit });
+  if (category) params.set('category', category);
   return request(`/api/places/nearby?${params.toString()}`);
 }
 
-// 커플 초대 링크 생성 (24시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
+// 커플 초대 링크 생성 (1시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
 export function createCoupleInvite() {
   return request('/api/couple/invite', { method: 'POST' });
 }
@@ -318,11 +347,16 @@ export function createAiChatSession(title) {
   });
 }
 
-// 메시지 보내고 AI 응답 받기 - 세션의 지난 대화 전체를 백엔드가 기억해서 문맥 있는 답을 줌
-export function sendAiChatMessage(sessionId, text) {
+// 메시지 보내고 AI 응답 받기 - 세션의 지난 대화 전체를 백엔드가 기억해서 문맥 있는 답을 줌.
+// lat/lon은 선택값 - 위치 권한이 없으면 안 보내도 되고, 그 경우 백엔드는 날씨 없이 현재 시각만 참고한다.
+export function sendAiChatMessage(sessionId, text, { lat, lon } = {}) {
   return request(`/api/aichat/sessions/${sessionId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      text,
+      lat: lat != null ? String(lat) : undefined,
+      lon: lon != null ? String(lon) : undefined,
+    }),
   });
 }
 

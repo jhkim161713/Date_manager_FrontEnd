@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import dmLogo from '../imports/Logo.png';
 
 const SLIDES = [
-  { emoji: '🔗', title: '커플싱크', desc: '링크 하나로 우리 둘을 연결해요' },
-  { emoji: '🧭', title: '코스빌더', desc: '우리만의 데이트 코스를 만들어요' },
-  { emoji: '☀️', title: '날씨 연동', desc: '오늘 날씨에 맞는 데이트 추천' },
+  { logo: true, title: '성향 검사', desc: '성향 검사를 통해 나에게 맞는 문화생활을 알려드려요' },
+  { emoji: '💞', title: '내 파트너 링크', desc: '파트너와 링크로 연결하고, 만난 날짜와 성향 궁합을 확인해요' },
+  { emoji: '🎬', title: '데이트 큐레이션', desc: '내 성향에 맞는 데이트 장소와 공연을 골라봐요' },
+  { emoji: '🛣️', title: '코스 빌더', desc: '마음에 드는 장소들을 이어서 우리만의 데이트 코스를 만들어요' },
+  { emoji: '📅', title: '데이트 캘린더', desc: '우리의 데이트 약속과 기념일을 함께 관리해요' },
+  { emoji: '🤖', title: 'AI 데이트 상담', desc: 'AI에게 데이트 코스를 물어보고 추천받아요' },
+  { emoji: '📋', title: '게시판', desc: '다른 커플들과 이야기를 나눠요' },
 ];
 
 const AUTO_ROTATE_MS = 4500;
@@ -54,8 +59,10 @@ export function SignupCarousel() {
         style={{ background: 'rgba(255,255,255,0.18)' }}>›</button>
 
       <div key={index} className="flex flex-col items-center text-center gap-3 animate-signup-fade">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
-          style={{ background: 'rgba(255,255,255,0.22)' }}>{slide.emoji}</div>
+        <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.22)' }}>
+          {slide.logo ? <img src={dmLogo} alt="DM 로고" className="h-10 w-10 object-contain" /> : slide.emoji}
+        </div>
         <h3 className="font-display font-bold text-xl">{slide.title}</h3>
         <p className="text-sm text-white/85 max-w-[220px]">{slide.desc}</p>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { createAiChatSession, getAiChatMessages, sendAiChatMessage } from '@/lib/api';
+import { getCurrentLocation } from '../lib/weather';
 
 // ⚠️ 이 프론트엔드 화면은 백엔드 AI 챗봇 API가 실제로 동작하는지 확인하려고 형식상 만든
 // 임시 UI입니다. 실제 화면은 팀원이 새로 작업할 예정이니, 이 내용은 참고만 하시고
@@ -71,7 +72,9 @@ export function AiChatTab() {
     setError(null);
 
     try {
-      const aiMessage = await sendAiChatMessage(sessionId, text);
+      // 위치는 매번 새로 구하지 않고 캐시해도 되지만, 최소 기능 범위라 단순하게 매 전송마다 조회한다.
+      const { lat, lon } = await getCurrentLocation();
+      const aiMessage = await sendAiChatMessage(sessionId, text, { lat, lon });
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       setError(err.message);

@@ -448,14 +448,14 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-              <p className="text-sm font-bold" style={{ color: '#3d2c35' }}>아직 커플이 아니에요 🌱</p>
+              <p className="text-sm font-bold" style={{ color: '#3d2c35' }}>아직 내 파트너가 없어요 🌱</p>
               <p className="text-xs text-stone-400 mt-1.5 leading-relaxed">
-                새로운 인연이 찾아오길 바랄게요<br />커플싱크 탭에서 초대 링크를 보내보세요
+                새로운 인연이 찾아오길 바랄게요<br />내 파트너 링크 탭에서 초대 링크를 보내보세요
               </p>
               <button onClick={() => onTabChange?.('couple')}
                 className="mt-5 rounded-2xl px-5 py-2.5 text-xs font-bold text-white transition-all hover:opacity-90 hover:scale-[1.02]"
                 style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 6px 20px rgba(255,107,138,0.3)' }}>
-                커플싱크 탭으로 가기 💞
+                내 파트너 링크 탭으로 가기 💞
               </button>
             </div>
           )}

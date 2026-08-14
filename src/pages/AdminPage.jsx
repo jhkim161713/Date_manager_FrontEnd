@@ -106,12 +106,21 @@ export function AdminPage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="font-display font-bold text-2xl" style={{ color: '#3d2c35' }}>{PAGE_TITLE[nav]}</h1>
-            <button onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all hover:opacity-80"
-              style={{ border: '1.5px solid #ffd6e0', color: '#a89aa0' }}>
-              <span>🚪</span>
-              <span>로그아웃</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 메인 앱 쪽에 "관리자 페이지" 버튼을 띄워야 하니, 쿼리 파라미터로 관리자임을 표시해서 이동한다. */}
+              <a href="/?admin=1"
+                className="flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all hover:opacity-80"
+                style={{ border: '1.5px solid #ffd6e0', color: '#a89aa0' }}>
+                <span>🏠</span>
+                <span>홈</span>
+              </a>
+              <button onClick={handleLogout}
+                className="flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all hover:opacity-80"
+                style={{ border: '1.5px solid #ffd6e0', color: '#a89aa0' }}>
+                <span>🚪</span>
+                <span>로그아웃</span>
+              </button>
+            </div>
           </div>
           {nav === 'dashboard' && <AdminDashboard />}
           {nav === 'users' && <AdminUserDirectory />}
