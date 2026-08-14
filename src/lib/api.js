@@ -244,10 +244,39 @@ export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
   return request(`/api/places?${params.toString()}`);
 }
 
+// 큐레이션 탭(데이트/숙박 카드)용 조회 API. matchScore는 아직 항상 null - 온보딩 성향값을 저장하는
+// 파이프라인이 없어서(2026-08-14 기준 미구현) 프론트가 최신순으로 대체 정렬한다.
+export function getCurationPlaces({ category = '', subCategory = '', page = 1, size = 20 } = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (category) params.set('category', category);
+  if (subCategory) params.set('subCategory', subCategory);
+  return request(`/api/places/curation?${params.toString()}`);
+}
+
+// 큐레이션 탭 "내 주변만 보기" 토글용 - 좌표 기준 가까운 순 + 카테고리 필터를 동시에 적용한다.
+// nearby 계열이라 이미 거리순으로 오기 때문에 별도 정렬 옵션이 필요 없다.
+export function getNearbyCurationPlaces({ lat, lon, category = '', subCategory = '', limit = 30 }) {
+  const params = new URLSearchParams({ lat, lon, limit });
+  if (category) params.set('category', category);
+  if (subCategory) params.set('subCategory', subCategory);
+  return request(`/api/places/curation/nearby?${params.toString()}`);
+}
+
+// 큐레이션 탭 카테고리 칩에 "OO곳" 개수를 표시하기 위한 대분류별 집계. { "맛집": 1234, ... } 형태.
+export function getPlaceCategoryCounts() {
+  return request('/api/places/category-counts');
+}
+
+// 숙박 탭처럼 대분류 하나를 세부분류 칩으로 한 번 더 쪼갤 때 쓰는 집계. { "호텔": 6501, ... } 형태.
+export function getPlaceSubCategoryCounts(category) {
+  return request(`/api/places/category-counts/sub?category=${encodeURIComponent(category)}`);
+}
+
 // 접속 좌표에서 가까운 순으로 장소를 가져온다 - 홈탭 지역 기반 추천용. 백엔드가 하버사인 거리
 // 계산까지 끝내서 정렬된 상태로 내려주므로 프론트에서 다시 거리 계산할 필요 없음.
-export function getNearbyPlaces(lat, lon, limit = 300) {
+export function getNearbyPlaces(lat, lon, limit = 300, category = '') {
   const params = new URLSearchParams({ lat, lon, limit });
+  if (category) params.set('category', category);
   return request(`/api/places/nearby?${params.toString()}`);
 }
 
