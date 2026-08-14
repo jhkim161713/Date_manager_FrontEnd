@@ -21,7 +21,7 @@ function AxisGauge({ axis, detail }) {
   const isHigh = detail.preference === 'high'
   const selectedDirection = detail.preference
     ? (isHigh ? axis.highLabel : axis.lowLabel)
-    : '미선택'
+    : '중립'
 
   return (
     <div className="rounded-2xl border border-[#ffd6e0] bg-white/90 px-4 py-3.5 shadow-sm">
@@ -70,11 +70,11 @@ function ChoiceCard({ option, side, axisColor, selectedOptionId, onSelect, cardR
       type="button"
       onClick={() => onSelect(option, side)}
       disabled={Boolean(selectedOptionId)}
-      className={`group relative overflow-hidden rounded-[28px] border-[3px] bg-[#211b20] text-left shadow-[0_18px_46px_rgba(73,39,52,0.18)] transition-all duration-300 focus:outline-none focus-visible:ring-4 ${
+      className={`group relative overflow-hidden rounded-[28px] border-[3px] border-white bg-[#211b20] text-left shadow-[0_18px_46px_rgba(73,39,52,0.18)] transition-all duration-300 focus:outline-none focus-visible:ring-4 ${
         isSelected
-          ? 'scale-[1.025] border-white ring-4 ring-white/80'
-          : 'border-white hover:-translate-y-1 hover:shadow-[0_24px_58px_rgba(73,39,52,0.25)]'
-      } ${isDimmed ? 'pointer-events-none scale-90 opacity-0' : 'opacity-100'}`}
+          ? ''
+          : 'hover:-translate-y-1 hover:shadow-[0_24px_58px_rgba(73,39,52,0.25)]'
+      } ${isDimmed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
       style={{ '--tw-ring-color': `${axisColor}55` }}
       aria-label={`${option.label} 선택`}
     >
@@ -112,7 +112,7 @@ function ChoiceCard({ option, side, axisColor, selectedOptionId, onSelect, cardR
   )
 }
 
-export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
+export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable = true }) {
   const [phase, setPhase] = useState('intro')
   const [rounds, setRounds] = useState(createRounds)
   const [roundIndex, setRoundIndex] = useState(0)
@@ -145,7 +145,7 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
     setPhase('compare')
   }
 
-  // "모르겠다"로 마지막 라운드를 답하면 중앙에 띄울 사진이 없으니 위너 연출 없이 바로 결과로 넘어간다.
+  // "모르겠다"를 고르면 중앙에 띄울 사진이 없으니 위너 연출 없이 바로 다음 단계로 넘어간다.
   // winner state는 비동기라 setTimeout 콜백 안에서 최신값을 못 믿으므로, hasWinner를 인자로 직접 넘긴다.
   const submitResponse = (response, selectionMarker, hasWinner = false) => {
     if (!currentRound || selectedOptionId) return
@@ -158,7 +158,9 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
       setResponses(nextResponses)
       setSelectedOptionId(null)
 
-      if (isFinalRound && hasWinner) {
+      if (hasWinner) {
+        // 위너 컷을 보여준 뒤 다음 단계(다음 라운드 또는 결과 화면)로 넘어가는 건
+        // winner 페이즈의 useEffect가 이어서 처리한다.
         setPhase('winner')
       } else if (isFinalRound) {
         setPhase('result')
@@ -170,20 +172,22 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
 
   const chooseOption = (option, side) => {
     const rejectedOption = currentRound.options.find(item => item.id !== option.id)
+    const isFinalRound = roundIndex === rounds.length - 1
     let hasWinner = false
 
-    if (roundIndex === rounds.length - 1) {
-      const node = cardRefs.current[option.id]
-      const gridRect = optionsGridRef.current?.getBoundingClientRect()
-      if (node && gridRect) {
-        setWinner({
-          option,
-          rect: node.getBoundingClientRect(),
-          // 뷰포트 정중앙이 아니라, 두 사진이 놓여 있던 그리드 영역의 중앙으로 보내기 위한 좌표.
-          center: { x: gridRect.left + gridRect.width / 2, y: gridRect.top + gridRect.height / 2 },
-        })
-        hasWinner = true
-      }
+    // 마지막 라운드뿐 아니라 매 라운드마다 선택한 사진이 그리드 중앙으로 확대 이동하는
+    // 위너 컷 연출을 보여준다.
+    const node = cardRefs.current[option.id]
+    const gridRect = optionsGridRef.current?.getBoundingClientRect()
+    if (node && gridRect) {
+      setWinner({
+        option,
+        rect: node.getBoundingClientRect(),
+        // 뷰포트 정중앙이 아니라, 두 사진이 놓여 있던 그리드 영역의 중앙으로 보내기 위한 좌표.
+        center: { x: gridRect.left + gridRect.width / 2, y: gridRect.top + gridRect.height / 2 },
+        isFinalRound,
+      })
+      hasWinner = true
     }
 
     submitResponse(
@@ -246,7 +250,7 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
   }, [phase, currentRound, selectedOptionId, responses])
 
   // 위너 컷 진입 직후 한 프레임 쉬었다가 중앙으로 확대 이동시키고(FLIP 애니메이션), 잠시 멈춰서
-  // 보여준 다음 결과 화면으로 넘어간다.
+  // 보여준 다음 다음 라운드로(마지막이었으면 결과 화면으로) 넘어간다.
   useEffect(() => {
     if (phase !== 'winner') return undefined
 
@@ -258,9 +262,14 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
       raf2 = window.requestAnimationFrame(() => setWinnerAnimateIn(true))
     })
     const advance = window.setTimeout(() => {
-      setPhase('result')
       setWinnerAnimateIn(false)
       setWinner(null)
+      if (winner?.isFinalRound) {
+        setPhase('result')
+      } else {
+        setRoundIndex(index => index + 1)
+        setPhase('compare')
+      }
     }, 1700)
 
     return () => {
@@ -268,7 +277,7 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
       if (raf2 !== null) window.cancelAnimationFrame(raf2)
       window.clearTimeout(advance)
     }
-  }, [phase])
+  }, [phase, winner])
 
   const completeOnboarding = () => {
     onComplete?.(personaResult)
@@ -284,14 +293,11 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
         <div className="absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-[#c4a0e8]/30 blur-3xl" />
 
         <section className="relative z-10 w-full max-w-2xl rounded-[32px] border border-white/80 bg-white/80 p-7 text-center shadow-[0_24px_80px_rgba(111,64,83,0.14)] backdrop-blur-xl sm:p-10">
-          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center overflow-hidden rounded-3xl bg-white shadow-lg">
-            <img src={dmLogo} alt="DM 로고" className="h-14 w-14 object-contain" />
+          <div className="mx-auto mb-5 grid h-24 w-24 place-items-center overflow-hidden rounded-3xl bg-white shadow-lg">
+            <img src={dmLogo} alt="DM 로고" className="h-[5.5rem] w-[5.5rem] object-contain" />
           </div>
-          <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.22em] text-[#ff6b8a]">
-            Persona Researcher
-          </p>
           <h1 className="font-display text-3xl font-bold leading-tight text-[#3d2c35] sm:text-4xl">
-            더 끌리는 데이트를<br />6번만 선택해 주세요
+            두 사진 중 더 끌리는 쪽을,<br />6번만 골라주세요
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-stone-500">
             매 라운드마다 같은 취향 축의 두 사진이 함께 나와요.<br></br> 오래 고민하지 말고 첫 느낌으로 골라주세요.
@@ -315,13 +321,15 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
           >
             이상형 월드컵 시작하기
           </button>
-          <button
-            type="button"
-            onClick={onSkip}
-            className="mt-3 px-4 py-2 text-xs font-bold text-stone-400 transition hover:text-stone-600"
-          >
-            다음에 할게요
-          </button>
+          {skippable && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="mt-3 px-4 py-2 text-xs font-bold text-stone-400 transition hover:text-stone-600"
+            >
+              다음에 할게요
+            </button>
+          )}
         </section>
       </div>
     )
@@ -331,22 +339,28 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
     const { option, rect, center } = winner
     // 뷰포트 전체가 아니라 원래 사진이 있던 크기를 기준으로 살짝만 키운다(제자리에서 확대되는
     // 느낌이 아니라 실제로 커지면서 그리드 중앙으로 이동하는 게 보이도록).
-    const targetWidth = Math.min(rect.width * 1.3, window.innerWidth * 0.9)
-    const targetHeight = Math.min(rect.height * 1.3, window.innerHeight * 0.62)
+    // 가로/세로에 각각 다른 상한을 걸면 둘 중 하나만 뷰포트 제한에 걸려서 원본 비율이 깨진 채로
+    // 커지는(찌그러지는) 문제가 있었다 - 하나의 배율만 구해서 가로세로에 동일하게 적용한다.
+    const growScale = Math.min(1.15, (window.innerWidth * 0.9) / rect.width, (window.innerHeight * 0.62) / rect.height)
+    const targetWidth = rect.width * growScale
+    const targetHeight = rect.height * growScale
+    // translate(-50%, -50%) 퍼센트 트릭 대신 목표 좌상단 좌표를 직접 픽셀로 계산한다 - width/height와
+    // 퍼센트 변환이 동시에 애니메이션되면 퍼센트 기준(요소 자기 크기)이 계속 바뀌면서 이동 경로가
+    // 휘어 보이는 문제가 있었다.
+    const targetTop = center.y - targetHeight / 2
+    const targetLeft = center.x - targetWidth / 2
     const flyingStyle = winnerAnimateIn
       ? {
-          top: `${center.y}px`,
-          left: `${center.x}px`,
+          top: `${targetTop}px`,
+          left: `${targetLeft}px`,
           width: `${targetWidth}px`,
           height: `${targetHeight}px`,
-          transform: 'translate(-50%, -50%) scale(1)',
         }
       : {
           top: `${rect.top}px`,
           left: `${rect.left}px`,
           width: `${rect.width}px`,
           height: `${rect.height}px`,
-          transform: 'translate(0, 0) scale(1)',
         }
 
     return (
@@ -356,11 +370,11 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
           style={{ opacity: winnerAnimateIn ? 0.55 : 0 }}
         />
         <div
-          className="fixed z-50 overflow-hidden rounded-[28px] border-[3px] border-white shadow-[0_30px_80px_rgba(73,39,52,0.35)]"
+          className="fixed z-50 overflow-hidden rounded-[28px] shadow-[0_30px_80px_rgba(73,39,52,0.35)]"
           style={{
             position: 'fixed',
             ...flyingStyle,
-            transition: 'top 700ms cubic-bezier(0.22,1,0.36,1), left 700ms cubic-bezier(0.22,1,0.36,1), width 700ms cubic-bezier(0.22,1,0.36,1), height 700ms cubic-bezier(0.22,1,0.36,1), transform 700ms cubic-bezier(0.22,1,0.36,1)',
+            transition: 'top 700ms cubic-bezier(0.22,1,0.36,1), left 700ms cubic-bezier(0.22,1,0.36,1), width 700ms cubic-bezier(0.22,1,0.36,1), height 700ms cubic-bezier(0.22,1,0.36,1)',
           }}
         >
           <img src={option.image} alt={option.alt} className="h-full w-full object-cover" />
@@ -380,17 +394,14 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
   if (phase === 'result') {
     return (
       <div
-        className={`${viewportClass} overflow-y-auto px-5 py-8 sm:py-12`}
+        className={`flex items-center ${viewportClass} overflow-y-auto px-5 py-8 sm:py-12`}
         style={{ background: 'linear-gradient(145deg, #fff8f4 0%, #fff0f3 48%, #f3ebfb 100%)' }}
       >
         <section className="mx-auto w-full max-w-3xl rounded-[32px] border border-white/80 bg-white/80 p-6 shadow-[0_24px_80px_rgba(111,64,83,0.14)] backdrop-blur-xl sm:p-9">
           <div className="text-center">
-            <span className="inline-flex rounded-full bg-[#fff0f3] px-3 py-1 text-xs font-extrabold text-[#ff6b8a]">
-              6 / 6 선택 완료
-            </span>
-            <h1 className="mt-4 font-display text-3xl font-bold text-[#3d2c35]">나의 데이트 페르소나</h1>
+            <h1 className="font-display text-3xl font-bold text-[#3d2c35]">나의 문화생활 성향</h1>
             <p className="mt-2 text-sm text-stone-500">
-              두 사진 중 선택한 결과를 6개의 취향 축으로 정리했어요.
+              방금 고른 선택들로 나의 첫 성향 점수를 만들었어요.
             </p>
           </div>
 
@@ -413,7 +424,7 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
               onClick={completeOnboarding}
               className="rounded-2xl bg-gradient-to-r from-[#ff6b8a] to-[#c4a0e8] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(255,107,138,0.24)] transition hover:-translate-y-0.5 sm:flex-[1.4]"
             >
-              결과 저장하고 돌아가기
+              Date Manager 시작하기
             </button>
           </div>
         </section>
@@ -427,30 +438,27 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
       style={{ background: 'linear-gradient(145deg, #fff8f4 0%, #fff0f3 48%, #f3ebfb 100%)' }}
     >
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-white shadow">
-            <img src={dmLogo} alt="DM 로고" className="h-9 w-9 object-contain" />
+        <div className="flex items-center gap-5">
+          <span className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl">
+            <img src={dmLogo} alt="DM 로고" className="h-[4.5rem] w-[4.5rem] object-contain" />
           </span>
           <div>
-            <p className="text-sm font-extrabold text-[#3d2c35]">취향 탐색기</p>
-            <p className="text-[10px] font-bold text-stone-400">PAIR COMPARISON</p>
+            <p className="font-display text-2xl font-extrabold text-[#3d2c35]">당신의 문화생활 취향을 분석하고 있어요</p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onSkip}
-          className="rounded-xl px-3 py-2 text-xs font-bold text-stone-400 transition hover:bg-white/70 hover:text-stone-600"
-        >
-          나중에
-        </button>
+        {skippable && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="rounded-xl px-3 py-2 text-xs font-bold text-stone-400 transition hover:bg-white/70 hover:text-stone-600"
+          >
+            나중에
+          </button>
+        )}
       </header>
 
       <div className="mx-auto mt-4 w-full max-w-3xl">
-        <div className="mb-2 flex items-center justify-between text-xs font-bold">
-          <span style={{ color: currentAxis.color }}>{roundIndex + 1} / {rounds.length}</span>
-          <span className="text-stone-400"></span>
-        </div>
         <div className="h-2 overflow-hidden rounded-full bg-white/80 shadow-inner">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#ff6b8a] to-[#c4a0e8] transition-all duration-300"
@@ -461,10 +469,10 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false }) {
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center py-5">
         <div className="mb-4 text-center">
-          <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: currentAxis.color }}>
-            {currentAxis.koreanLabel}
+          <p className="text-sm font-black uppercase tracking-[0.2em]" style={{ color: currentAxis.color }}>
+            {roundIndex + 1}라운드 · {currentAxis.koreanLabel}
           </p>
-          <h1 className="mt-1 text-xl font-extrabold text-[#3d2c35] sm:text-2xl">
+          <h1 className="font-display mt-1 text-2xl font-extrabold text-[#3d2c35] sm:text-3xl">
             {currentAxis.question}
           </h1>
         </div>

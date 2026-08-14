@@ -235,7 +235,7 @@ export function buildPersonaResult(responses) {
   const details = PERSONA_AXES.reduce((result, axis) => {
     const response = responses.find(item => item.axis === axis.id)
     const preference = response?.selectedVariant ?? null
-    const score = preference === 'high' ? 75 : preference === 'low' ? 25 : 50
+    const score = preference === 'high' ? 70 : preference === 'low' ? 30 : 50
 
     result[axis.id] = {
       score,

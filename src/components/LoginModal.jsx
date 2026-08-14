@@ -18,7 +18,7 @@ const GENDER_OPTIONS = [
 
 // 로그인/회원가입을 한 모달 안에서 mode로 전환한다. 페이지 이동(window.location) 없이
 // 화면만 바뀌므로 회원가입 쪽 캐러셀(SignupCarousel)도 그대로 재사용한다.
-export function LoginModal({ onClose, onAuthed, initialError }) {
+export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }) {
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -118,7 +118,9 @@ export function LoginModal({ onClose, onAuthed, initialError }) {
           await uploadProfilePhoto(photoFile).catch(() => {});
         }
         onAuthed();
-        onClose();
+        // 가입 직후 성향 온보딩을 거쳐야 완료로 치는 구조라, 여기서 모달을 바로 닫지 않고
+        // App.jsx가 온보딩 오버레이를 띄우도록 넘긴다.
+        onSignupComplete ? onSignupComplete() : onClose();
       } catch (e) {
         setError(e.message);
       } finally {

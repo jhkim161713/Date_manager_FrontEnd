@@ -50,6 +50,10 @@ export default function App() {
   );
   const [pendingBillingAuth, setPendingBillingAuth] = useState(initialBillingAuth);
   const [personaProfile, setPersonaProfile] = useState(null);
+  // 이메일 가입 직후, 또는 소셜 가입 후 ProfileConfirmModal(성별 확정)이 끝난 직후에 띄우는
+  // 필수 성향 온보딩 오버레이. 둘 다 "방금 처음 가입한 사람"만 거치는 지점이라 이 하나의
+  // 플래그로 두 경로를 합쳐서 처리한다.
+  const [showPostSignupOnboarding, setShowPostSignupOnboarding] = useState(false);
   // 관리자 페이지(/admin)에서 "우리 홈"으로 넘어온 경우에만 상단에 "관리자 페이지" 버튼을 보여준다.
   // adminCheck()를 매번 새로 부르는 대신, /admin에서 넘어올 때만 붙는 ?admin=1 쿼리를
   // sessionStorage에 남겨서 이 탭에 머무는 동안 계속 기억하게 한다.
@@ -276,7 +280,7 @@ export default function App() {
         <nav className="flex flex-col gap-1 px-3 flex-1">
           {TABS.map(t => (
             <button key={t.id} onClick={() => {
-              if (t.id !== 'home' && t.id !== 'onboarding' && !user) {
+              if (t.id !== 'home' && !user) {
                 alert('로그인 후 이용 가능합니다! 🌸');
                 setShowLogin(true);
                 return;
@@ -433,7 +437,7 @@ export default function App() {
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full px-4 md:px-8 py-4 md:py-7 pb-24 md:pb-16">
-            {tab !== 'home' && tab !== 'onboarding' && !user ? (
+            {tab !== 'home' && !user ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <span className="text-5xl mb-3">🔒</span>
                 <h2 className="font-bold text-xl text-[#3d2c35]">로그인이 필요한 서비스입니다</h2>
@@ -451,16 +455,6 @@ export default function App() {
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
-                {tab === 'onboarding' && (
-                  <OnboardingTab
-                    embedded
-                    onComplete={(profile) => {
-                      setPersonaProfile(profile);
-                      changeTab('home');
-                    }}
-                    onSkip={() => changeTab('home')}
-                  />
-                )}
                 {tab === 'aichat' && <AiChatTab />}
                 {tab === 'board' && <BoardTab />}
                 {tab === 'placeDebug' && <PlaceStyleDebugTab />}
@@ -502,13 +496,26 @@ export default function App() {
         <LoginModal
           onClose={() => { setShowLogin(false); setAuthError(null); }}
           onAuthed={loadUser}
+          onSignupComplete={() => { setShowLogin(false); setAuthError(null); setShowPostSignupOnboarding(true); }}
           initialError={authError}
         />
       )}
 
-      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 닉네임 확인 + 성별 확정을 먼저 받음 */}
+      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 닉네임 확인 + 성별 확정을 먼저 받음.
+          이 모달은 최초 가입자한테만 뜨므로(성별이 이미 있으면 안 뜸), 완료 시점이 곧 "방금 소셜로
+          가입 완료"인 시점이라 여기서 바로 이어서 성향 온보딩을 띄운다. */}
       {authChecked && user && user.gender === 'UNKNOWN' && !getMockUser() && (
-        <ProfileConfirmModal user={user} onDone={(updated) => setUser(updated)} />
+        <ProfileConfirmModal user={user} onDone={(updated) => { setUser(updated); setShowPostSignupOnboarding(true); }} />
+      )}
+
+      {/* 가입 직후 필수 성향 온보딩. 전체 화면을 덮어서 건너뛸 수 없게 한다(OnboardingTab에 skippable=false). */}
+      {showPostSignupOnboarding && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-white">
+          <OnboardingTab
+            skippable={false}
+            onComplete={(profile) => { setPersonaProfile(profile); setShowPostSignupOnboarding(false); }}
+          />
+        </div>
       )}
 
       {showSubscription && user && (
