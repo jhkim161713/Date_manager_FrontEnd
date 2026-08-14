@@ -115,7 +115,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
           <div>
             <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-bold mb-2"
               style={{ background: 'rgba(255,255,255,0.22)', color: 'white' }}>
-              {coupleLinked ? '💕 우리 커플 맞춤 큐레이션' : '🎭 문화생활 맞춤 큐레이션'}
+              {coupleLinked ? '💕 내 파트너 맞춤 큐레이션' : '🎭 문화생활 맞춤 큐레이션'}
             </span>
             <h2 className="font-display font-bold text-white leading-tight text-xl md:text-[1.6rem]">
               {coupleLinked ? '오늘은 이런 데이트 어때요?' : '이번 주엔 이런 문화생활 어때요?'}

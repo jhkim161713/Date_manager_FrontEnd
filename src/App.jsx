@@ -23,7 +23,7 @@ import { BoardTab } from './tabs/BoardTab';
 // 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
 const MOBILE_NAV_TABS = [
   { id: 'home', label: '홈', emoji: '🏠' },
-  { id: 'couple', label: '커플싱크', emoji: '💞' },
+  { id: 'couple', label: '내 파트너 링크', emoji: '💞' },
   { id: 'curiation', label: '큐레이션', emoji: '🎬' },
   { id: 'calendar', label: '캘린더', emoji: '📅' },
   { id: 'mypage', label: 'MY', emoji: '👤' },
@@ -50,6 +50,12 @@ export default function App() {
   );
   const [pendingBillingAuth, setPendingBillingAuth] = useState(initialBillingAuth);
   const [personaProfile, setPersonaProfile] = useState(null);
+  // 관리자 페이지(/admin)에서 "우리 홈"으로 넘어온 경우에만 상단에 "관리자 페이지" 버튼을 보여준다.
+  // adminCheck()를 매번 새로 부르는 대신, /admin에서 넘어올 때만 붙는 ?admin=1 쿼리를
+  // sessionStorage에 남겨서 이 탭에 머무는 동안 계속 기억하게 한다.
+  const [isAdminUser] = useState(
+    () => new URLSearchParams(window.location.search).get('admin') === '1' || sessionStorage.getItem('dm_admin_return') === '1'
+  );
   const personaScrollerRef = useRef(null);
   const personaDragRef = useRef({ active: false, startX: 0, startScrollLeft: 0 });
   const [isPersonaDragging, setIsPersonaDragging] = useState(false);
@@ -121,6 +127,13 @@ export default function App() {
     window.addEventListener('pageshow', handlePageShow);
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, [loadUser]);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('admin') === '1') {
+      sessionStorage.setItem('dm_admin_return', '1');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -378,6 +391,13 @@ export default function App() {
           <div className="app-profile-actions">
             {!authChecked ? null : user ? (
               <>
+                {isAdminUser && (
+                  <a href="/admin"
+                    className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
+                    style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
+                    🛠️ <span className="app-profile-secondary-label">관리자 페이지</span>
+                  </a>
+                )}
                 <button onClick={() => changeTab('mypage')}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
@@ -427,7 +447,7 @@ export default function App() {
             ) : (
               <>
                 {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'couple' && <CoupleTab user={user} />}
+                {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'curiation' && <CuriationTab />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}

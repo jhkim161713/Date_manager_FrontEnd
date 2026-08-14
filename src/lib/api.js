@@ -251,7 +251,7 @@ export function getNearbyPlaces(lat, lon, limit = 300) {
   return request(`/api/places/nearby?${params.toString()}`);
 }
 
-// 커플 초대 링크 생성 (24시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
+// 커플 초대 링크 생성 (1시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
 export function createCoupleInvite() {
   return request('/api/couple/invite', { method: 'POST' });
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const SLIDES = [
-  { emoji: '🔗', title: '커플싱크', desc: '링크 하나로 우리 둘을 연결해요' },
+  { emoji: '🔗', title: '내 파트너 링크', desc: '링크 하나로 우리 둘을 연결해요' },
   { emoji: '🧭', title: '코스빌더', desc: '우리만의 데이트 코스를 만들어요' },
   { emoji: '☀️', title: '날씨 연동', desc: '오늘 날씨에 맞는 데이트 추천' },
 ];
