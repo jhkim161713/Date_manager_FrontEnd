@@ -23,7 +23,7 @@ const AXIS_TO_PLACE_SCORE = {
   depth: 'scoreDepth',
 };
 
-export function HomeTab({ onTabChange, personaProfile, onOpenStay }) {
+export function HomeTab({ onTabChange, personaProfile }) {
   // 배너 문구를 실제 커플 연결 상태에 따라 다르게 보여준다 - 예전엔 목업 커플타입(TENDENCY_TYPES)과
   // 가짜 코스 개수(ALL_CARDS.length)를 썼는데, 실제 데이터 기반으로 교체(2026-08-13).
   const [coupleLinked, setCoupleLinked] = useState(false);
@@ -167,24 +167,15 @@ export function HomeTab({ onTabChange, personaProfile, onOpenStay }) {
           <div className="flex items-center gap-2">
             <h2 className="font-display font-bold text-base" style={{ color: '#3d2c35' }}>🎨 오늘의 추천 문화생활</h2>
           </div>
-          <div className="flex items-center gap-1.5">
-            {/* 숙박은 6대 성향 매칭과 안 맞아서 이 추천 풀에서 뺐다 - 숙박은 여기 대신 큐레이션
-                탭의 숙박 화면에서 따로 볼 수 있게 진입점만 둔다(2026-08-18). */}
-            <button type="button" onClick={() => onOpenStay?.()}
-              className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition-all hover:scale-105"
-              style={{ background: '#f5eefb', color: '#8b6dc0' }}>
-              🌙 숙박 보기
-            </button>
-            <button type="button" onClick={() => setRefreshSeed((n) => n + 1)}
-              className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition-all hover:scale-105"
-              style={{ background: '#fff0f3', color: '#ff6b8a' }}>
-              🔄 새로고침
-            </button>
-          </div>
+          <button type="button" onClick={() => setRefreshSeed((n) => n + 1)}
+            className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition-all hover:scale-105"
+            style={{ background: '#fff0f3', color: '#ff6b8a' }}>
+            🔄 새로고침
+          </button>
         </div>
 
         {/* 내 주변 카테고리 칩 - 고르면 위 nearbyPlacePool 자체가 그 카테고리로 좁혀짐(2026-08-14).
-            숙박 칩은 없음(2026-08-18) - 위 "숙박 보기"로 진입. */}
+            숙박은 6대 성향 매칭과 안 맞아서 칩 목록에서 뺐다(2026-08-18) - 숙박은 큐레이션 탭에서 확인. */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-3" style={{ scrollbarWidth: 'none' }}>
           <button
             type="button"

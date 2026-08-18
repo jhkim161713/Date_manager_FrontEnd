@@ -12,8 +12,8 @@ const PAGE_SIZE = 24;
 
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
-export function CuriationTab({ onOpenBuilder, initialView = 'date' }) {
-  const [curationView, setCurationView] = useState(initialView);
+export function CuriationTab({ onOpenBuilder }) {
+  const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
   const [stayCategory, setStayCategory] = useState('all');
 
