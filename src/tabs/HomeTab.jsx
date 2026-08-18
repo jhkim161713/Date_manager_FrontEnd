@@ -28,9 +28,15 @@ export function HomeTab({ onTabChange, personaProfile }) {
   // 가짜 코스 개수(ALL_CARDS.length)를 썼는데, 실제 데이터 기반으로 교체(2026-08-13).
   const [coupleLinked, setCoupleLinked] = useState(false);
   useEffect(() => {
-    getCoupleStatus()
-      .then((status) => setCoupleLinked(!!status.linked))
-      .catch(() => setCoupleLinked(false));
+    const loadCoupleStatus = async () => {
+      try {
+        const status = await getCoupleStatus();
+        setCoupleLinked(!!status.linked);
+      } catch {
+        setCoupleLinked(false);
+      }
+    };
+    loadCoupleStatus();
   }, []);
 
 
@@ -44,13 +50,17 @@ export function HomeTab({ onTabChange, personaProfile }) {
   // 'all'이면 카테고리 필터 없이 예전처럼 전체를 받아온다.
   const [homeCategory, setHomeCategory] = useState('all');
   useEffect(() => {
-    const selected = HOME_CATEGORIES.find((item) => item.id === homeCategory);
-    const categoryParam = selected ? selected.categories.join(',') : '';
-    getCurrentLocation().then(({ lat, lon }) => {
-      getNearbyPlaces(lat, lon, 300, categoryParam)
-        .then(setNearbyPlacePool)
-        .catch(() => setNearbyPlacePool([]));
-    });
+    const loadNearbyPlaces = async () => {
+      const selected = HOME_CATEGORIES.find((item) => item.id === homeCategory);
+      const categoryParam = selected ? selected.categories.join(',') : '';
+      try {
+        const { lat, lon } = await getCurrentLocation();
+        setNearbyPlacePool(await getNearbyPlaces(lat, lon, 300, categoryParam));
+      } catch {
+        setNearbyPlacePool([]);
+      }
+    };
+    loadNearbyPlaces();
   }, [homeCategory]);
 
   // 올리브영처럼 지점이 많은 체인점이 이름만 다르고 사실상 같은 브랜드라 후보를 도배하는 문제

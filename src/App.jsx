@@ -103,19 +103,25 @@ export default function App() {
     };
   }, []);
 
-  const loadUser = useCallback(() => {
+  const loadUser = useCallback(async () => {
     const mockUser = getMockUser();
     if (mockUser) {
       setUser(mockUser);
-      return Promise.resolve(mockUser);
+      return mockUser;
     }
     if (!getToken()) {
       setUser(null);
-      return Promise.resolve(null);
+      return null;
     }
-    return getMe()
-      .then(data => { setUser(data); return data; })
-      .catch(() => { clearToken(); setUser(null); return null; });
+    try {
+      const data = await getMe();
+      setUser(data);
+      return data;
+    } catch {
+      clearToken();
+      setUser(null);
+      return null;
+    }
   }, []);
 
   // 관리자 로그인 시 이 페이지는 onAuthed()를 호출하지 않은 채(user=null인 상태로)

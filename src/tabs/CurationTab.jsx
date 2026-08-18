@@ -57,64 +57,86 @@ export function CuriationTab({ onOpenBuilder }) {
   };
 
   useEffect(() => {
-    getPlaceCategoryCounts().then(setCategoryCounts).catch(() => setCategoryCounts({}));
-    getPlaceSubCategoryCounts(STAY_TOP_CATEGORY).then(setStaySubCounts).catch(() => setStaySubCounts({}));
+    const loadCategoryCounts = async () => {
+      try {
+        setCategoryCounts(await getPlaceCategoryCounts());
+      } catch {
+        setCategoryCounts({});
+      }
+    };
+    const loadStaySubCounts = async () => {
+      try {
+        setStaySubCounts(await getPlaceSubCategoryCounts(STAY_TOP_CATEGORY));
+      } catch {
+        setStaySubCounts({});
+      }
+    };
+    loadCategoryCounts();
+    loadStaySubCounts();
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    setDateLoading(true);
-    setDateError('');
-    setNearbyError('');
-    const selected = DATE_CATEGORIES.find((item) => item.id === dateCategory);
-    const categoryParam = selected ? selected.categories.join(',') : '';
+    const loadDatePlaces = async () => {
+      setDateLoading(true);
+      setDateError('');
+      setNearbyError('');
+      const selected = DATE_CATEGORIES.find((item) => item.id === dateCategory);
+      const categoryParam = selected ? selected.categories.join(',') : '';
 
-    const load = useNearby
-      ? getCurrentLocation().then(({ lat, lon }) => (
-        getNearbyCurationPlaces({ lat, lon, category: categoryParam, limit: PAGE_SIZE })
-      ))
-      : getCurationPlaces({ category: categoryParam, size: PAGE_SIZE }).then((page) => page.content);
-
-    load
-      .then((places) => {
+      try {
+        let places;
+        if (useNearby) {
+          const { lat, lon } = await getCurrentLocation();
+          places = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, limit: PAGE_SIZE });
+        } else {
+          const page = await getCurationPlaces({ category: categoryParam, size: PAGE_SIZE });
+          places = page.content;
+        }
         if (cancelled) return;
         setDatePlaces(places);
         cachePlaces(places);
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return;
         setDateError('장소를 불러오지 못했어요');
         if (useNearby) setNearbyError('위치 정보를 가져오지 못했어요');
-      })
-      .finally(() => { if (!cancelled) setDateLoading(false); });
+      } finally {
+        if (!cancelled) setDateLoading(false);
+      }
+    };
+    loadDatePlaces();
     return () => { cancelled = true; };
   }, [dateCategory, useNearby]);
 
   useEffect(() => {
     let cancelled = false;
-    setStayLoading(true);
-    setStayError('');
-    setNearbyError('');
-    const subCategory = stayCategory === 'all' ? '' : stayCategory;
+    const loadStayPlaces = async () => {
+      setStayLoading(true);
+      setStayError('');
+      setNearbyError('');
+      const subCategory = stayCategory === 'all' ? '' : stayCategory;
 
-    const load = useNearby
-      ? getCurrentLocation().then(({ lat, lon }) => (
-        getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, limit: PAGE_SIZE })
-      ))
-      : getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, size: PAGE_SIZE }).then((page) => page.content);
-
-    load
-      .then((places) => {
+      try {
+        let places;
+        if (useNearby) {
+          const { lat, lon } = await getCurrentLocation();
+          places = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, limit: PAGE_SIZE });
+        } else {
+          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, size: PAGE_SIZE });
+          places = page.content;
+        }
         if (cancelled) return;
         setStayPlaces(places);
         cachePlaces(places);
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return;
         setStayError('숙소를 불러오지 못했어요');
         if (useNearby) setNearbyError('위치 정보를 가져오지 못했어요');
-      })
-      .finally(() => { if (!cancelled) setStayLoading(false); });
+      } finally {
+        if (!cancelled) setStayLoading(false);
+      }
+    };
+    loadStayPlaces();
     return () => { cancelled = true; };
   }, [stayCategory, useNearby]);
 

@@ -19,12 +19,19 @@ export function PlaceStyleDebugTab() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setLoading(true);
-    setError('');
-    getPlaces({ category, size: 24 })
-      .then((page) => setPlaces(page.content))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    const loadPlaces = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const page = await getPlaces({ category, size: 24 });
+        setPlaces(page.content);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPlaces();
   }, [category]);
 
   return (

@@ -24,8 +24,23 @@ export function AdminDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    adminDashboard().then(setStats).catch(e => setError(e.message));
-    adminListNotices({ page: 1, size: 5 }).then(data => setNotices(data.content)).catch(() => {});
+    const loadStats = async () => {
+      try {
+        setStats(await adminDashboard());
+      } catch (e) {
+        setError(e.message);
+      }
+    };
+    const loadNotices = async () => {
+      try {
+        const data = await adminListNotices({ page: 1, size: 5 });
+        setNotices(data.content);
+      } catch {
+        // 미리보기용 목록이라 실패해도 조용히 무시(기존 동작 유지)
+      }
+    };
+    loadStats();
+    loadNotices();
   }, []);
 
   if (error) {

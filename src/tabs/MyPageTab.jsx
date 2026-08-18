@@ -90,14 +90,19 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
       setLoading(false);
       return;
     }
-    getMe()
-      .then(data => {
+    const loadProfile = async () => {
+      try {
+        const data = await getMe();
         setProfile(data);
         setNickname(data.nickname ?? '');
         setGender(data.gender ?? 'UNKNOWN');
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
   }, []);
 
   // 테스트 계정(mockUser)은 실제 백엔드 데이터가 없으므로 구독/커플 조회는 건너뛰되,
@@ -108,10 +113,24 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
       setCoupleStatus({ linked: false, partner: null, connectedAt: null, metDate: null });
       return;
     }
-    getMySubscription().then(setSubscription).catch(() => setSubscription({ hasSubscription: false }));
-    getCoupleStatus()
-      .then(data => { setCoupleStatus(data); setMetDateInput(data.metDate || ''); })
-      .catch(() => setCoupleStatus({ linked: false, partner: null, connectedAt: null, metDate: null }));
+    const loadSubscription = async () => {
+      try {
+        setSubscription(await getMySubscription());
+      } catch {
+        setSubscription({ hasSubscription: false });
+      }
+    };
+    const loadCoupleStatus = async () => {
+      try {
+        const data = await getCoupleStatus();
+        setCoupleStatus(data);
+        setMetDateInput(data.metDate || '');
+      } catch {
+        setCoupleStatus({ linked: false, partner: null, connectedAt: null, metDate: null });
+      }
+    };
+    loadSubscription();
+    loadCoupleStatus();
   }, []);
 
   const handleSaveMetDate = async () => {

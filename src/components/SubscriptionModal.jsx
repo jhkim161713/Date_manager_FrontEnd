@@ -29,10 +29,16 @@ export function SubscriptionModal({ user, onClose, pendingBillingAuth }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    getMySubscription()
-      .then(setSubscription)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+    const loadSubscription = async () => {
+      try {
+        setSubscription(await getMySubscription());
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSubscription();
   }, []);
 
   // 결제 성공 리다이렉트로 돌아온 직후라면 authKey/customerKey로 빌링키 발급을 마무리한다.
@@ -44,11 +50,19 @@ export function SubscriptionModal({ user, onClose, pendingBillingAuth }) {
     if (issuedAuthKeyRef.current === pendingBillingAuth.authKey) return;
     issuedAuthKeyRef.current = pendingBillingAuth.authKey;
 
-    setProcessing(true);
-    issueBillingKey({ ...pendingBillingAuth, planCode: PLAN.code })
-      .then(sub => { setSubscription(sub); setError(null); })
-      .catch(e => setError(e.message))
-      .finally(() => setProcessing(false));
+    const finalizeBillingAuth = async () => {
+      setProcessing(true);
+      try {
+        const sub = await issueBillingKey({ ...pendingBillingAuth, planCode: PLAN.code });
+        setSubscription(sub);
+        setError(null);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setProcessing(false);
+      }
+    };
+    finalizeBillingAuth();
   }, [pendingBillingAuth]);
 
   const startBillingAuth = async () => {
