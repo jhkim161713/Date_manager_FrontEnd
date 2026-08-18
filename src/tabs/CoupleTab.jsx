@@ -24,6 +24,11 @@ function daysSince(dateStr) {
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+function formatMetDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
 // 성향 궁합 그래프의 점 색상. Avatar 컴포넌트와 같은 규칙(FEMALE만 핑크, 나머지는 블루)을 따른다.
 const genderColor = (gender) => (gender === 'FEMALE' ? '#e8486b' : '#4a90d9');
 
@@ -47,6 +52,7 @@ export function CoupleTab({ user, onTabChange, personaProfile }) {
   const [metDateInput, setMetDateInput] = useState('');
   const [metDateSaving, setMetDateSaving] = useState(false);
   const [metDateError, setMetDateError] = useState('');
+  const [isEditingMetDate, setIsEditingMetDate] = useState(false);
 
   const showFeedback = (message) => {
     setFeedback(message);
@@ -79,6 +85,7 @@ export function CoupleTab({ user, onTabChange, personaProfile }) {
     try {
       await updateMetDate(metDateInput || null);
       setStatus(s => ({ ...s, metDate: metDateInput || null }));
+      setIsEditingMetDate(false);
       showFeedback(metDateInput ? '만난 날짜를 저장했어요' : '만난 날짜를 초기화했어요');
     } catch (error) {
       setMetDateError(error.message || '저장하지 못했어요');
@@ -320,26 +327,52 @@ export function CoupleTab({ user, onTabChange, personaProfile }) {
                   )}
                   <div className="mt-5">
                     <label className="block text-[10px] font-extrabold mb-1.5" style={{ color: '#6d5662' }}>{!status.metDate ? '👉 만난 날짜' : '만난 날짜'}</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="date"
-                        value={metDateInput}
-                        max={todayStr()}
-                        onChange={e => setMetDateInput(e.target.value)}
-                        className="min-w-0 flex-1 rounded-xl px-3 py-2 text-xs font-semibold outline-none"
-                        style={{ border: '1.5px solid #f0dbe1', background: 'white', color: '#5c4651' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveMetDate}
-                        disabled={metDateSaving || metDateInput === (status.metDate || '')}
-                        className="flex-shrink-0 rounded-xl px-3 py-2 text-[11px] font-extrabold text-white transition-all disabled:opacity-50"
-                        style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)' }}
-                      >
-                        {metDateSaving ? '저장 중' : '저장'}
-                      </button>
-                    </div>
-                    {metDateError && <p className="mt-1 text-[10px]" style={{ color: '#e8486b' }}>{metDateError}</p>}
+                    {status.metDate && !isEditingMetDate ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold" style={{ color: '#5c4651' }}>{formatMetDate(status.metDate)}</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingMetDate(true)}
+                          className="flex-shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-extrabold transition-all"
+                          style={{ background: '#fff0f3', color: '#e8486b' }}
+                        >
+                          ✏️ 수정
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={metDateInput}
+                            max={todayStr()}
+                            onChange={e => setMetDateInput(e.target.value)}
+                            className="min-w-0 flex-1 rounded-xl px-3 py-2 text-xs font-semibold outline-none"
+                            style={{ border: '1.5px solid #f0dbe1', background: 'white', color: '#5c4651' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSaveMetDate}
+                            disabled={metDateSaving || metDateInput === (status.metDate || '')}
+                            className="flex-shrink-0 rounded-xl px-3 py-2 text-[11px] font-extrabold text-white transition-all disabled:opacity-50"
+                            style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)' }}
+                          >
+                            {metDateSaving ? '저장 중' : '저장'}
+                          </button>
+                          {status.metDate && (
+                            <button
+                              type="button"
+                              onClick={() => { setMetDateInput(status.metDate || ''); setMetDateError(''); setIsEditingMetDate(false); }}
+                              className="flex-shrink-0 rounded-xl px-3 py-2 text-[11px] font-extrabold transition-all"
+                              style={{ background: '#f7f2fb', color: '#9a75bb' }}
+                            >
+                              취소
+                            </button>
+                          )}
+                        </div>
+                        {metDateError && <p className="mt-1 text-[10px]" style={{ color: '#e8486b' }}>{metDateError}</p>}
+                      </>
+                    )}
                   </div>
                   <button type="button" onClick={handleDisconnect}
                     className="mt-4 w-full rounded-xl py-2.5 text-[11px] font-extrabold"
