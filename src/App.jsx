@@ -36,6 +36,8 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState(null);
+  // 홈탭 "숙박 보기"에서 큐레이션 탭으로 넘어갈 때 처음부터 숙박 화면으로 열리게 하는 값(2026-08-18).
+  const [curationInitialView, setCurationInitialView] = useState('date');
   // 토스 카드등록 인증 완료 후 리다이렉트로 돌아왔는지를 최초 렌더링 시점에 동기적으로 읽어둔다.
   // useEffect 안에서 읽으면 다른 이펙트(popstate 등)의 history.replaceState 실행 순서에 따라
   // 쿼리스트링이 이미 사라진 뒤일 수 있어서, 여기서 먼저 캡처해 state로 고정시켜둔다.
@@ -450,9 +452,12 @@ export default function App() {
               </div>
             ) : (
               <>
-                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
+                {tab === 'home' && (
+                  <HomeTab onTabChange={changeTab} personaProfile={personaProfile}
+                    onOpenStay={() => { setCurationInitialView('stay'); changeTab('curiation'); }} />
+                )}
                 {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'curiation' && <CuriationTab />}
+                {tab === 'curiation' && <CuriationTab initialView={curationInitialView} />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
                 {tab === 'aichat' && <AiChatTab />}
