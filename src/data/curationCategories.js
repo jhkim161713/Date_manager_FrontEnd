@@ -25,3 +25,10 @@ export const DATE_CATEGORIES = [
   { id: '축제', emoji: '🎉', label: '축제', color: '#ed8252', background: '#fff1e9', categories: ['축제'] },
 ];
 
+// 홈탭 "내 주변" 칩용 - 데이트 8개 + 숙박 칩까지 다시 노출한다(2026-08-18). 숙박을 직접 선택했을 땐
+// 보여야 하니 칩 자체는 있어야 하고, 대신 "전체" 선택 시에는 HomeTab에서 숙박을 걸러낸다(6대 성향
+// 매칭과 안 맞아서 전체 추천에 섞이면 어색해서) - 칩 목록과 "전체" 기본 노출을 분리하는 방식.
+export const HOME_CATEGORIES = [
+  ...DATE_CATEGORIES,
+  { id: '숙박', emoji: '🌙', label: '숙박', color: '#c4a0e8', background: '#f5eefb', categories: ['숙박'] },
+];

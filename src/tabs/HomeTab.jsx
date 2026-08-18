@@ -5,7 +5,7 @@ import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
 import { getCoupleStatus, getNearbyPlaces } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
-import { DATE_CATEGORIES } from '../data/curationCategories';
+import { HOME_CATEGORIES } from '../data/curationCategories';
 
 // 공연류 카테고리는 place.address에 공연장(시설) 주소가 이미 들어있어서(KOPIS 동기화 시
 // facility.adres()로 채움, 백엔드 변경 불필요) 카드에 "공연장소"로 표시한다(2026-08-13).
@@ -51,14 +51,16 @@ export function HomeTab({ onTabChange, personaProfile }) {
   const [homeCategory, setHomeCategory] = useState('all');
   useEffect(() => {
     const loadNearbyPlaces = async () => {
-      const selected = DATE_CATEGORIES.find((item) => item.id === homeCategory);
+      const selected = HOME_CATEGORIES.find((item) => item.id === homeCategory);
       const categoryParam = selected ? selected.categories.join(',') : '';
       try {
         const { lat, lon } = await getCurrentLocation();
         const places = await getNearbyPlaces(lat, lon, 300, categoryParam);
-        // 숙박은 6대 성향 매칭과 안 맞아서(2026-08-18) 홈탭 추천 풀에서는 항상 제외한다 - "전체"
-        // 선택 시 카테고리 필터 없이 받아오는 응답에도 숙박이 섞여올 수 있어 여기서 한 번 더 거른다.
-        setNearbyPlacePool(places.filter((p) => p.category !== '숙박'));
+        // 숙박은 6대 성향 매칭과 안 맞아서 "전체" 기본 노출에서는 뺀다(2026-08-18) - 다만 칩에서
+        // 숙박을 직접 선택했을 땐 당연히 보여야 하므로, 그때는 거르지 않는다.
+        setNearbyPlacePool(
+          homeCategory === 'all' ? places.filter((p) => p.category !== '숙박') : places
+        );
       } catch {
         setNearbyPlacePool([]);
       }
@@ -83,12 +85,16 @@ export function HomeTab({ onTabChange, personaProfile }) {
   // 랜덤 추출 결과가 새로 섞이도록 하는 트리거 용도, 2026-08-13).
   const [refreshSeed, setRefreshSeed] = useState(0);
   const CANDIDATE_POOL_SIZE = 8; // 거리 가까운 상위 N개 중에서 랜덤으로 2개를 뽑는다
+  // 데이터가 아직 가게 위주로 쏠려 있어서(장소 정제 작업 전이라 카테고리별 편차가 큼), 같은
+  // 카테고리(쇼핑 등)가 추천 그리드를 도배하지 않도록 카테고리당 최대 노출 개수를 제한한다(2026-08-18).
+  const MAX_PER_CATEGORY = 2;
 
   const recommendationsByAxis = useMemo(() => {
     // 한 장소가 여러 축에서 동시에 가깝게 매칭될 수 있어서(예: 에너지·분위기 둘 다 잘 맞는 곳),
     // 축을 순서대로 훑으면서 이미 다른 축에서 뽑힌 장소는 다음 축 후보에서 제외한다 - 카드가
     // 겹쳐 보이는 문제 방지(2026-08-13).
     const usedPlaceIds = new Set();
+    const categoryCounts = {};
     return PERSONA_AXES
       .filter((axis) => AXIS_TO_PLACE_SCORE[axis.id])
       .map((axis) => {
@@ -99,11 +105,15 @@ export function HomeTab({ onTabChange, personaProfile }) {
         // 좁히고 체인점 중복까지 제거해둔 dedupedNearbyPool에서만 고른다.
         const candidates = dedupedNearbyPool
           .filter((p) => p[scoreField] != null && !usedPlaceIds.has(p.id))
+          .filter((p) => (categoryCounts[p.category] ?? 0) < MAX_PER_CATEGORY)
           .map((p) => ({ ...p, distance: Math.abs(p[scoreField] - userScore) }))
           .sort((a, b) => a.distance - b.distance)
           .slice(0, CANDIDATE_POOL_SIZE);
         const ranked = [...candidates].sort(() => Math.random() - 0.5).slice(0, 2);
-        ranked.forEach((p) => usedPlaceIds.add(p.id));
+        ranked.forEach((p) => {
+          usedPlaceIds.add(p.id);
+          categoryCounts[p.category] = (categoryCounts[p.category] ?? 0) + 1;
+        });
         return { axis, places: ranked };
       })
       .filter((entry) => entry.places.length > 0);
@@ -200,7 +210,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
           >
             전체
           </button>
-          {DATE_CATEGORIES.map((item) => {
+          {HOME_CATEGORIES.map((item) => {
             const selected = homeCategory === item.id;
             return (
               <button
