@@ -506,7 +506,12 @@ export function CuriationTab({ onOpenBuilder }) {
 
                     <div className="p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <Badge color="#e8486b" bg="#fff0f3">{place.emoji ? `${place.emoji} ${tag}` : tag}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge color="#e8486b" bg="#fff0f3">{place.emoji ? `${place.emoji} ${tag}` : tag}</Badge>
+                          {place.boxOfficeRank != null && (
+                            <Badge color="#df9235" bg="#fff6e7">🔥 예매율 {place.boxOfficeRank}위</Badge>
+                          )}
+                        </div>
                         {place.runtimeText && (
                           <span className="text-[9px] font-bold" style={{ color: '#aa969e' }}>{place.runtimeText}</span>
                         )}
