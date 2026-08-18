@@ -25,9 +25,3 @@ export const DATE_CATEGORIES = [
   { id: '축제', emoji: '🎉', label: '축제', color: '#ed8252', background: '#fff1e9', categories: ['축제'] },
 ];
 
-// 홈탭 "내 주변" 필터용 - 데이트 8개 + 숙박까지 9개 대분류 전부. 홈탭은 큐레이션 탭처럼 데이트/숙박
-// 화면이 나뉘어 있지 않아서 하나의 칩 목록으로 합쳐 쓴다(2026-08-14).
-export const HOME_CATEGORIES = [
-  ...DATE_CATEGORIES,
-  { id: '숙박', emoji: '🌙', label: '숙박', color: '#c4a0e8', background: '#f5eefb', categories: ['숙박'] },
-];

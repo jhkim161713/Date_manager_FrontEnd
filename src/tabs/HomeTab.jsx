@@ -5,7 +5,7 @@ import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
 import { getCoupleStatus, getNearbyPlaces } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
-import { HOME_CATEGORIES } from '../data/curationCategories';
+import { DATE_CATEGORIES } from '../data/curationCategories';
 
 // 공연류 카테고리는 place.address에 공연장(시설) 주소가 이미 들어있어서(KOPIS 동기화 시
 // facility.adres()로 채움, 백엔드 변경 불필요) 카드에 "공연장소"로 표시한다(2026-08-13).
@@ -51,11 +51,14 @@ export function HomeTab({ onTabChange, personaProfile }) {
   const [homeCategory, setHomeCategory] = useState('all');
   useEffect(() => {
     const loadNearbyPlaces = async () => {
-      const selected = HOME_CATEGORIES.find((item) => item.id === homeCategory);
+      const selected = DATE_CATEGORIES.find((item) => item.id === homeCategory);
       const categoryParam = selected ? selected.categories.join(',') : '';
       try {
         const { lat, lon } = await getCurrentLocation();
-        setNearbyPlacePool(await getNearbyPlaces(lat, lon, 300, categoryParam));
+        const places = await getNearbyPlaces(lat, lon, 300, categoryParam);
+        // 숙박은 6대 성향 매칭과 안 맞아서(2026-08-18) 홈탭 추천 풀에서는 항상 제외한다 - "전체"
+        // 선택 시 카테고리 필터 없이 받아오는 응답에도 숙박이 섞여올 수 있어 여기서 한 번 더 거른다.
+        setNearbyPlacePool(places.filter((p) => p.category !== '숙박'));
       } catch {
         setNearbyPlacePool([]);
       }
@@ -182,7 +185,8 @@ export function HomeTab({ onTabChange, personaProfile }) {
           </button>
         </div>
 
-        {/* 내 주변 카테고리 칩 - 고르면 위 nearbyPlacePool 자체가 그 카테고리로 좁혀짐(2026-08-14) */}
+        {/* 내 주변 카테고리 칩 - 고르면 위 nearbyPlacePool 자체가 그 카테고리로 좁혀짐(2026-08-14).
+            숙박은 6대 성향 매칭과 안 맞아서 칩 목록에서 뺐다(2026-08-18) - 숙박은 큐레이션 탭에서 확인. */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-3" style={{ scrollbarWidth: 'none' }}>
           <button
             type="button"
@@ -196,7 +200,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
           >
             전체
           </button>
-          {HOME_CATEGORIES.map((item) => {
+          {DATE_CATEGORIES.map((item) => {
             const selected = homeCategory === item.id;
             return (
               <button
