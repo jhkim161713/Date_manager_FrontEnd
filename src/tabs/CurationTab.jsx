@@ -50,6 +50,27 @@ const REGIONS = [
   '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
 ];
 
+// 서울/경기는 데이터가 많아서(각각 수천~수만 건) 시/도 하나로만 걸러도 카드가 너무 안 좁혀진다 -
+// 실측 결과 서울 25개 구 전부 데이터가 꽤 있어서(최소 100건대) 그대로 다 나누고, 경기는 31개 시/군
+// 이라 칩이 너무 많아지므로 지리적으로 가까운 권역 5개로 묶었다(2026-08-19). 값 자체는 여전히 하나의
+// 시/군 이름이라 백엔드는 손 안 대고 기존 address LIKE 방식 그대로 재사용한다.
+const SUB_REGIONS = {
+  서울: [
+    { zone: null, items: [
+      '종로구', '중구', '용산구', '성동구', '광진구', '동대문구', '중랑구', '성북구',
+      '강북구', '도봉구', '노원구', '은평구', '서대문구', '마포구', '양천구', '강서구',
+      '구로구', '금천구', '영등포구', '동작구', '관악구', '서초구', '강남구', '송파구', '강동구',
+    ] },
+  ],
+  경기: [
+    { zone: '북부', items: ['고양시', '파주시', '김포시', '양주시', '동두천시', '포천시', '연천군', '의정부시'] },
+    { zone: '동북', items: ['남양주시', '구리시', '가평군'] },
+    { zone: '동부', items: ['성남시', '광주시', '하남시', '이천시', '여주시', '양평군'] },
+    { zone: '서부', items: ['부천시', '시흥시', '안산시', '광명시', '안양시', '군포시', '의왕시', '과천시'] },
+    { zone: '남부', items: ['수원시', '용인시', '화성시', '평택시', '안성시', '오산시'] },
+  ],
+};
+
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
 export function CuriationTab({ onOpenBuilder, personaProfile }) {
@@ -58,6 +79,10 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const [stayCategory, setStayCategory] = useState('all');
   // 지역 필터 - 빈 문자열이면 "전체 지역". 데이트/숙박 화면 둘 다 공유한다(2026-08-19).
   const [region, setRegion] = useState('');
+  // 서울/경기를 고르면 나오는 구/시 세부 필터. 실제 API엔 subRegion이 있으면 그게 region보다
+  // 더 구체적이라 subRegion을 우선해서 보낸다(아래 effectiveRegion 참고).
+  const [subRegion, setSubRegion] = useState('');
+  const effectiveRegion = subRegion || region;
 
   const [datePlaces, setDatePlaces] = useState([]);
   const [dateLoading, setDateLoading] = useState(true);
@@ -137,9 +162,9 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         let places;
         if (useNearby) {
           const { lat, lon } = await getCurrentLocation();
-          places = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region, limit: PAGE_SIZE });
+          places = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region: effectiveRegion, limit: PAGE_SIZE });
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, region, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, region: effectiveRegion, size: PAGE_SIZE });
           places = page.content;
         }
         if (cancelled) return;
@@ -155,7 +180,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, useNearby, region]);
+  }, [dateCategory, useNearby, effectiveRegion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,9 +194,9 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         let places;
         if (useNearby) {
           const { lat, lon } = await getCurrentLocation();
-          places = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, region, limit: PAGE_SIZE });
+          places = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, limit: PAGE_SIZE });
         } else {
-          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, size: PAGE_SIZE });
           places = page.content;
         }
         if (cancelled) return;
@@ -187,7 +212,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadStayPlaces();
     return () => { cancelled = true; };
-  }, [stayCategory, useNearby, region]);
+  }, [stayCategory, useNearby, effectiveRegion]);
 
   const builderItems = builderItemIds
     .map((id) => placeCache[id])
@@ -322,6 +347,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
           type="button"
           onClick={() => {
             setRegion('');
+            setSubRegion('');
             setUseNearby(true); // 특정 지역 선택하면서 꺼진 "내 주변만 보기"를 전체로 돌아오면 복원
           }}
           className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
@@ -339,6 +365,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
             type="button"
             onClick={() => {
               setRegion(region === item ? '' : item);
+              setSubRegion(''); // 시/도를 바꾸면 이전에 골라둔 구/시는 더 이상 안 맞을 수 있어서 초기화
               setUseNearby(false);
             }}
             className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
@@ -352,6 +379,37 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
           </button>
         ))}
       </div>
+
+      {/* 서울/경기 구/시 세부 필터 - 데이터가 많은 두 지역만 한 단계 더 좁혀볼 수 있게 함(2026-08-19).
+          경기는 시/군이 31개라 너무 많아서 권역(북부/동북/동부/서부/남부) 라벨로 나눠 보여준다. */}
+      {SUB_REGIONS[region] && (
+        <div className="flex flex-col gap-1.5">
+          {SUB_REGIONS[region].map((group) => (
+            <div key={group.zone ?? 'all'} className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              {group.zone && (
+                <span className="flex-shrink-0 text-[10px] font-extrabold" style={{ color: '#b19fa6', width: '30px' }}>
+                  {group.zone}
+                </span>
+              )}
+              {group.items.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setSubRegion(subRegion === item ? '' : item)}
+                  className="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold transition-all"
+                  style={{
+                    background: subRegion === item ? '#e8486b' : '#fff7f8',
+                    color: subRegion === item ? 'white' : '#a9838d',
+                    border: `1px solid ${subRegion === item ? '#e8486b' : '#f6dde2'}`,
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-[28px]">
         <div
