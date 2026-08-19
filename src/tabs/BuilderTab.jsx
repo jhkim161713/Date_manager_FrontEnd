@@ -5,7 +5,6 @@ import { Builder } from "../data/builderData"
 import { ContentCard } from "../components/ContentCard"
 import { Badge } from "../components/Badge"
 import { Map, MapInfoWindow, MapMarker } from "react-kakao-maps-sdk"
-import { PLACE_DATA } from "../data/placeData"
 import { COURSE_GROUP_DATA } from "../data/courseGroupData"
 
 
