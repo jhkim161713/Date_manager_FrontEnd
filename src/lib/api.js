@@ -247,35 +247,46 @@ export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
 
 // 큐레이션 탭(데이트/숙박 카드)용 조회 API. matchScore는 아직 항상 null - 온보딩 성향값을 저장하는
 // 파이프라인이 없어서(2026-08-14 기준 미구현) 프론트가 최신순으로 대체 정렬한다.
-export function getCurationPlaces({ category = '', subCategory = '', region = '', page = 1, size = 20 } = {}) {
+// district는 region 안에서 한 단계 더 좁히는 구/시(예: "중구") - "중구"/"고성군" 같은 이름은
+// 여러 시/도가 똑같이 쓰기 때문에, region 없이 district만 보내면 백엔드가 무시하고 전국에서
+// 찾아버린다(2026-08-19) - 반드시 region과 같이 보내야 한다.
+export function getCurationPlaces({ category = '', subCategory = '', region = '', district = '', keyword = '', page = 1, size = 20 } = {}) {
   const params = new URLSearchParams({ page, size });
   if (category) params.set('category', category);
   if (subCategory) params.set('subCategory', subCategory);
   if (region) params.set('region', region);
+  if (district) params.set('district', district);
+  if (keyword) params.set('keyword', keyword);
   return request(`/api/places/curation?${params.toString()}`);
 }
 
 // 큐레이션 탭 "내 주변만 보기" 토글용 - 좌표 기준 가까운 순 + 카테고리 필터를 동시에 적용한다.
 // nearby 계열이라 이미 거리순으로 오기 때문에 별도 정렬 옵션이 필요 없다.
-export function getNearbyCurationPlaces({ lat, lon, category = '', subCategory = '', region = '', limit = 30 }) {
+export function getNearbyCurationPlaces({ lat, lon, category = '', subCategory = '', region = '', district = '', keyword = '', limit = 30 }) {
   const params = new URLSearchParams({ lat, lon, limit });
   if (category) params.set('category', category);
   if (subCategory) params.set('subCategory', subCategory);
   if (region) params.set('region', region);
+  if (district) params.set('district', district);
+  if (keyword) params.set('keyword', keyword);
   return request(`/api/places/curation/nearby?${params.toString()}`);
 }
 
 // 큐레이션 탭 카테고리 칩에 "OO곳" 개수를 표시하기 위한 대분류별 집계. { "맛집": 1234, ... } 형태.
 // region을 주면 그 지역 안에서만 집계한다(2026-08-19) - 안 주면 전국 집계.
-export function getPlaceCategoryCounts(region = '') {
-  const params = region ? `?region=${encodeURIComponent(region)}` : '';
-  return request(`/api/places/category-counts${params}`);
+export function getPlaceCategoryCounts(region = '', district = '') {
+  const params = new URLSearchParams();
+  if (region) params.set('region', region);
+  if (district) params.set('district', district);
+  const qs = params.toString();
+  return request(`/api/places/category-counts${qs ? `?${qs}` : ''}`);
 }
 
 // 숙박 탭처럼 대분류 하나를 세부분류 칩으로 한 번 더 쪼갤 때 쓰는 집계. { "호텔": 6501, ... } 형태.
-export function getPlaceSubCategoryCounts(category, region = '') {
+export function getPlaceSubCategoryCounts(category, region = '', district = '') {
   const params = new URLSearchParams({ category });
   if (region) params.set('region', region);
+  if (district) params.set('district', district);
   return request(`/api/places/category-counts/sub?${params.toString()}`);
 }
 

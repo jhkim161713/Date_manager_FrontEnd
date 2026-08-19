@@ -45,9 +45,12 @@ function pickMatchingAxes(place, personaProfile) {
 // 지역 필터용 시/도 목록(2026-08-19). Place.address엔 별도 시/도 컬럼이 없어서 이 문자열이 주소에
 // 포함되는지로 판단한다(예: "서울" -> "서울특별시 강남구 ..."에 포함됨) - 그래서 정식 명칭 대신
 // 주소에 실제로 등장하는 짧은 형태를 쓴다.
+// 충북/충남/경북/경남은 별도 칩으로 안 둔다 - 앱 성격상 시/도를 17개나 세분화해서 보여줄 필요가
+// 없다고 판단해 "대전"/"대구"를 고르면 그 지역 데이터까지 같이 보여주도록 통합했다(백엔드
+// PlaceController.expandRegion 참고). 실제로는 대전/대구 자체보다 충청/경상 데이터가 훨씬 많다.
 const REGIONS = [
   '서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '세종',
-  '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
+  '강원', '전북', '전남', '제주',
 ];
 
 // 서울/경기는 데이터가 많아서(각각 수천~수만 건) 시/도 하나로만 걸러도 카드가 너무 안 좁혀진다 -
@@ -69,6 +72,52 @@ const SUB_REGIONS = {
     { zone: '서부', items: ['부천시', '시흥시', '안산시', '광명시', '안양시', '군포시', '의왕시', '과천시'] },
     { zone: '남부', items: ['수원시', '용인시', '화성시', '평택시', '안성시', '오산시'] },
   ],
+  // 아래 5개(부산/강원/전남/대전/대구)는 숙박 실측 결과 1,500건 이상이라 구/시 단위로 한 번 더
+  // 좁힐 수 있게 추가했다(2026-08-19). "중구"/"동구"/"고성군"처럼 여러 시/도가 똑같이 쓰는 구/시
+  // 이름이 섞여 있어서, 이 값 하나만으로 address를 검색하면 안 되고 반드시 상위 region(대전/대구는
+  // 통합된 3개 지역 중 하나)과 AND로 같이 걸어야 정확히 매치된다 - district 파라미터로 그렇게
+  // 처리되도록 컨트롤러/리포지토리를 같이 손봤다.
+  부산: [
+    { zone: '원도심', items: ['중구', '서구', '동구', '영도구', '부산진구'] },
+    { zone: '동부', items: ['해운대구', '수영구', '연제구', '동래구'] },
+    { zone: '서부', items: ['사상구', '사하구', '북구', '강서구'] },
+    { zone: '남부·기장', items: ['남구', '금정구', '기장군'] },
+  ],
+  강원: [
+    { zone: '영동북부', items: ['속초시', '고성군', '양양군', '강릉시'] },
+    { zone: '영동남부', items: ['동해시', '삼척시', '태백시'] },
+    { zone: '영서', items: ['춘천시', '홍천군', '화천군', '양구군', '인제군', '철원군'] },
+    { zone: '산간', items: ['원주시', '횡성군', '평창군', '정선군', '영월군'] },
+  ],
+  전남: [
+    { zone: '서남', items: ['목포시', '무안군', '신안군', '영암군', '해남군', '완도군', '진도군'] },
+    { zone: '동남', items: ['여수시', '순천시', '광양시', '고흥군', '보성군'] },
+    { zone: '북부', items: ['나주시', '담양군', '곡성군', '구례군', '화순군', '장성군'] },
+    { zone: '서북', items: ['영광군', '함평군', '강진군', '장흥군'] },
+  ],
+  // "대전" 칩은 실제로 대전/충북/충남 데이터를 다 합쳐서 보여준다(위 REGIONS 주석 참고) - 그래서
+  // 구/시 목록도 세 지역 걸 다 같이 보여준다.
+  대전: [
+    { zone: '대전', items: ['중구', '동구', '서구', '유성구', '대덕구'] },
+    { zone: '충북', items: [
+      '청주시', '충주시', '제천시', '단양군', '괴산군', '증평군', '진천군', '음성군', '옥천군', '영동군', '보은군',
+    ] },
+    { zone: '충남 서해안', items: ['태안군', '서산시', '당진시', '홍성군', '보령시', '서천군'] },
+    { zone: '충남 내륙', items: ['천안시', '아산시', '공주시', '논산시', '계룡시', '부여군', '예산군', '청양군', '금산군'] },
+  ],
+  // "대구" 칩도 대구/경북/경남을 다 합쳐서 보여준다.
+  대구: [
+    { zone: '대구', items: ['중구', '동구', '서구', '남구', '북구', '수성구', '달서구', '달성군'] },
+    { zone: '경북 동해안', items: ['경주시', '포항시', '영덕군', '울진군', '울릉군'] },
+    { zone: '경북 내륙', items: [
+      '안동시', '구미시', '김천시', '상주시', '문경시', '영주시', '칠곡군', '성주군', '고령군',
+      '군위군', '의성군', '청송군', '영양군', '예천군', '봉화군', '청도군',
+    ] },
+    { zone: '경남', items: [
+      '창원시', '김해시', '거제시', '통영시', '진주시', '사천시', '양산시', '밀양시', '함안군',
+      '창녕군', '고성군', '거창군', '합천군', '산청군', '함양군', '하동군', '남해군', '의령군',
+    ] },
+  ],
 };
 
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
@@ -83,6 +132,16 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   // 더 구체적이라 subRegion을 우선해서 보낸다(아래 effectiveRegion 참고).
   const [subRegion, setSubRegion] = useState('');
   const effectiveRegion = subRegion || region;
+
+  // 장소 이름 검색(2026-08-19) - 지역/카테고리 필터와 AND로 조합된다(칩으로 지역을 좁혀둔 채로
+  // 검색하면 그 지역 안에서만 이름이 매치되는 장소를 찾음). 타이핑마다 요청을 보내면 너무 잦아서
+  // 300ms 동안 입력이 없을 때만 실제 검색어(debouncedKeyword)를 갱신해 API를 호출한다.
+  const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedKeyword(keyword.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
 
   const [datePlaces, setDatePlaces] = useState([]);
   const [dateLoading, setDateLoading] = useState(true);
@@ -100,10 +159,11 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const [categoryCounts, setCategoryCounts] = useState({});
   const [staySubCounts, setStaySubCounts] = useState({});
 
-  // "내 주변만 보기" - 끄면 최신순, 켜면 접속 좌표 기준 거리순으로 전환된다(2026-08-14).
-  // 홈탭은 토글 없이 처음부터 위치 기반으로 동작하는데 여기는 기본값이 꺼져 있어서 "위치가
-  // 반영 안 된다"는 인상을 줬다 - 홈탭과 동작을 맞추기 위해 기본값을 켜짐으로 변경(2026-08-19).
-  const [useNearby, setUseNearby] = useState(true);
+  // 위치 기반(거리순) 조회 여부 - 수동 토글 없이, 지역을 특정 안 골랐을 때(effectiveRegion === '')만
+  // 자동으로 켜진다. 특정 지역을 고르면 이미 위치 개념과 충돌해서 무조건 꺼야 했고, 안 고르면 항상
+  // 켜야 했던 값이라 - 실제로 사용자가 수동으로 켜고 끌 일이 없어서(2026-08-19) 별도 상태 대신
+  // effectiveRegion에서 그대로 파생시킨다.
+  const useNearby = effectiveRegion === '';
   const [nearbyError, setNearbyError] = useState('');
 
   // 코스 빌더 후보로 담은 장소는 카테고리를 바꿔도 계속 보여야 해서, 지금 화면에 보이는 목록과
@@ -134,25 +194,25 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   useEffect(() => {
     const loadCategoryCounts = async () => {
       try {
-        setCategoryCounts(await getPlaceCategoryCounts(effectiveRegion));
+        setCategoryCounts(await getPlaceCategoryCounts(region, subRegion));
       } catch {
         setCategoryCounts({});
       }
     };
     const loadStaySubCounts = async () => {
       try {
-        setStaySubCounts(await getPlaceSubCategoryCounts(STAY_TOP_CATEGORY, effectiveRegion));
+        setStaySubCounts(await getPlaceSubCategoryCounts(STAY_TOP_CATEGORY, region, subRegion));
       } catch {
         setStaySubCounts({});
       }
     };
     loadCategoryCounts();
     loadStaySubCounts();
-  }, [effectiveRegion]);
+  }, [region, subRegion]);
 
   // 필터가 바뀌면 이전 필터 기준 페이지 번호가 더 이상 안 맞을 수 있어서 1페이지로 되돌린다(2026-08-19).
-  useEffect(() => { setDatePage(1); }, [dateCategory, useNearby, effectiveRegion]);
-  useEffect(() => { setStayPage(1); }, [stayCategory, useNearby, effectiveRegion]);
+  useEffect(() => { setDatePage(1); }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword]);
+  useEffect(() => { setStayPage(1); }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword]);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,11 +235,11 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
           // nearby API는 offset 페이징을 지원 안 해서(2026-08-19), 넉넉한 풀(PAGE_SIZE의 5배)을 한 번에
           // 받아온 다음 프론트에서 페이지 단위로 잘라 쓴다(홈탭 페이징과 같은 방식).
           const { lat, lon } = await getCurrentLocation();
-          const pool = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region: effectiveRegion, limit: PAGE_SIZE * 5 });
+          const pool = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, limit: PAGE_SIZE * 5 });
           setDateTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
           places = pool.slice((datePage - 1) * PAGE_SIZE, datePage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, region: effectiveRegion, page: datePage, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, page: datePage, size: PAGE_SIZE });
           setDateTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
@@ -196,7 +256,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, useNearby, effectiveRegion, datePage]);
+  }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword, datePage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,11 +270,11 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         let places;
         if (useNearby) {
           const { lat, lon } = await getCurrentLocation();
-          const pool = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, limit: PAGE_SIZE * 5 });
+          const pool = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, region, district: subRegion, keyword: debouncedKeyword, limit: PAGE_SIZE * 5 });
           setStayTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
           places = pool.slice((stayPage - 1) * PAGE_SIZE, stayPage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, page: stayPage, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region, district: subRegion, keyword: debouncedKeyword, page: stayPage, size: PAGE_SIZE });
           setStayTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
@@ -231,7 +291,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadStayPlaces();
     return () => { cancelled = true; };
-  }, [stayCategory, useNearby, effectiveRegion, stayPage]);
+  }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword, stayPage]);
 
   const builderItems = builderItemIds
     .map((id) => placeCache[id])
@@ -341,33 +401,42 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
             🌙 숙박
           </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setUseNearby((current) => !current)}
-          className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-extrabold transition-all"
-          style={{
-            background: useNearby ? '#4f3d46' : 'white',
-            color: useNearby ? 'white' : '#7c6a72',
-            border: '1.5px solid #f0dce2',
-          }}
-          aria-pressed={useNearby}
-        >
-          📍 내 주변만 보기
-        </button>
       </div>
       {nearbyError && (
         <p className="text-[10px] font-bold" style={{ color: '#e8486b' }}>{nearbyError}</p>
       )}
 
-      {/* 지역 필터 - 특정 지역을 고르면 "내 주변만 보기"와 개념이 충돌해서(지금 위치와 무관하게 그
-          지역을 보고 싶은 거라서) 같이 꺼준다(2026-08-19). */}
+      {/* 장소 이름 검색 - 지역 칩이 선택돼 있으면 그 지역 안에서만 검색된다(effectiveRegion과
+          AND로 조합, 2026-08-19). */}
+      <div className="relative">
+        <input
+          type="text"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          placeholder={region ? `${subRegion || region} 안에서 이름으로 검색` : '장소 이름으로 검색'}
+          className="w-full rounded-full pl-4 pr-9 py-2 text-[12px] font-bold outline-none"
+          style={{ border: '1.5px solid #f0dce2', color: '#4f3d46' }}
+        />
+        {keyword && (
+          <button
+            type="button"
+            onClick={() => setKeyword('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold"
+            style={{ color: '#b19fa6' }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* 지역 필터 - 특정 지역을 고르면 위치 기반 정렬(useNearby)은 자동으로 꺼진다(지금 위치와
+          무관하게 그 지역을 보고 싶은 거라서, 위 useNearby 파생 로직 참고). */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         <button
           type="button"
           onClick={() => {
             setRegion('');
             setSubRegion('');
-            setUseNearby(true); // 특정 지역 선택하면서 꺼진 "내 주변만 보기"를 전체로 돌아오면 복원
           }}
           className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
           style={{
@@ -385,7 +454,6 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
             onClick={() => {
               setRegion(region === item ? '' : item);
               setSubRegion(''); // 시/도를 바꾸면 이전에 골라둔 구/시는 더 이상 안 맞을 수 있어서 초기화
-              setUseNearby(false);
             }}
             className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
             style={{
