@@ -87,10 +87,15 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const [datePlaces, setDatePlaces] = useState([]);
   const [dateLoading, setDateLoading] = useState(true);
   const [dateError, setDateError] = useState('');
+  // 페이징(2026-08-19) - 1부터 시작(백엔드 application.yaml의 one-indexed-parameters 설정과 맞춤).
+  const [datePage, setDatePage] = useState(1);
+  const [dateTotalPages, setDateTotalPages] = useState(1);
 
   const [stayPlaces, setStayPlaces] = useState([]);
   const [stayLoading, setStayLoading] = useState(true);
   const [stayError, setStayError] = useState('');
+  const [stayPage, setStayPage] = useState(1);
+  const [stayTotalPages, setStayTotalPages] = useState(1);
 
   const [categoryCounts, setCategoryCounts] = useState({});
   const [staySubCounts, setStaySubCounts] = useState({});
@@ -145,6 +150,10 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     loadStaySubCounts();
   }, [effectiveRegion]);
 
+  // 필터가 바뀌면 이전 필터 기준 페이지 번호가 더 이상 안 맞을 수 있어서 1페이지로 되돌린다(2026-08-19).
+  useEffect(() => { setDatePage(1); }, [dateCategory, useNearby, effectiveRegion]);
+  useEffect(() => { setStayPage(1); }, [stayCategory, useNearby, effectiveRegion]);
+
   useEffect(() => {
     let cancelled = false;
     const loadDatePlaces = async () => {
@@ -163,10 +172,15 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
       try {
         let places;
         if (useNearby) {
+          // nearby API는 offset 페이징을 지원 안 해서(2026-08-19), 넉넉한 풀(PAGE_SIZE의 5배)을 한 번에
+          // 받아온 다음 프론트에서 페이지 단위로 잘라 쓴다(홈탭 페이징과 같은 방식).
           const { lat, lon } = await getCurrentLocation();
-          places = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region: effectiveRegion, limit: PAGE_SIZE });
+          const pool = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region: effectiveRegion, limit: PAGE_SIZE * 5 });
+          setDateTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
+          places = pool.slice((datePage - 1) * PAGE_SIZE, datePage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, region: effectiveRegion, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, region: effectiveRegion, page: datePage, size: PAGE_SIZE });
+          setDateTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
         if (cancelled) return;
@@ -182,7 +196,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, useNearby, effectiveRegion]);
+  }, [dateCategory, useNearby, effectiveRegion, datePage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,9 +210,12 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         let places;
         if (useNearby) {
           const { lat, lon } = await getCurrentLocation();
-          places = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, limit: PAGE_SIZE });
+          const pool = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, limit: PAGE_SIZE * 5 });
+          setStayTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
+          places = pool.slice((stayPage - 1) * PAGE_SIZE, stayPage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region: effectiveRegion, page: stayPage, size: PAGE_SIZE });
+          setStayTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
         if (cancelled) return;
@@ -214,7 +231,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadStayPlaces();
     return () => { cancelled = true; };
-  }, [stayCategory, useNearby, effectiveRegion]);
+  }, [stayCategory, useNearby, effectiveRegion, stayPage]);
 
   const builderItems = builderItemIds
     .map((id) => placeCache[id])
@@ -715,6 +732,33 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
                 );
               })}
             </div>
+
+            {/* 페이징(2026-08-19) - 결과가 있을 때만 표시 */}
+            {!dateLoading && !dateError && datePlaces.length > 0 && dateTotalPages > 1 && (
+              <div className="mt-5 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDatePage((p) => Math.max(1, p - 1))}
+                  disabled={datePage === 1}
+                  className="rounded-full px-3 py-1.5 text-xs font-extrabold transition-all disabled:opacity-30"
+                  style={{ background: '#fff0f3', color: '#e8486b' }}
+                >
+                  ‹ 이전
+                </button>
+                <span className="text-xs font-bold" style={{ color: '#8f7b84' }}>
+                  {datePage} / {dateTotalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDatePage((p) => Math.min(dateTotalPages, p + 1))}
+                  disabled={datePage === dateTotalPages}
+                  className="rounded-full px-3 py-1.5 text-xs font-extrabold transition-all disabled:opacity-30"
+                  style={{ background: '#fff0f3', color: '#e8486b' }}
+                >
+                  다음 ›
+                </button>
+              </div>
+            )}
           </section>
         </>
       ) : (
@@ -846,6 +890,32 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
               );
             })}
           </div>
+
+          {!stayLoading && !stayError && stayPlaces.length > 0 && stayTotalPages > 1 && (
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setStayPage((p) => Math.max(1, p - 1))}
+                disabled={stayPage === 1}
+                className="rounded-full px-3 py-1.5 text-xs font-extrabold transition-all disabled:opacity-30"
+                style={{ background: '#f1edff', color: '#806bb4' }}
+              >
+                ‹ 이전
+              </button>
+              <span className="text-xs font-bold" style={{ color: '#95899b' }}>
+                {stayPage} / {stayTotalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setStayPage((p) => Math.min(stayTotalPages, p + 1))}
+                disabled={stayPage === stayTotalPages}
+                className="rounded-full px-3 py-1.5 text-xs font-extrabold transition-all disabled:opacity-30"
+                style={{ background: '#f1edff', color: '#806bb4' }}
+              >
+                다음 ›
+              </button>
+            </div>
+          )}
         </section>
       )}
 
