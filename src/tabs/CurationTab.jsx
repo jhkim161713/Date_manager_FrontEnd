@@ -28,9 +28,10 @@ export function CuriationTab({ onOpenBuilder }) {
   const [categoryCounts, setCategoryCounts] = useState({});
   const [staySubCounts, setStaySubCounts] = useState({});
 
-  // "내 주변만 보기" - 켜면 최신순 대신 접속 좌표 기준 거리순으로 전환된다(2026-08-14).
-  // nearby 계열 API가 이미 거리순으로 내려주기 때문에 별도 "거리순 정렬" 옵션은 따로 안 둔다.
-  const [useNearby, setUseNearby] = useState(false);
+  // "내 주변만 보기" - 끄면 최신순, 켜면 접속 좌표 기준 거리순으로 전환된다(2026-08-14).
+  // 홈탭은 토글 없이 처음부터 위치 기반으로 동작하는데 여기는 기본값이 꺼져 있어서 "위치가
+  // 반영 안 된다"는 인상을 줬다 - 홈탭과 동작을 맞추기 위해 기본값을 켜짐으로 변경(2026-08-19).
+  const [useNearby, setUseNearby] = useState(true);
   const [nearbyError, setNearbyError] = useState('');
 
   // 코스 빌더 후보로 담은 장소는 카테고리를 바꿔도 계속 보여야 해서, 지금 화면에 보이는 목록과
@@ -81,8 +82,14 @@ export function CuriationTab({ onOpenBuilder }) {
       setDateLoading(true);
       setDateError('');
       setNearbyError('');
+      // "전체"일 때 카테고리 제한을 아예 안 걸면 숙박(3만여 건, 다른 카테고리보다 밀도가 훨씬 높음)이
+      // 근처 결과를 다 채워버린다(2026-08-19, 실제 화면에서 확인됨) - 홈탭이 "전체" 노출에서 숙박을
+      // 빼는 것과 같은 이유로, 여기서도 DATE_CATEGORIES에 있는 카테고리로만 명시적으로 제한한다
+      // (숙박은 DATE_CATEGORIES에 없어서 자연히 빠짐, 숙박은 별도 curationView='stay' 화면에서 다룸).
       const selected = DATE_CATEGORIES.find((item) => item.id === dateCategory);
-      const categoryParam = selected ? selected.categories.join(',') : '';
+      const categoryParam = selected
+        ? selected.categories.join(',')
+        : DATE_CATEGORIES.flatMap((item) => item.categories).join(',');
 
       try {
         let places;
