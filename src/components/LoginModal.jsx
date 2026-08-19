@@ -219,7 +219,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
 
           {/* form으로 감싸서, 이메일/비밀번호(혹은 회원가입 필드)를 다 채운 뒤 Enter를 누르면
               브라우저 기본 동작으로 자동 제출되게 한다 - 버튼 클릭과 완전히 동일한 handleSubmit 호출. */}
-          <form className="space-y-2.5" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+          <form className="space-y-2.5" autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
             {isSignup && (
               <div>
                 <div className="flex items-center gap-1.5">
@@ -248,6 +248,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
                   <span className="text-sm">🌷</span>
                   <input type="text" className="flex-1 text-sm outline-none bg-transparent" placeholder="이메일"
                     value={email} onChange={e => { setEmail(e.target.value); setEmailCheck(null); }}
+                    autoComplete="off"
                     style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
                 </div>
                 {isSignup && (
@@ -268,6 +269,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
               <span className="text-sm">🔑</span>
               <input type="password" className="flex-1 text-sm outline-none bg-transparent" placeholder="비밀번호"
                 value={password} onChange={e => setPassword(e.target.value)}
+                autoComplete="new-password"
                 style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
             </div>
 
@@ -277,6 +279,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
                   <span className="text-sm">🔑</span>
                   <input type="password" className="flex-1 text-sm outline-none bg-transparent" placeholder="비밀번호 확인"
                     value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)}
+                    autoComplete="new-password"
                     style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
                 </div>
                 {passwordConfirm && (

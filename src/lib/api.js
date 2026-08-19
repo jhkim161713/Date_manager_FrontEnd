@@ -322,6 +322,17 @@ export function ackAdminReconnect() {
   return request('/api/couple/ack-admin-reconnect', { method: 'POST' });
 }
 
+// 로그인 직후/탭 재활성화 시 App.jsx가 호출 - 내가 없는 사이 파트너가 초대를 수락했거나
+// 만난 날짜를 입력했으면 안 읽은 알림 목록으로 내려온다.
+export function getUnreadCoupleNotifications() {
+  return request('/api/couple/notifications/unread');
+}
+
+// 알림 배너의 "확인했어요"를 눌렀을 때 - 그 시점의 안 읽은 알림을 전부 읽음 처리한다.
+export function ackCoupleNotifications() {
+  return request('/api/couple/notifications/read-all', { method: 'POST' });
+}
+
 // 내 구독 상태 조회 (구독 없으면 { hasSubscription: false })
 export function getMySubscription() {
   return request('/api/subscriptions/me');

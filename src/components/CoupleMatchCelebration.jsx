@@ -113,8 +113,8 @@ export function CoupleMatchCelebration({
 
         <div className={`cmc-copy cmc-accepted-copy ${phase2 ? 'cmc-fade-out' : ''}`}>
           <p className="cmc-message">
-            <span className={`cmc-accepted-text ${acceptedShown ? 'cmc-show' : ''}`}>상대방이</span>
-            <span className={`cmc-accepted-text ${acceptedShown ? 'cmc-show' : ''}`}>수락했습니다 💕</span>
+            <span className={`cmc-accepted-text ${acceptedShown ? 'cmc-show' : ''}`}>커플 연결이</span>
+            <span className={`cmc-accepted-text ${acceptedShown ? 'cmc-show' : ''}`}>완료됐어요 💕</span>
           </p>
         </div>
 

@@ -2,7 +2,9 @@ import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
-import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck } from '@/lib/api';
+import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus } from '@/lib/api';
+import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
+import { avatarSrc } from './components/Avatar';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
 import { MiniCalendar } from './components/MiniCalendar';
@@ -36,6 +38,9 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [partnerNotifications, setPartnerNotifications] = useState([]);
+  const [showMatchCelebration, setShowMatchCelebration] = useState(false);
+  const [celebrationPartner, setCelebrationPartner] = useState(null);
   // 토스 카드등록 인증 완료 후 리다이렉트로 돌아왔는지를 최초 렌더링 시점에 동기적으로 읽어둔다.
   // useEffect 안에서 읽으면 다른 이펙트(popstate 등)의 history.replaceState 실행 순서에 따라
   // 쿼리스트링이 이미 사라진 뒤일 수 있어서, 여기서 먼저 캡처해 state로 고정시켜둔다.
@@ -102,6 +107,27 @@ export default function App() {
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
+
+  // 안 읽은 알림을 받아와서, "파트너가 초대를 수락했다"는 알림은 CoupleTab에서 수락한 쪽(B)이
+  // 보는 것과 똑같은 CoupleMatchCelebration 이펙트로 보여주고(A도 같은 축하 연출을 봐야
+  // "상대방이 진짜 눌렀는지" 확실히 알 수 있으므로), 나머지 알림(만난 날짜 입력 등)만
+  // 텍스트 배너로 보여준다.
+  const fetchPartnerNotifications = async () => {
+    let list;
+    try {
+      list = await getUnreadCoupleNotifications();
+    } catch {
+      return;
+    }
+    const accepted = list.filter(n => n.type === 'PARTNER_ACCEPTED');
+    const rest = list.filter(n => n.type !== 'PARTNER_ACCEPTED');
+    setPartnerNotifications(rest);
+    if (accepted.length > 0) {
+      const coupleStatus = await getCoupleStatus().catch(() => null);
+      setCelebrationPartner(coupleStatus?.partner || null);
+      setShowMatchCelebration(true);
+    }
+  };
 
   const loadUser = useCallback(async () => {
     const mockUser = getMockUser();
@@ -174,15 +200,50 @@ export default function App() {
         setShowLogin(true);
         window.history.replaceState({}, '', window.location.pathname);
       }
-      await loadUser();
+      const loadedUser = await loadUser();
       setAuthChecked(true);
+
+      // 로그인 직후 - 내가 없는 사이 파트너가 초대를 수락했거나 만난 날짜를 입력했으면
+      // 안 읽은 알림을 받아와 배너로 보여준다. 목업 로그인은 실제 백엔드 유저가 아니라
+      // 이 API를 호출할 이유가 없으므로 건너뛴다.
+      if (loadedUser && !getMockUser()) {
+        fetchPartnerNotifications();
+      }
     })();
   }, [loadUser]);
+
+  // 로그인 직후 1회 조회만으로는, 이미 앱을 켜둔 채로 기다리고 있는 사용자(예: A가 초대
+  // 링크를 만들어놓고 그 탭을 계속 보고 있는 상태에서 B가 수락)에게는 새로고침 전까지
+  // 알림이 절대 뜨지 않는 문제가 있었다. 탭이 다시 활성화될 때(다른 탭/앱을 보다가 돌아왔을 때)
+  // 마다 재조회해서, 새로고침 없이도 안 읽은 알림을 받아볼 수 있게 한다.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && getToken() && !getMockUser()) {
+        fetchPartnerNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  const handleAckPartnerNotifications = () => {
+    setPartnerNotifications([]);
+    ackCoupleNotifications().catch(() => {});
+  };
+
+  const handleMatchCelebrationFinish = () => {
+    setShowMatchCelebration(false);
+    setCelebrationPartner(null);
+    ackCoupleNotifications().catch(() => {});
+  };
 
   const handleLogout = () => {
     clearToken();
     clearMockUser();
     setUser(null);
+    // 로그아웃 시점에 마이페이지/커플탭처럼 user를 전제로 하는 탭에 그대로 남아있으면
+    // user=null 상태로 그 탭이 렌더링되며 오류가 날 수 있어, 누구나 볼 수 있는 홈탭으로 보낸다.
+    changeTab('home', false);
   };
 
   const displayName = user?.nickname || user?.email || '';
@@ -440,6 +501,33 @@ export default function App() {
           </div>
         </header>
 
+        {/* 파트너 액션 알림 - 로그인 직후 또는 탭이 다시 활성화될 때, 안 읽은 알림이 있을 때만
+            뜨는 전역 배너. 특정 탭 안이 아니라 여기(App.jsx)에 두는 이유는 사용자가 어느 탭으로
+            들어오든 알림을 받아볼 수 있어야 하기 때문이다. */}
+        {partnerNotifications.length > 0 && (
+          <div className="mx-4 mt-3 rounded-2xl px-4 py-3 md:mx-8" style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
+            {partnerNotifications.map(n => (
+              <p key={n.id} className="text-[11px] font-bold" style={{ color: '#e8486b' }}>💌 {n.message}</p>
+            ))}
+            <button type="button" onClick={handleAckPartnerNotifications}
+              className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+              style={{ background: 'white', color: '#e8486b', border: '1.5px solid #ffd6e0' }}>
+              확인했어요
+            </button>
+          </div>
+        )}
+
+        {/* 파트너가 내 초대를 수락했을 때 - CoupleTab에서 수락한 쪽(B)이 그 자리에서 보는 것과
+            동일한 축하 이펙트를 초대한 쪽(A)도 다음 로그인/탭 재활성화 시 똑같이 보게 한다. */}
+        <CoupleMatchCelebration
+          show={showMatchCelebration}
+          onFinish={handleMatchCelebrationFinish}
+          myName={user?.nickname || '나'}
+          partnerName={celebrationPartner?.nickname || '상대방'}
+          myPhoto={avatarSrc(user?.profileImageUrl, user?.gender)}
+          partnerPhoto={avatarSrc(celebrationPartner?.profileImageUrl, celebrationPartner?.gender)}
+        />
+
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full px-4 md:px-8 py-4 md:py-7 pb-24 md:pb-16">
@@ -501,7 +589,7 @@ export default function App() {
       {showLogin && (
         <LoginModal
           onClose={() => { setShowLogin(false); setAuthError(null); }}
-          onAuthed={loadUser}
+          onAuthed={() => { loadUser(); changeTab('home', false); }}
           onSignupComplete={() => { setShowLogin(false); setAuthError(null); setShowPostSignupOnboarding(true); }}
           initialError={authError}
         />
