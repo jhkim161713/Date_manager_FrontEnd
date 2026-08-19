@@ -266,13 +266,17 @@ export function getNearbyCurationPlaces({ lat, lon, category = '', subCategory =
 }
 
 // 큐레이션 탭 카테고리 칩에 "OO곳" 개수를 표시하기 위한 대분류별 집계. { "맛집": 1234, ... } 형태.
-export function getPlaceCategoryCounts() {
-  return request('/api/places/category-counts');
+// region을 주면 그 지역 안에서만 집계한다(2026-08-19) - 안 주면 전국 집계.
+export function getPlaceCategoryCounts(region = '') {
+  const params = region ? `?region=${encodeURIComponent(region)}` : '';
+  return request(`/api/places/category-counts${params}`);
 }
 
 // 숙박 탭처럼 대분류 하나를 세부분류 칩으로 한 번 더 쪼갤 때 쓰는 집계. { "호텔": 6501, ... } 형태.
-export function getPlaceSubCategoryCounts(category) {
-  return request(`/api/places/category-counts/sub?category=${encodeURIComponent(category)}`);
+export function getPlaceSubCategoryCounts(category, region = '') {
+  const params = new URLSearchParams({ category });
+  if (region) params.set('region', region);
+  return request(`/api/places/category-counts/sub?${params.toString()}`);
 }
 
 // 접속 좌표에서 가까운 순으로 장소를 가져온다 - 홈탭 지역 기반 추천용. 백엔드가 하버사인 거리

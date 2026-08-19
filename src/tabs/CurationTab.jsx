@@ -124,24 +124,26 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     });
   };
 
+  // 카테고리 칩의 "N곳" 표시가 지역 필터랑 무관하게 항상 전국 집계만 보여주고 있던 문제 수정
+  // (2026-08-19, 사용자가 실제 화면에서 발견) - effectiveRegion이 바뀔 때마다 그 지역 기준으로 다시 집계.
   useEffect(() => {
     const loadCategoryCounts = async () => {
       try {
-        setCategoryCounts(await getPlaceCategoryCounts());
+        setCategoryCounts(await getPlaceCategoryCounts(effectiveRegion));
       } catch {
         setCategoryCounts({});
       }
     };
     const loadStaySubCounts = async () => {
       try {
-        setStaySubCounts(await getPlaceSubCategoryCounts(STAY_TOP_CATEGORY));
+        setStaySubCounts(await getPlaceSubCategoryCounts(STAY_TOP_CATEGORY, effectiveRegion));
       } catch {
         setStaySubCounts({});
       }
     };
     loadCategoryCounts();
     loadStaySubCounts();
-  }, []);
+  }, [effectiveRegion]);
 
   useEffect(() => {
     let cancelled = false;
