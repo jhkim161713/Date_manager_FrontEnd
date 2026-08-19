@@ -145,6 +145,42 @@ export function HomeTab({ onTabChange, personaProfile }) {
       .filter((entry) => entry.places.length > 0);
   }, [dedupedNearbyPool, personaProfile, refreshSeed]);
 
+  // 특정 카테고리 칩(전체가 아닌)을 골랐을 때 쓰는 페이지 구성 - 위 recommendationsByAxis의
+  // MAX_PER_CATEGORY 캡은 "여러 카테고리가 섞인 전체 그리드에서 한 카테고리가 도배하지 못하게" 막는
+  // 용도라, 칩으로 카테고리 하나만 이미 골라놓은 상태에서는 오히려 데이터를 6개로 확 줄여버리는
+  // 부작용이 있었다(2026-08-19, 사용자 지적). 그래서 칩이 선택된 동안은 이 캡 없이 그 카테고리
+  // 전체 후보 풀을 그대로 쓰고, 대신 페이지 크기를 데이터량에 맞춰 8~12개로 가변으로 잡는다.
+  const singleCategoryPages = useMemo(() => {
+    if (dedupedNearbyPool.length === 0) return [[]];
+
+    const total = dedupedNearbyPool.length;
+    const pageSize = total >= 12 ? 12 : Math.min(8, total);
+
+    const shuffled = [...dedupedNearbyPool].sort(() => Math.random() - 0.5);
+    const axes = PERSONA_AXES.filter((axis) => AXIS_TO_PLACE_SCORE[axis.id]);
+    const cardsWithAxis = shuffled.map((place) => {
+      let bestAxis = axes[0];
+      let bestDistance = Infinity;
+      for (const axis of axes) {
+        const scoreField = AXIS_TO_PLACE_SCORE[axis.id];
+        if (place[scoreField] == null) continue;
+        const userScore = personaProfile?.scores?.[axis.id] ?? 50;
+        const distance = Math.abs(place[scoreField] - userScore);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestAxis = axis;
+        }
+      }
+      return { kind: 'axis', axis: bestAxis, place };
+    });
+
+    const built = [];
+    for (let i = 0; i < cardsWithAxis.length; i += pageSize) {
+      built.push(cardsWithAxis.slice(i, i + pageSize));
+    }
+    return built.length > 0 ? built : [[]];
+  }, [dedupedNearbyPool, personaProfile, refreshSeed]);
+
   // pacing(즉흥·계획) 축은 장소 쪽에 대응 점수가 없어서 그 축 이름으로 매칭하는 건 여전히 안 되고,
   // 대신 "인기 공연"이라는 별도 자리를 둔다(2026-08-19). 페이지당 인기 공연 2개씩 쓸 수 있도록
   // 예매율 상위 MAX_PAGES*2개까지 미리 확보해둔다. 공연은 recommendationsByAxis 풀에서 이미
@@ -156,35 +192,35 @@ export function HomeTab({ onTabChange, personaProfile }) {
       .slice(0, POPULAR_PAGE_SIZE * MAX_PAGES);
   }, [performancePool]);
 
-  // 페이지마다 "성향축당 2개 + 인기 공연 2개 = 최대 12개"를 구성한다. 페이징하면 완전히 다른
-  // 12개(다음 후보 묶음)가 나오도록, 각 축/인기 리스트에서 페이지 순서대로 다른 구간을 잘라 쓴다
-  // (2026-08-19, 한 페이지 안에서 12개를 다 보여주고 다음 페이지가 다음 12개인 형태로 확정).
-  // 인기 공연 카드는 "전체" 칩일 때만 붙인다 - homeCategory를 "관광지" 등 특정 카테고리로 좁혔는데도
-  // 계속 붙어있으면 그 칩과 무관한 공연 카드가 섞여 나와서 필터가 안 맞는 것처럼 보인다(2026-08-19,
-  // 실제 화면 캡처로 확인된 버그).
-  const pages = useMemo(() => {
+  // "전체" 칩일 때 쓰는 페이지 구성 - 성향축당 2개 + 인기 공연 2개 = 최대 12개. 페이징하면 완전히
+  // 다른 12개(다음 후보 묶음)가 나오도록, 각 축/인기 리스트에서 페이지 순서대로 다른 구간을 잘라 쓴다
+  // (2026-08-19). 특정 카테고리 칩을 골랐을 때는 이거 대신 singleCategoryPages를 쓴다(아래 참고) -
+  // 인기 공연 카드가 "전체"가 아닐 때도 계속 붙어서 칩과 무관한 카드가 섞여 나오던 버그가 있었어서
+  // (2026-08-19, 실제 화면 캡처로 확인), 아예 칩별로 페이지 구성 자체를 분리했다.
+  const allCategoryPages = useMemo(() => {
     const built = [];
     for (let i = 0; i < MAX_PAGES; i++) {
       const axisCards = recommendationsByAxis.flatMap(({ axis, places }) =>
         places.slice(i * AXIS_PAGE_SIZE, i * AXIS_PAGE_SIZE + AXIS_PAGE_SIZE)
           .map((place) => ({ kind: 'axis', axis, place }))
       );
-      const popularCards = homeCategory === 'all'
-        ? popularPerformances
-            .slice(i * POPULAR_PAGE_SIZE, i * POPULAR_PAGE_SIZE + POPULAR_PAGE_SIZE)
-            .map((place) => ({ kind: 'popular', place }))
-        : [];
+      const popularCards = popularPerformances
+        .slice(i * POPULAR_PAGE_SIZE, i * POPULAR_PAGE_SIZE + POPULAR_PAGE_SIZE)
+        .map((place) => ({ kind: 'popular', place }));
       const combined = [...axisCards, ...popularCards];
       if (combined.length > 0) built.push(combined);
     }
     return built.length > 0 ? built : [[]];
-  }, [recommendationsByAxis, popularPerformances, homeCategory]);
+  }, [recommendationsByAxis, popularPerformances]);
+
+  // "전체"면 성향 매칭+인기 공연 구성을, 특정 칩이면 그 카테고리 전체 후보를 8~12개씩 페이징한 걸 쓴다.
+  const pages = homeCategory === 'all' ? allCategoryPages : singleCategoryPages;
 
   const pageCount = pages.length;
   const [page, setPage] = useState(0);
   useEffect(() => {
-    setPage(0); // 새로고침하거나 데이터가 바뀌면 첫 페이지로 되돌림
-  }, [pageCount, refreshSeed]);
+    setPage(0); // 새로고침하거나 카테고리/데이터가 바뀌면 첫 페이지로 되돌림
+  }, [pageCount, refreshSeed, homeCategory]);
   const currentPage = Math.min(page, pageCount - 1);
   const visibleCards = pages[currentPage] ?? [];
 
