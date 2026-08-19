@@ -247,19 +247,21 @@ export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
 
 // 큐레이션 탭(데이트/숙박 카드)용 조회 API. matchScore는 아직 항상 null - 온보딩 성향값을 저장하는
 // 파이프라인이 없어서(2026-08-14 기준 미구현) 프론트가 최신순으로 대체 정렬한다.
-export function getCurationPlaces({ category = '', subCategory = '', page = 1, size = 20 } = {}) {
+export function getCurationPlaces({ category = '', subCategory = '', region = '', page = 1, size = 20 } = {}) {
   const params = new URLSearchParams({ page, size });
   if (category) params.set('category', category);
   if (subCategory) params.set('subCategory', subCategory);
+  if (region) params.set('region', region);
   return request(`/api/places/curation?${params.toString()}`);
 }
 
 // 큐레이션 탭 "내 주변만 보기" 토글용 - 좌표 기준 가까운 순 + 카테고리 필터를 동시에 적용한다.
 // nearby 계열이라 이미 거리순으로 오기 때문에 별도 정렬 옵션이 필요 없다.
-export function getNearbyCurationPlaces({ lat, lon, category = '', subCategory = '', limit = 30 }) {
+export function getNearbyCurationPlaces({ lat, lon, category = '', subCategory = '', region = '', limit = 30 }) {
   const params = new URLSearchParams({ lat, lon, limit });
   if (category) params.set('category', category);
   if (subCategory) params.set('subCategory', subCategory);
+  if (region) params.set('region', region);
   return request(`/api/places/curation/nearby?${params.toString()}`);
 }
 

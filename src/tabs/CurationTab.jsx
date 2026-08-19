@@ -10,12 +10,22 @@ import { STAY_CATEGORIES, STAY_HERO } from '../data/stayData';
 const STAY_TOP_CATEGORY = '숙박';
 const PAGE_SIZE = 24;
 
+// 지역 필터용 시/도 목록(2026-08-19). Place.address엔 별도 시/도 컬럼이 없어서 이 문자열이 주소에
+// 포함되는지로 판단한다(예: "서울" -> "서울특별시 강남구 ..."에 포함됨) - 그래서 정식 명칭 대신
+// 주소에 실제로 등장하는 짧은 형태를 쓴다.
+const REGIONS = [
+  '서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '세종',
+  '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
+];
+
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
 export function CuriationTab({ onOpenBuilder }) {
   const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
   const [stayCategory, setStayCategory] = useState('all');
+  // 지역 필터 - 빈 문자열이면 "전체 지역". 데이트/숙박 화면 둘 다 공유한다(2026-08-19).
+  const [region, setRegion] = useState('');
 
   const [datePlaces, setDatePlaces] = useState([]);
   const [dateLoading, setDateLoading] = useState(true);
@@ -95,9 +105,9 @@ export function CuriationTab({ onOpenBuilder }) {
         let places;
         if (useNearby) {
           const { lat, lon } = await getCurrentLocation();
-          places = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, limit: PAGE_SIZE });
+          places = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region, limit: PAGE_SIZE });
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, region, size: PAGE_SIZE });
           places = page.content;
         }
         if (cancelled) return;
@@ -113,7 +123,7 @@ export function CuriationTab({ onOpenBuilder }) {
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, useNearby]);
+  }, [dateCategory, useNearby, region]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,9 +137,9 @@ export function CuriationTab({ onOpenBuilder }) {
         let places;
         if (useNearby) {
           const { lat, lon } = await getCurrentLocation();
-          places = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, limit: PAGE_SIZE });
+          places = await getNearbyCurationPlaces({ lat, lon, category: STAY_TOP_CATEGORY, subCategory, region, limit: PAGE_SIZE });
         } else {
-          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region, size: PAGE_SIZE });
           places = page.content;
         }
         if (cancelled) return;
@@ -145,7 +155,7 @@ export function CuriationTab({ onOpenBuilder }) {
     };
     loadStayPlaces();
     return () => { cancelled = true; };
-  }, [stayCategory, useNearby]);
+  }, [stayCategory, useNearby, region]);
 
   const builderItems = builderItemIds
     .map((id) => placeCache[id])
@@ -272,6 +282,41 @@ export function CuriationTab({ onOpenBuilder }) {
       {nearbyError && (
         <p className="text-[10px] font-bold" style={{ color: '#e8486b' }}>{nearbyError}</p>
       )}
+
+      {/* 지역 필터 - 특정 지역을 고르면 "내 주변만 보기"와 개념이 충돌해서(지금 위치와 무관하게 그
+          지역을 보고 싶은 거라서) 같이 꺼준다(2026-08-19). */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        <button
+          type="button"
+          onClick={() => setRegion('')}
+          className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+          style={{
+            background: region === '' ? '#4f3d46' : 'white',
+            color: region === '' ? 'white' : '#7c6a72',
+            border: '1.5px solid #f0dce2',
+          }}
+        >
+          🗺️ 전체 지역
+        </button>
+        {REGIONS.map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => {
+              setRegion(region === item ? '' : item);
+              setUseNearby(false);
+            }}
+            className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+            style={{
+              background: region === item ? '#4f3d46' : 'white',
+              color: region === item ? 'white' : '#7c6a72',
+              border: '1.5px solid #f0dce2',
+            }}
+          >
+            {item}
+          </button>
+        ))}
+      </div>
 
       <div className="overflow-hidden rounded-[28px]">
         <div
