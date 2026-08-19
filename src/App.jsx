@@ -458,7 +458,7 @@ export default function App() {
               <>
                 {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'curiation' && <CuriationTab />}
+                {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
                 {tab === 'aichat' && <AiChatTab />}

@@ -6,9 +6,41 @@ import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY } from '../data/curationData';
 import { DATE_CATEGORIES } from '../data/curationCategories';
 import { STAY_CATEGORIES, STAY_HERO } from '../data/stayData';
+import { PERSONA_AXES } from '../data/onboardingData';
 
 const STAY_TOP_CATEGORY = '숙박';
 const PAGE_SIZE = 24;
+
+// 유저 성향 축 <-> 장소 성향 점수 필드 매핑. HomeTab.jsx의 동일 매핑과 같은 기준 -
+// "즉흥·계획(pacing)"은 장소 쪽에 대응 축이 없어서 매칭 대상에서 제외한다.
+const AXIS_TO_PLACE_SCORE = {
+  energetic: 'scoreEnergy',
+  immersion: 'scoreImmersion',
+  vibe: 'scoreVibe',
+  aesthetic: 'scoreAesthetic',
+  depth: 'scoreDepth',
+};
+const MATCHABLE_AXES = PERSONA_AXES.filter((axis) => AXIS_TO_PLACE_SCORE[axis.id]);
+
+// 원본 기획서("스마트 데이트 큐레이션 - Style Sync Engine")의 핵심인 "장소 성향과 유저 성향을
+// 비교해 가장 특징적인 상위 성향을 배지로 노출"을 구현한다(2026-08-19). 장소가 실제로 강조하는
+// 축(50에서 많이 벗어난 축)일수록 그 축이 유저와 가까운지가 더 의미 있어서, 단순 거리가 아니라
+// "장소가 그 축에서 얼마나 뚜렷한가(강조도) - 유저와의 거리"로 점수를 매겨 상위 2개를 뽑는다.
+function pickMatchingAxes(place, personaProfile) {
+  const scored = MATCHABLE_AXES
+    .map((axis) => {
+      const scoreField = AXIS_TO_PLACE_SCORE[axis.id];
+      const placeScore = place[scoreField];
+      if (placeScore == null) return null;
+      const userScore = personaProfile?.scores?.[axis.id] ?? 50;
+      const emphasis = Math.abs(placeScore - 50); // 장소가 이 축을 얼마나 뚜렷하게 강조하는지
+      const distance = Math.abs(placeScore - userScore); // 유저 성향과의 거리
+      return { axis, weight: emphasis - distance };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.weight - a.weight);
+  return scored.slice(0, 2).map((entry) => entry.axis);
+}
 
 // 지역 필터용 시/도 목록(2026-08-19). Place.address엔 별도 시/도 컬럼이 없어서 이 문자열이 주소에
 // 포함되는지로 판단한다(예: "서울" -> "서울특별시 강남구 ..."에 포함됨) - 그래서 정식 명칭 대신
@@ -20,7 +52,7 @@ const REGIONS = [
 
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
-export function CuriationTab({ onOpenBuilder }) {
+export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
   const [stayCategory, setStayCategory] = useState('all');
@@ -520,6 +552,7 @@ export function CuriationTab({ onOpenBuilder }) {
                 const inBuilder = builderItemIds.includes(place.id);
                 const liked = likedItemIds.includes(place.id);
                 const tag = place.subCategory || place.parentCategory;
+                const matchingAxes = pickMatchingAxes(place, personaProfile);
 
                 return (
                   <article
@@ -557,6 +590,19 @@ export function CuriationTab({ onOpenBuilder }) {
                     </div>
 
                     <div className="p-4">
+                      {/* 성향 매치 배지 - 원본 기획서("스마트 데이트 큐레이션") ①의 "장소 성향과 유저
+                          성향 비교, 상위 특징 배지" 재현. 매칭%가 없어도(matchScore 파이프라인 미완성)
+                          "어떤 성향에 왜 맞는지"는 보여줄 수 있어서 큐레이션만의 정보로 남긴다(2026-08-19). */}
+                      {matchingAxes.length > 0 && (
+                        <div className="mb-1.5 flex items-center gap-1.5">
+                          {matchingAxes.map((axis) => (
+                            <span key={axis.id} className="rounded-full px-2 py-0.5 text-[9px] font-extrabold"
+                              style={{ background: `${axis.color}18`, color: axis.color, border: `1px solid ${axis.color}55` }}>
+                              ✨ {axis.koreanLabel}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
                           <Badge color="#e8486b" bg="#fff0f3">{place.emoji ? `${place.emoji} ${tag}` : tag}</Badge>
@@ -573,9 +619,21 @@ export function CuriationTab({ onOpenBuilder }) {
                       <div className="mt-3 flex items-center justify-between gap-2 text-[10px]">
                         <span className="truncate" style={{ color: '#8f7b84' }}>📍 {place.address || '주소 정보 없음'}</span>
                       </div>
-                      {place.priceText && (
-                        <p className="mt-1 text-[10px] font-bold" style={{ color: '#66515a' }}>{place.priceText}</p>
-                      )}
+                      {/* 현실 체킹 태그 - 기획서 ②(웨이팅/가격/주차)를 데이트 카드에도 노출(2026-08-19).
+                          지금까지는 숙박 카드에만 붙어있었음. */}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {place.priceText && (
+                          <span className="text-[10px] font-bold" style={{ color: '#66515a' }}>{place.priceText}</span>
+                        )}
+                        {place.waitingStatus && (
+                          <Badge color="#3d9b86" bg="#eaf8f4">
+                            ⏱ {place.waitingStatus}{place.waitingTeams ? ` · ${place.waitingTeams}팀` : ''}
+                          </Badge>
+                        )}
+                        {place.parkingInfo && (
+                          <Badge color="#806bb4" bg="#f1edff">🅿 {place.parkingInfo}</Badge>
+                        )}
+                      </div>
 
                       <button
                         type="button"
