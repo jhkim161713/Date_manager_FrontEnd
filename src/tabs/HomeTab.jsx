@@ -159,6 +159,9 @@ export function HomeTab({ onTabChange, personaProfile }) {
   // 페이지마다 "성향축당 2개 + 인기 공연 2개 = 최대 12개"를 구성한다. 페이징하면 완전히 다른
   // 12개(다음 후보 묶음)가 나오도록, 각 축/인기 리스트에서 페이지 순서대로 다른 구간을 잘라 쓴다
   // (2026-08-19, 한 페이지 안에서 12개를 다 보여주고 다음 페이지가 다음 12개인 형태로 확정).
+  // 인기 공연 카드는 "전체" 칩일 때만 붙인다 - homeCategory를 "관광지" 등 특정 카테고리로 좁혔는데도
+  // 계속 붙어있으면 그 칩과 무관한 공연 카드가 섞여 나와서 필터가 안 맞는 것처럼 보인다(2026-08-19,
+  // 실제 화면 캡처로 확인된 버그).
   const pages = useMemo(() => {
     const built = [];
     for (let i = 0; i < MAX_PAGES; i++) {
@@ -166,14 +169,16 @@ export function HomeTab({ onTabChange, personaProfile }) {
         places.slice(i * AXIS_PAGE_SIZE, i * AXIS_PAGE_SIZE + AXIS_PAGE_SIZE)
           .map((place) => ({ kind: 'axis', axis, place }))
       );
-      const popularCards = popularPerformances
-        .slice(i * POPULAR_PAGE_SIZE, i * POPULAR_PAGE_SIZE + POPULAR_PAGE_SIZE)
-        .map((place) => ({ kind: 'popular', place }));
+      const popularCards = homeCategory === 'all'
+        ? popularPerformances
+            .slice(i * POPULAR_PAGE_SIZE, i * POPULAR_PAGE_SIZE + POPULAR_PAGE_SIZE)
+            .map((place) => ({ kind: 'popular', place }))
+        : [];
       const combined = [...axisCards, ...popularCards];
       if (combined.length > 0) built.push(combined);
     }
     return built.length > 0 ? built : [[]];
-  }, [recommendationsByAxis, popularPerformances]);
+  }, [recommendationsByAxis, popularPerformances, homeCategory]);
 
   const pageCount = pages.length;
   const [page, setPage] = useState(0);
