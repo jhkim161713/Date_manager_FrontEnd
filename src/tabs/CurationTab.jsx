@@ -320,7 +320,10 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         <button
           type="button"
-          onClick={() => setRegion('')}
+          onClick={() => {
+            setRegion('');
+            setUseNearby(true); // 특정 지역 선택하면서 꺼진 "내 주변만 보기"를 전체로 돌아오면 복원
+          }}
           className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
           style={{
             background: region === '' ? '#4f3d46' : 'white',
