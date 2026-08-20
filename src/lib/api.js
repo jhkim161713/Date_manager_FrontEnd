@@ -399,3 +399,48 @@ export function sendAiChatMessage(sessionId, text, { lat, lon } = {}) {
 export function getAiChatMessages(sessionId) {
   return request(`/api/aichat/sessions/${sessionId}/messages`);
 }
+
+// 데이트 코스 빌더(2026-08-20) - 백엔드 feature/course-place-integration 브랜치 API를 최소한으로
+// 연결해서, 큐레이션에서 담은 실제 place 데이터가 코스빌더까지 정상적으로 오는지 확인하는 용도.
+export function createCourseGroup(title) {
+  return request('/api/course/groups', { method: 'POST', body: JSON.stringify({ title }) });
+}
+
+export function getCourseGroups() {
+  return request('/api/course/groups');
+}
+
+export function getCourseGroup(groupId) {
+  return request(`/api/course/groups/${groupId}`);
+}
+
+export function addCourseItem(groupId, placeId) {
+  return request(`/api/course/groups/${groupId}/items`, {
+    method: 'POST',
+    body: JSON.stringify({ placeId }),
+  });
+}
+
+// Step 2 자동 매칭(성향 보완 스팟 추천) - 추천만 하고 코스에 바로 담지는 않음.
+export function autoMatchCourse(groupId) {
+  return request(`/api/course/groups/${groupId}/auto-match`);
+}
+
+// 코스 그룹 통째로 삭제(2026-08-20, 사용자 피드백 - "빌더로 코스를 계속 담았으면 삭제하는 기능이
+// 있어야 할 것 같다").
+export function deleteCourseGroup(groupId) {
+  return request(`/api/course/groups/${groupId}`, { method: 'DELETE' });
+}
+
+// 담긴 장소 하나만 빼기(2026-08-20, "담겨진 코스에 중간에 한두군데를 뺄 수 있어야 한다").
+export function removeCourseItem(groupId, itemId) {
+  return request(`/api/course/groups/${groupId}/items/${itemId}`, { method: 'DELETE' });
+}
+
+// 담긴 장소 순서를 한 칸 앞/뒤로("up"/"down", 2026-08-20, "순서를 바꾸는 기능").
+export function moveCourseItem(groupId, itemId, direction) {
+  return request(`/api/course/groups/${groupId}/items/${itemId}/move`, {
+    method: 'PATCH',
+    body: JSON.stringify({ direction }),
+  });
+}

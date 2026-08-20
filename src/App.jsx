@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus } from '@/lib/api';
+import { CURATION_CART_STORAGE_KEY } from './data/curationData';
 import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
 import { avatarSrc } from './components/Avatar';
 import { HomeTab } from './tabs/HomeTab';
@@ -240,6 +241,9 @@ export default function App() {
   const handleLogout = () => {
     clearToken();
     clearMockUser();
+    // 큐레이션 담기함(2026-08-20)은 계정 구분 없이 브라우저에 남는 임시 상태라, 로그아웃 시점에는
+    // 지워서 다음 사람(같은 브라우저로 다른 계정 로그인)에게 이전 사용자의 담기함이 새지 않게 한다.
+    localStorage.removeItem(CURATION_CART_STORAGE_KEY);
     setUser(null);
     // 로그아웃 시점에 마이페이지/커플탭처럼 user를 전제로 하는 탭에 그대로 남아있으면
     // user=null 상태로 그 탭이 렌더링되며 오류가 날 수 있어, 누구나 볼 수 있는 홈탭으로 보낸다.

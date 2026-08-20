@@ -196,7 +196,7 @@ export function CoupleTab({ user, onTabChange, personaProfile }) {
   return (
     <div className="space-y-5 pb-8">
       <div className="px-3">
-        <SectionTitle sub={COUPLE_SINK_COPY.subtitle} titleSize="text-2xl" subSize="text-sm">내 파트너 링크</SectionTitle>
+        <SectionTitle sub={COUPLE_SINK_COPY.subtitle}>💞 내 파트너 링크</SectionTitle>
       </div>
 
       <section

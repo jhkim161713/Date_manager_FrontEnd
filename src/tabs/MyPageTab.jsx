@@ -282,7 +282,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
   return (
     <div className="max-w-md md:max-w-4xl mx-auto">
       <div className="flex items-start justify-between gap-3">
-        <SectionTitle sub="내 정보를 확인하고 수정할 수 있어요">마이페이지 ⚙️</SectionTitle>
+        <SectionTitle sub="내 정보를 확인하고 수정할 수 있어요">⚙️ 마이페이지</SectionTitle>
         {!loading && profile && (
           <button onClick={handleWithdraw} disabled={withdrawing}
             className="flex-shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-all hover:opacity-80 disabled:opacity-60"

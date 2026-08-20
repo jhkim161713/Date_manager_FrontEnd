@@ -85,7 +85,7 @@ export function AiChatTab() {
 
   return (
     <div className="h-full flex flex-col gap-4">
-      <SectionTitle sub="성향에 맞는 데이트를 AI에게 물어보세요">AI 데이트 상담 🤖</SectionTitle>
+      <SectionTitle sub="성향에 맞는 데이트를 AI에게 물어보세요">🤖 AI 데이트 상담</SectionTitle>
 
       <div className="flex-1 min-h-0 flex flex-col rounded-3xl bg-white overflow-hidden"
         style={{ border: '1.5px solid #ffd6e0', boxShadow: '0 5px 18px rgba(89, 58, 70, 0.06)' }}>
