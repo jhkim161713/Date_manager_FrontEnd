@@ -120,6 +120,8 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
   const [selectedOptionId, setSelectedOptionId] = useState(null)
   const [winner, setWinner] = useState(null)
   const [winnerAnimateIn, setWinnerAnimateIn] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const advanceTimerRef = useRef(null)
   const cardRefs = useRef({})
   const optionsGridRef = useRef(null)
@@ -142,6 +144,8 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
     setSelectedOptionId(null)
     setWinner(null)
     setWinnerAnimateIn(false)
+    setIsSaving(false)
+    setSaveError('')
     setPhase('compare')
   }
 
@@ -279,8 +283,18 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
     }
   }, [phase, winner])
 
-  const completeOnboarding = () => {
-    onComplete?.(personaResult)
+  const completeOnboarding = async () => {
+    if (isSaving) return
+
+    setIsSaving(true)
+    setSaveError('')
+    try {
+      await onComplete?.(personaResult)
+      setIsSaving(false)
+    } catch (error) {
+      setSaveError(error?.message || '성향 점수를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.')
+      setIsSaving(false)
+    }
   }
 
   if (phase === 'intro') {
@@ -411,20 +425,28 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
             ))}
           </div>
 
+          {saveError && (
+            <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center text-xs font-bold text-red-500" role="alert">
+              {saveError}
+            </p>
+          )}
+
           <div className="mt-7 flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={startOnboarding}
-              className="rounded-2xl border border-[#ffd6e0] bg-white px-5 py-3 text-sm font-extrabold text-[#ff6b8a] transition hover:bg-[#fff8fa] sm:flex-1"
+              disabled={isSaving}
+              className="rounded-2xl border border-[#ffd6e0] bg-white px-5 py-3 text-sm font-extrabold text-[#ff6b8a] transition hover:bg-[#fff8fa] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
             >
               다시 선택하기
             </button>
             <button
               type="button"
               onClick={completeOnboarding}
-              className="rounded-2xl bg-gradient-to-r from-[#ff6b8a] to-[#c4a0e8] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(255,107,138,0.24)] transition hover:-translate-y-0.5 sm:flex-[1.4]"
+              disabled={isSaving}
+              className="rounded-2xl bg-gradient-to-r from-[#ff6b8a] to-[#c4a0e8] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(255,107,138,0.24)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-[1.4]"
             >
-              Date Manager 시작하기
+              {isSaving ? '성향 저장 중...' : 'Date Manager 시작하기'}
             </button>
           </div>
         </section>

@@ -2,7 +2,7 @@ import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
-import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus } from '@/lib/api';
+import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle } from '@/lib/api';
 import { CURATION_CART_STORAGE_KEY } from './data/curationData';
 import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
 import { avatarSrc } from './components/Avatar';
@@ -553,7 +553,7 @@ export default function App() {
                 {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
-                {tab === 'aichat' && <AiChatTab />}
+                {tab === 'aichat' && <AiChatTab user={user} />}
                 {tab === 'board' && <BoardTab />}
                 {tab === 'placeDebug' && <PlaceStyleDebugTab />}
                 {tab === 'mypage' && (
@@ -611,7 +611,11 @@ export default function App() {
         <div className="fixed inset-0 z-[60] overflow-y-auto bg-white">
           <OnboardingTab
             skippable={false}
-            onComplete={(profile) => { setPersonaProfile(profile); setShowPostSignupOnboarding(false); }}
+            onComplete={async (profile) => {
+              await saveOnboardingStyle(profile);
+              setPersonaProfile(profile);
+              setShowPostSignupOnboarding(false);
+            }}
           />
         </div>
       )}

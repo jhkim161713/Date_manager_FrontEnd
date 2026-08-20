@@ -8,6 +8,8 @@ export const MOCK_USERS = [
   { email: 'admin', password: 'password', nickname: '관리자', gender: 'UNKNOWN' },
   { email: 'couple', password: 'couple', nickname: '커플', gender: 'UNKNOWN' },
   { email: 'test@test.com', password: 'test1234', nickname: '테스트유저', gender: 'UNKNOWN' },
+  { email: 'male@test.com', password: 'test1234', nickname: '남성 테스트', gender: 'MALE' },
+  { email: 'female@test.com', password: 'test1234', nickname: '여성 테스트', gender: 'FEMALE' },
 ];
 
 export function getToken() {
@@ -126,6 +128,22 @@ export function updateMe({ nickname, gender }) {
   return request('/api/me', {
     method: 'PUT',
     body: JSON.stringify({ nickname, gender }),
+  });
+}
+
+// 온보딩 화면의 energetic 축 이름만 백엔드/UserStyle의 energy 명칭으로 변환한다.
+// 나머지 다섯 축은 프론트와 백엔드가 같은 이름을 사용한다.
+export function saveOnboardingStyle(profile) {
+  return request('/api/me/styles/onboarding', {
+    method: 'PUT',
+    body: JSON.stringify({
+      energy: profile.scores.energetic,
+      immersion: profile.scores.immersion,
+      vibe: profile.scores.vibe,
+      aesthetic: profile.scores.aesthetic,
+      pacing: profile.scores.pacing,
+      depth: profile.scores.depth,
+    }),
   });
 }
 
