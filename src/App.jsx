@@ -1,10 +1,12 @@
 import { TABS } from './data/tabsData';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import './App.css';
 import dmLogo from '@/imports/Logo.png';
-import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser } from '@/lib/api';
+import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus } from '@/lib/api';
+import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
+import { avatarSrc } from './components/Avatar';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
-import { TendencyTab } from './tabs/TendencyTab';
 import { MiniCalendar } from './components/MiniCalendar';
 import { BuilderTab } from './tabs/BuilderTab';
 import { CuriationTab } from './tabs/CurationTab';
@@ -13,7 +15,21 @@ import { MyPageTab } from './tabs/MyPageTab';
 import { OnboardingTab } from './tabs/Onboardingtab';
 import { PERSONA_AXES } from './data/onboardingData';
 import { LoginModal } from './components/LoginModal';
-import { GenderPromptModal } from './components/GenderPromptModal';
+import { ProfileConfirmModal } from './components/ProfileConfirmModal';
+import { Avatar } from './components/Avatar';
+import { SubscriptionModal } from './components/SubscriptionModal';
+import { PlaceStyleDebugTab } from './tabs/PlaceStyleDebugTab';
+import { AiChatTab } from './tabs/AiChatTab';
+import { BoardTab } from './tabs/BoardTab';
+
+// 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
+const MOBILE_NAV_TABS = [
+  { id: 'home', label: '홈', emoji: '🏠' },
+  { id: 'couple', label: '내 파트너 링크', emoji: '💞' },
+  { id: 'curiation', label: '큐레이션', emoji: '🎬' },
+  { id: 'calendar', label: '캘린더', emoji: '📅' },
+  { id: 'mypage', label: 'MY', emoji: '👤' },
+];
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -22,11 +38,48 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [partnerNotifications, setPartnerNotifications] = useState([]);
+  const [showMatchCelebration, setShowMatchCelebration] = useState(false);
+  const [celebrationPartner, setCelebrationPartner] = useState(null);
+  // 토스 카드등록 인증 완료 후 리다이렉트로 돌아왔는지를 최초 렌더링 시점에 동기적으로 읽어둔다.
+  // useEffect 안에서 읽으면 다른 이펙트(popstate 등)의 history.replaceState 실행 순서에 따라
+  // 쿼리스트링이 이미 사라진 뒤일 수 있어서, 여기서 먼저 캡처해 state로 고정시켜둔다.
+  const initialBillingAuth = (() => {
+    const p = new URLSearchParams(window.location.search);
+    const authKey = p.get('authKey');
+    const customerKey = p.get('customerKey');
+    return authKey && customerKey ? { authKey, customerKey } : null;
+  })();
+  const [showSubscription, setShowSubscription] = useState(
+    () => Boolean(initialBillingAuth) || new URLSearchParams(window.location.search).get('billingError') === '1'
+  );
+  const [pendingBillingAuth, setPendingBillingAuth] = useState(initialBillingAuth);
   const [personaProfile, setPersonaProfile] = useState(null);
+  // 이메일 가입 직후, 또는 소셜 가입 후 ProfileConfirmModal(성별 확정)이 끝난 직후에 띄우는
+  // 필수 성향 온보딩 오버레이. 둘 다 "방금 처음 가입한 사람"만 거치는 지점이라 이 하나의
+  // 플래그로 두 경로를 합쳐서 처리한다.
+  const [showPostSignupOnboarding, setShowPostSignupOnboarding] = useState(false);
+  // 관리자 페이지(/admin)에서 "우리 홈"으로 넘어온 경우에만 상단에 "관리자 페이지" 버튼을 보여준다.
+  // adminCheck()를 매번 새로 부르는 대신, /admin에서 넘어올 때만 붙는 ?admin=1 쿼리를
+  // sessionStorage에 남겨서 이 탭에 머무는 동안 계속 기억하게 한다.
+  const [isAdminUser] = useState(
+    () => new URLSearchParams(window.location.search).get('admin') === '1' || sessionStorage.getItem('dm_admin_return') === '1'
+  );
+  const personaScrollerRef = useRef(null);
+  const personaDragRef = useRef({ active: false, startX: 0, startScrollLeft: 0 });
+  const [isPersonaDragging, setIsPersonaDragging] = useState(false);
+  const [personaScrollState, setPersonaScrollState] = useState({ left: false, right: false });
 
   // 탭을 변경할 때 브라우저 history 상태도 함께 push
   const changeTab = (newTab, pushHistory = true) => {
     if (newTab === tab) return;
+    // 성향테스트는 나중에 없어질 수도 있는 기능이라 탭 자체(nav 항목)는 그대로 두되, 누르면
+    // 브라우저 기본 alert()로 "준비중입니다"만 띄우고 실제 이동은 막음. 목업 데이터로만 동작하던
+    // 탭이라 TendencyTab.jsx/tendencyData.js는 삭제함(2026-08-13).
+    if (newTab === 'tendency') {
+      window.alert('준비중입니다');
+      return;
+    }
     setTab(newTab);
     if (pushHistory) {
       window.history.pushState({ tab: newTab }, '', `#${newTab}`);
@@ -55,50 +108,224 @@ export default function App() {
     };
   }, []);
 
-  const loadUser = useCallback(() => {
+  // 안 읽은 알림을 받아와서, "파트너가 초대를 수락했다"는 알림은 CoupleTab에서 수락한 쪽(B)이
+  // 보는 것과 똑같은 CoupleMatchCelebration 이펙트로 보여주고(A도 같은 축하 연출을 봐야
+  // "상대방이 진짜 눌렀는지" 확실히 알 수 있으므로), 나머지 알림(만난 날짜 입력 등)만
+  // 텍스트 배너로 보여준다.
+  const fetchPartnerNotifications = async () => {
+    let list;
+    try {
+      list = await getUnreadCoupleNotifications();
+    } catch {
+      return;
+    }
+    const accepted = list.filter(n => n.type === 'PARTNER_ACCEPTED');
+    const rest = list.filter(n => n.type !== 'PARTNER_ACCEPTED');
+    setPartnerNotifications(rest);
+    if (accepted.length > 0) {
+      const coupleStatus = await getCoupleStatus().catch(() => null);
+      setCelebrationPartner(coupleStatus?.partner || null);
+      setShowMatchCelebration(true);
+    }
+  };
+
+  const loadUser = useCallback(async () => {
     const mockUser = getMockUser();
     if (mockUser) {
       setUser(mockUser);
-      return Promise.resolve(mockUser);
+      return mockUser;
     }
     if (!getToken()) {
       setUser(null);
-      return Promise.resolve(null);
+      return null;
     }
-    return getMe()
-      .then(data => { setUser(data); return data; })
-      .catch(() => { clearToken(); setUser(null); return null; });
+    try {
+      const data = await getMe();
+      setUser(data);
+      return data;
+    } catch {
+      clearToken();
+      setUser(null);
+      return null;
+    }
+  }, []);
+
+  // 관리자 로그인 시 이 페이지는 onAuthed()를 호출하지 않은 채(user=null인 상태로)
+  // /admin으로 이동한다. 그 뒤 브라우저 뒤로가기를 누르면 bfcache가 그 당시의 user=null
+  // 스냅샷을 그대로 복원해서 실제로는 로그인돼 있는데도 로그아웃된 것처럼 보인다.
+  // pageshow(persisted)로 복원을 감지해서 실제 로그인 상태를 다시 확인해준다.
+  useEffect(() => {
+    const handlePageShow = (event) => {
+      if (event.persisted) {
+        loadUser();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, [loadUser]);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('admin') === '1') {
+      sessionStorage.setItem('dm_admin_return', '1');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthToken = params.get('token');
     const oauthError = params.get('error');
-    if (oauthToken) {
-      setToken(oauthToken);
+
+    // 토스 카드등록 콜백 파라미터는 이미 최초 렌더링 시점(initialBillingAuth)에 state로 캡처해뒀으니
+    // 여기서는 주소창만 깔끔하게 정리한다.
+    if (params.get('authKey') || params.get('billingError')) {
       window.history.replaceState({}, '', window.location.pathname);
     }
-    if (oauthError) {
-      setAuthError(oauthError);
-      setShowLogin(true);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-    loadUser().finally(() => setAuthChecked(true));
+
+    (async () => {
+      if (oauthToken) {
+        setToken(oauthToken);
+        window.history.replaceState({}, '', window.location.pathname);
+        // 소셜 로그인으로 들어온 계정이 관리자 계정이면 메인 앱 대신 관리자 페이지로 이동.
+        // replace를 쓰는 이유는 LoginModal의 관리자 리다이렉트와 동일 - href로 남겨두면
+        // 뒤로가기 시 로그인 전 스냅샷이 되살아나 로그아웃된 것처럼 보이는 문제가 생긴다.
+        const { isAdmin } = await adminCheck().catch(() => ({ isAdmin: false }));
+        if (isAdmin) {
+          window.location.replace('/admin');
+          return;
+        }
+      }
+      if (oauthError) {
+        setAuthError(oauthError);
+        setShowLogin(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      const loadedUser = await loadUser();
+      setAuthChecked(true);
+
+      // 로그인 직후 - 내가 없는 사이 파트너가 초대를 수락했거나 만난 날짜를 입력했으면
+      // 안 읽은 알림을 받아와 배너로 보여준다. 목업 로그인은 실제 백엔드 유저가 아니라
+      // 이 API를 호출할 이유가 없으므로 건너뛴다.
+      if (loadedUser && !getMockUser()) {
+        fetchPartnerNotifications();
+      }
+    })();
   }, [loadUser]);
+
+  // 로그인 직후 1회 조회만으로는, 이미 앱을 켜둔 채로 기다리고 있는 사용자(예: A가 초대
+  // 링크를 만들어놓고 그 탭을 계속 보고 있는 상태에서 B가 수락)에게는 새로고침 전까지
+  // 알림이 절대 뜨지 않는 문제가 있었다. 탭이 다시 활성화될 때(다른 탭/앱을 보다가 돌아왔을 때)
+  // 마다 재조회해서, 새로고침 없이도 안 읽은 알림을 받아볼 수 있게 한다.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && getToken() && !getMockUser()) {
+        fetchPartnerNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  const handleAckPartnerNotifications = () => {
+    setPartnerNotifications([]);
+    ackCoupleNotifications().catch(() => {});
+  };
+
+  const handleMatchCelebrationFinish = () => {
+    setShowMatchCelebration(false);
+    setCelebrationPartner(null);
+    ackCoupleNotifications().catch(() => {});
+  };
 
   const handleLogout = () => {
     clearToken();
     clearMockUser();
     setUser(null);
+    // 로그아웃 시점에 마이페이지/커플탭처럼 user를 전제로 하는 탭에 그대로 남아있으면
+    // user=null 상태로 그 탭이 렌더링되며 오류가 날 수 있어, 누구나 볼 수 있는 홈탭으로 보낸다.
+    changeTab('home', false);
   };
 
   const displayName = user?.nickname || user?.email || '';
 
+  const updatePersonaScrollState = useCallback(() => {
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return;
+
+    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    setPersonaScrollState({
+      left: scroller.scrollLeft > 2,
+      right: scroller.scrollLeft < maxScrollLeft - 2,
+    });
+  }, []);
+
+  useEffect(() => {
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return undefined;
+
+    const handleScroll = () => updatePersonaScrollState();
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(updatePersonaScrollState)
+      : null;
+
+    scroller.addEventListener('scroll', handleScroll, { passive: true });
+    resizeObserver?.observe(scroller);
+    updatePersonaScrollState();
+
+    return () => {
+      scroller.removeEventListener('scroll', handleScroll);
+      resizeObserver?.disconnect();
+    };
+  }, [updatePersonaScrollState]);
+
+  const scrollPersonaAxes = (direction) => {
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return;
+
+    const distance = Math.max(170, Math.round(scroller.clientWidth * 0.62));
+    scroller.scrollBy({ left: direction * distance, behavior: 'smooth' });
+  };
+
+  const handlePersonaPointerDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    const scroller = personaScrollerRef.current;
+    if (!scroller) return;
+
+    personaDragRef.current = {
+      active: true,
+      startX: event.clientX,
+      startScrollLeft: scroller.scrollLeft,
+    };
+    scroller.setPointerCapture?.(event.pointerId);
+    setIsPersonaDragging(true);
+  };
+
+  const handlePersonaPointerMove = (event) => {
+    const drag = personaDragRef.current;
+    const scroller = personaScrollerRef.current;
+    if (!drag.active || !scroller) return;
+
+    scroller.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startX);
+  };
+
+  const stopPersonaDrag = (event) => {
+    if (!personaDragRef.current.active) return;
+
+    personaDragRef.current.active = false;
+    const scroller = personaScrollerRef.current;
+    if (scroller?.hasPointerCapture?.(event.pointerId)) {
+      scroller.releasePointerCapture(event.pointerId);
+    }
+    setIsPersonaDragging(false);
+    updatePersonaScrollState();
+  };
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#fff8f4', fontFamily: 'Nunito, sans-serif' }}>
 
-      {/* ── Sidebar ── */}
-      <aside className="flex flex-col h-screen flex-shrink-0 overflow-y-auto" style={{ width: '210px', background: 'white', borderRight: '1.5px solid #ffd6e0' }}>
+      {/* ── Sidebar (데스크톱 전용, 모바일에서는 하단 네비로 대체) ── */}
+      <aside className="hidden md:flex flex-col h-screen flex-shrink-0 overflow-y-auto" style={{ width: '210px', background: 'white', borderRight: '1.5px solid #ffd6e0' }}>
         {/* Logo (클릭 시 홈으로 이동) */}
         <div 
           onClick={() => changeTab('home')}
@@ -120,7 +347,7 @@ export default function App() {
         <nav className="flex flex-col gap-1 px-3 flex-1">
           {TABS.map(t => (
             <button key={t.id} onClick={() => {
-              if (t.id !== 'home' && t.id !== 'onboarding' && !user) {
+              if (t.id !== 'home' && !user) {
                 alert('로그인 후 이용 가능합니다! 🌸');
                 setShowLogin(true);
                 return;
@@ -145,63 +372,117 @@ export default function App() {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Top bar */}
-        <header className="flex-shrink-0 flex items-center gap-4 px-6 py-2.5"
-          style={{ background: 'rgba(255,248,244,0.97)', borderBottom: '1.5px solid #ffd6e0', backdropFilter: 'blur(8px)' }}>
+        {/* Top bar - 좌우 여백은 App.css의 .app-topbar에서 직접 관리(실측 기준, 2026-08-13) */}
+        <header className="app-topbar">
 
           {/* ── 6대 성향 게이지 (PERSONA_AXES 동적 바인딩) ── */}
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            <button
-              type="button"
-              onClick={() => changeTab('onboarding')}
-              className="text-[10px] font-bold flex-shrink-0 rounded-full px-2 py-1 transition-all hover:scale-105"
-              style={{ background: '#fff0f3', color: '#ff6b8a', border: 'none', cursor: 'pointer' }}
-              title="성향 테스트 다시 하기"
-            >
-              💡 성향
-            </button>
-            <div className="flex gap-1.5 flex-1 min-w-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-              {PERSONA_AXES.map(({ id, koreanLabel, lowLabel, highLabel, color }) => {
-                const score = personaProfile?.scores?.[id] ?? 50;
+          {/* 비로그인 상태에서는 의미 없는 중립값(50점)만 보여서 내용은 숨기지만, 이 div의
+              flex:1이 로그인 버튼을 오른쪽으로 밀어내는 역할도 하고 있어 div 자체는 남겨둔다. */}
+          {!user ? (
+            <div className="app-persona-row" />
+          ) : (
+          <div className="app-persona-row">
+            <div className="app-persona-slider">
+              {/* 화면이 넓어서 6개 카드가 다 보이면(스크롤할 게 없으면) 화살표를 아예 안 그림 -
+                  예전엔 disabled로 흐리게만 처리해서, 큰 화면에서도 쓸모없는 작은 화살표가 계속
+                  왼쪽 기준점처럼 남아있어 다른 요소와 정렬이 어긋나 보이는 원인이 됐었음(2026-08-13). */}
+              {personaScrollState.left && (
+                <button
+                  type="button"
+                  className="app-persona-arrow"
+                  onClick={() => scrollPersonaAxes(-1)}
+                  aria-label="이전 성향 보기"
+                >
+                  ‹
+                </button>
+              )}
 
-                return (
-                  <div key={id} className="flex-shrink-0 flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5 min-w-[88px]"
-                    style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-bold" style={{ color }}>{koreanLabel}</span>
-                      <span className="text-[9px] font-bold text-stone-400">{score}</span>
+              <div
+                ref={personaScrollerRef}
+                className={`app-persona-track ${isPersonaDragging ? 'is-dragging' : ''}`}
+                onPointerDown={handlePersonaPointerDown}
+                onPointerMove={handlePersonaPointerMove}
+                onPointerUp={stopPersonaDrag}
+                onPointerCancel={stopPersonaDrag}
+                onDragStart={(event) => event.preventDefault()}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowLeft') scrollPersonaAxes(-1);
+                  if (event.key === 'ArrowRight') scrollPersonaAxes(1);
+                }}
+                tabIndex={0}
+                aria-label="6대 성향 게이지. 좌우로 드래그하거나 화살표 키로 이동할 수 있습니다."
+              >
+                {PERSONA_AXES.map(({ id, koreanLabel, lowLabel, highLabel, color }) => {
+                  const score = personaProfile?.scores?.[id] ?? 50;
+
+                  return (
+                    <div
+                      key={id}
+                      className="app-persona-axis flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5"
+                      style={{ background: `${color}10`, border: `1px solid ${color}25` }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="truncate text-[9px] font-bold" style={{ color }}>{koreanLabel}</span>
+                        <span className="text-[9px] font-bold text-stone-400">{score}</span>
+                      </div>
+                      <div className="relative h-1.5 rounded-full" style={{ background: `${color}20` }}>
+                        <div
+                          className="absolute left-0 top-0 h-full rounded-full transition-all"
+                          style={{ width: `${score}%`, background: `linear-gradient(90deg, ${color}80, ${color})` }}
+                        />
+                        <div
+                          className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-white shadow-sm"
+                          style={{ left: `calc(${score}% - 5px)`, background: color }}
+                        />
+                      </div>
+                      <div className="flex justify-between gap-1">
+                        <span className="truncate text-[8px] text-stone-400">{lowLabel}</span>
+                        <span className="truncate text-right text-[8px] text-stone-400">{highLabel}</span>
+                      </div>
                     </div>
-                    {/* Track */}
-                    <div className="relative h-1.5 rounded-full" style={{ background: `${color}20` }}>
-                      <div className="absolute left-0 top-0 h-full rounded-full transition-all"
-                        style={{ width: `${score}%`, background: `linear-gradient(90deg, ${color}80, ${color})` }} />
-                      {/* Thumb */}
-                      <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm"
-                        style={{ left: `calc(${score}% - 5px)`, background: color }} />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[8px] text-stone-400">{lowLabel}</span>
-                      <span className="text-[8px] text-stone-400">{highLabel}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {personaScrollState.right && (
+                <button
+                  type="button"
+                  className="app-persona-arrow"
+                  onClick={() => scrollPersonaAxes(1)}
+                  aria-label="다음 성향 보기"
+                >
+                  ›
+                </button>
+              )}
             </div>
           </div>
+          )}
 
           {/* ── Login / Profile ── */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="app-profile-actions">
             {!authChecked ? null : user ? (
               <>
+                {isAdminUser && (
+                  <a href="/admin"
+                    className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
+                    style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
+                    🛠️ <span className="app-profile-secondary-label">관리자 페이지</span>
+                  </a>
+                )}
                 <button onClick={() => changeTab('mypage')}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
-                  ⚙️ 마이페이지
+                  ⚙️ <span className="app-profile-secondary-label">마이페이지</span>
+                </button>
+                <button onClick={() => setShowSubscription(true)}
+                  className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
+                  style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
+                  💳 <span className="app-profile-secondary-label">구독</span>
                 </button>
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
                   style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
-                  <span className="text-sm">🌷</span>
-                  <span className="text-sm font-bold" style={{ color: '#3d2c35' }}>{displayName}</span>
+                  <Avatar profileImageUrl={user.profileImageUrl} gender={user.gender} size={22} />
+                  <span className="app-profile-name text-sm font-bold" style={{ color: '#3d2c35' }}>{displayName}</span>
                   <span className="text-xs text-stone-400">님</span>
                 </div>
                 <button onClick={handleLogout}
@@ -220,10 +501,37 @@ export default function App() {
           </div>
         </header>
 
+        {/* 파트너 액션 알림 - 로그인 직후 또는 탭이 다시 활성화될 때, 안 읽은 알림이 있을 때만
+            뜨는 전역 배너. 특정 탭 안이 아니라 여기(App.jsx)에 두는 이유는 사용자가 어느 탭으로
+            들어오든 알림을 받아볼 수 있어야 하기 때문이다. */}
+        {partnerNotifications.length > 0 && (
+          <div className="mx-4 mt-3 rounded-2xl px-4 py-3 md:mx-8" style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
+            {partnerNotifications.map(n => (
+              <p key={n.id} className="text-[11px] font-bold" style={{ color: '#e8486b' }}>💌 {n.message}</p>
+            ))}
+            <button type="button" onClick={handleAckPartnerNotifications}
+              className="mt-2 text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+              style={{ background: 'white', color: '#e8486b', border: '1.5px solid #ffd6e0' }}>
+              확인했어요
+            </button>
+          </div>
+        )}
+
+        {/* 파트너가 내 초대를 수락했을 때 - CoupleTab에서 수락한 쪽(B)이 그 자리에서 보는 것과
+            동일한 축하 이펙트를 초대한 쪽(A)도 다음 로그인/탭 재활성화 시 똑같이 보게 한다. */}
+        <CoupleMatchCelebration
+          show={showMatchCelebration}
+          onFinish={handleMatchCelebrationFinish}
+          myName={user?.nickname || '나'}
+          partnerName={celebrationPartner?.nickname || '상대방'}
+          myPhoto={avatarSrc(user?.profileImageUrl, user?.gender)}
+          partnerPhoto={avatarSrc(celebrationPartner?.profileImageUrl, celebrationPartner?.gender)}
+        />
+
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="w-full px-8 py-7 pb-16">
-            {tab !== 'home' && tab !== 'onboarding' && !user ? (
+          <div className="w-full px-4 md:px-8 py-4 md:py-7 pb-24 md:pb-16">
+            {tab !== 'home' && !user ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <span className="text-5xl mb-3">🔒</span>
                 <h2 className="font-bold text-xl text-[#3d2c35]">로그인이 필요한 서비스입니다</h2>
@@ -237,40 +545,79 @@ export default function App() {
             ) : (
               <>
                 {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'couple' && <CoupleTab />}
-                {tab === 'curiation' && <CuriationTab />}
+                {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
+                {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
-                {tab === 'onboarding' && (
-                  <OnboardingTab
-                    embedded
-                    onComplete={(profile) => {
-                      setPersonaProfile(profile);
-                      changeTab('home');
-                    }}
-                    onSkip={() => changeTab('home')}
-                  />
+                {tab === 'aichat' && <AiChatTab />}
+                {tab === 'board' && <BoardTab />}
+                {tab === 'placeDebug' && <PlaceStyleDebugTab />}
+                {tab === 'mypage' && (
+                  <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
+                    onWithdrawn={() => { handleLogout(); changeTab('home', false); }} />
                 )}
-                {tab === 'tendency' && <TendencyTab />}
-                {tab === 'mypage' && <MyPageTab onUpdated={loadUser} />}
               </>
             )}
           </div>
         </main>
+
+        {/* ── 모바일 하단 네비게이션 (데스크톱에서는 숨김) ── */}
+        <nav className="flex md:hidden flex-shrink-0 items-center justify-around px-1 pt-1.5 pb-1"
+          style={{ background: 'white', borderTop: '1.5px solid #ffd6e0' }}>
+          {MOBILE_NAV_TABS.map(t => {
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => {
+                if (t.id !== 'home' && !user) {
+                  alert('로그인 후 이용 가능합니다! 🌸');
+                  setShowLogin(true);
+                  return;
+                }
+                changeTab(t.id);
+              }}
+                className="flex flex-col items-center gap-0.5 py-1 transition-all"
+                style={{ minWidth: '56px' }}>
+                <span className="text-lg" style={{ opacity: active ? 1 : 0.55 }}>{t.emoji}</span>
+                <span className="text-[10px] font-bold" style={{ color: active ? '#ff6b8a' : '#bbb' }}>{t.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Login Modal */}
       {showLogin && (
         <LoginModal
           onClose={() => { setShowLogin(false); setAuthError(null); }}
-          onAuthed={loadUser}
+          onAuthed={() => { loadUser(); changeTab('home', false); }}
+          onSignupComplete={() => { setShowLogin(false); setAuthError(null); setShowPostSignupOnboarding(true); }}
           initialError={authError}
         />
       )}
 
-      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 커플 매칭을 위해 먼저 고르게 함 */}
+      {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 닉네임 확인 + 성별 확정을 먼저 받음.
+          이 모달은 최초 가입자한테만 뜨므로(성별이 이미 있으면 안 뜸), 완료 시점이 곧 "방금 소셜로
+          가입 완료"인 시점이라 여기서 바로 이어서 성향 온보딩을 띄운다. */}
       {authChecked && user && user.gender === 'UNKNOWN' && !getMockUser() && (
-        <GenderPromptModal onDone={(updated) => setUser(updated)} />
+        <ProfileConfirmModal user={user} onDone={(updated) => { setUser(updated); setShowPostSignupOnboarding(true); }} />
+      )}
+
+      {/* 가입 직후 필수 성향 온보딩. 전체 화면을 덮어서 건너뛸 수 없게 한다(OnboardingTab에 skippable=false). */}
+      {showPostSignupOnboarding && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-white">
+          <OnboardingTab
+            skippable={false}
+            onComplete={(profile) => { setPersonaProfile(profile); setShowPostSignupOnboarding(false); }}
+          />
+        </div>
+      )}
+
+      {showSubscription && user && (
+        <SubscriptionModal
+          user={user}
+          pendingBillingAuth={pendingBillingAuth}
+          onClose={() => { setShowSubscription(false); setPendingBillingAuth(null); }}
+        />
       )}
     </div>
   );

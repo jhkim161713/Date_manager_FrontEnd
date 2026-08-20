@@ -3,3 +3,13 @@ dist
 .env
 .env.local
 TEAM_SECRETS_TO_SHARE.md
+
+# Android / Capacitor
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/app/release/
+*.iml
+.idea/

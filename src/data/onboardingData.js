@@ -15,7 +15,7 @@ export const PERSONA_AXES = [
   {
     id: 'aesthetic',
     label: 'Aesthetic',
-    koreanLabel: '',
+    koreanLabel: '인지·감성',
     question: '어떤 종류의 전시회를 더 선호하시나요?',
     lowLabel: '해설·작품',
     highLabel: '감각·공간',
@@ -24,7 +24,7 @@ export const PERSONA_AXES = [
   {
     id: 'depth',
     label: 'Depth',
-    koreanLabel: '',
+    koreanLabel: '대중·작품성',
     question: '어떤 종류의 영화를 더 선호하시나요?',
     lowLabel: '가벼운 재미',
     highLabel: '깊은 서사',
@@ -33,7 +33,7 @@ export const PERSONA_AXES = [
   {
     id: 'energetic',
     label: 'Energetic',
-    koreanLabel: '',
+    koreanLabel: '고요·축제',
     question: ' 어떤 종류의 공연을 더 선호하시나요?',
     lowLabel: '잔잔함',
     highLabel: '강한 활력',
@@ -42,7 +42,7 @@ export const PERSONA_AXES = [
   {
     id: 'immersion',
     label: 'Immersion',
-    koreanLabel: '',
+    koreanLabel: '관람·참여',
     question: '어떤 종류의 연극을 더 선호하시나요?',
     lowLabel: '관람형',
     highLabel: '참여형',
@@ -51,7 +51,7 @@ export const PERSONA_AXES = [
   {
     id: 'pacing',
     label: 'Pacing',
-    koreanLabel: '',
+    koreanLabel: '즉흥·계획',
     question: '당신의 데이트 혹은 여행 성향을 어떤가요?',
     lowLabel: '즉흥',
     highLabel: '계획',
@@ -60,7 +60,7 @@ export const PERSONA_AXES = [
   {
     id: 'vibe',
     label: 'Vibe',
-    koreanLabel: '',
+    koreanLabel: '로컬·핫플',
     question: '휴일에 어떤 데이트 장소를 선호하시나요?',
     lowLabel: '로컬',
     highLabel: '프리미엄',
@@ -235,7 +235,7 @@ export function buildPersonaResult(responses) {
   const details = PERSONA_AXES.reduce((result, axis) => {
     const response = responses.find(item => item.axis === axis.id)
     const preference = response?.selectedVariant ?? null
-    const score = preference === 'high' ? 75 : preference === 'low' ? 25 : 50
+    const score = preference === 'high' ? 70 : preference === 'low' ? 30 : 50
 
     result[axis.id] = {
       score,
