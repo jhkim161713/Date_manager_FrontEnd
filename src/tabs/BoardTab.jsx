@@ -50,7 +50,7 @@ export function BoardTab() {
 
   return (
     <div className="max-w-2xl">
-      <SectionTitle sub="자유롭게 이야기를 나눠보세요 (임시 화면, 백엔드 연동 전)">게시판 📋</SectionTitle>
+      <SectionTitle sub="자유롭게 이야기를 나눠보세요 (임시 화면, 백엔드 연동 전)">📋 게시판</SectionTitle>
 
       <button onClick={() => setWriting((w) => !w)}
         className="rounded-2xl px-4 py-2.5 text-sm font-bold text-white mb-4 transition-all hover:scale-105"
