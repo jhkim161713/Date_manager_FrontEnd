@@ -2,7 +2,7 @@ import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
-import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle } from '@/lib/api';
+import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle } from '@/lib/api';
 import { CURATION_CART_STORAGE_KEY } from './data/curationData';
 import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
 import { avatarSrc } from './components/Avatar';
@@ -19,7 +19,6 @@ import { LoginModal } from './components/LoginModal';
 import { ProfileConfirmModal } from './components/ProfileConfirmModal';
 import { Avatar } from './components/Avatar';
 import { SubscriptionModal } from './components/SubscriptionModal';
-import { PlaceStyleDebugTab } from './tabs/PlaceStyleDebugTab';
 import { AiChatTab } from './tabs/AiChatTab';
 import { BoardTab } from './tabs/BoardTab';
 
@@ -143,6 +142,11 @@ export default function App() {
     try {
       const data = await getMe();
       setUser(data);
+      // 로그인 세션이 살아있는 동안(새로고침 포함) personaProfile이 비어있지 않도록, 저장된
+      // 성향값이 있으면 여기서 채운다(2026-08-20) - 그전까진 온보딩 화면을 그 자리에서 완료할
+      // 때만 메모리에 잠깐 채워지고 새로고침하면 사라졌었다. 목업 로그인은 실제 백엔드 세션이
+      // 아니라서(project-date-manager-mock-login-pattern 참고) 대상에서 제외.
+      getMyStyle().then((style) => { if (style) setPersonaProfile(style); }).catch(() => {});
       return data;
     } catch {
       clearToken();
@@ -555,7 +559,6 @@ export default function App() {
                 {tab === 'calendar' && <CalendarTab />}
                 {tab === 'aichat' && <AiChatTab user={user} />}
                 {tab === 'board' && <BoardTab />}
-                {tab === 'placeDebug' && <PlaceStyleDebugTab />}
                 {tab === 'mypage' && (
                   <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
                     onWithdrawn={() => { handleLogout(); changeTab('home', false); }} />

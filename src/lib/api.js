@@ -147,6 +147,25 @@ export function saveOnboardingStyle(profile) {
   });
 }
 
+// 로그인 시 저장된 성향값을 불러와 personaProfile을 채우는 용도(2026-08-20) - 온보딩을 저장한 적
+// 없는 유저는 백엔드가 204(빈 응답)로 응답하고, request()는 빈 body를 json()으로 파싱하다 실패하면
+// null로 처리하므로(위 request() 참고) 그대로 null이 반환된다. saveOnboardingStyle과 반대 방향으로
+// energy -> energetic만 다시 이름을 바꿔서 personaProfile.scores 모양에 맞춘다.
+export async function getMyStyle() {
+  const data = await request('/api/me/styles');
+  if (!data) return null;
+  return {
+    scores: {
+      energetic: data.energy,
+      immersion: data.immersion,
+      vibe: data.vibe,
+      aesthetic: data.aesthetic,
+      pacing: data.pacing,
+      depth: data.depth,
+    },
+  };
+}
+
 // 날씨는 백엔드가 기상청 API를 대신 호출해서 가공한 결과만 내려줌 (인증키는 프론트에 노출 안 됨)
 export function getWeather(lat, lon) {
   return request(`/api/weather?lat=${lat}&lon=${lon}`);
