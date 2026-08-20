@@ -3,7 +3,7 @@ import { Badge } from '../components/Badge';
 import { SectionTitle } from '../components/SectionTitle';
 import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
-import { BUILDER_STORAGE_KEY } from '../data/curationData';
+import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
 import { DATE_CATEGORIES } from '../data/curationCategories';
 import { STAY_CATEGORIES, STAY_HERO } from '../data/stayData';
 import { PERSONA_AXES } from '../data/onboardingData';
@@ -166,12 +166,26 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const useNearby = effectiveRegion === '';
   const [nearbyError, setNearbyError] = useState('');
 
-  // 코스 빌더 후보로 담은 장소는 카테고리를 바꿔도 계속 보여야 해서, 지금 화면에 보이는 목록과
-  // 별개로 "지금까지 받아온 장소" 전체를 id 기준으로 따로 쌓아둔다.
-  const [placeCache, setPlaceCache] = useState({});
-
   const [expandedStayId, setExpandedStayId] = useState(null);
-  const [builderItemIds, setBuilderItemIds] = useState([]);
+  // 코스 빌더 담기함(2026-08-20) - place 객체를 통째로 담아서, 카테고리를 바꾸거나 이 탭을 나갔다
+  // 와도(다른 탭으로 이동해 CurationTab이 언마운트됐다 다시 마운트돼도) localStorage에서 그대로
+  // 복원된다. id만 들고 있다가 화면에 보이는 목록에서 다시 찾아 채우는 방식(placeCache)은 탭을
+  // 나갔다 오면 그 캐시까지 초기화돼서 목록이 텅 비어 보이는 문제가 있었다 - place 통째로 저장하면
+  // 그 문제가 안 생긴다. 로그아웃 시점에만 App.jsx에서 이 저장값을 지운다.
+  const [builderItems, setBuilderItems] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CURATION_CART_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem(CURATION_CART_STORAGE_KEY, JSON.stringify(builderItems));
+  }, [builderItems]);
+  // 담기함 목록을 펼쳐서 개별 삭제할 수 있게 하는 토글(2026-08-20).
+  const [showCart, setShowCart] = useState(false);
+
   const [likedItemIds, setLikedItemIds] = useState([]);
   const [likedStayIds, setLikedStayIds] = useState([]);
   const [feedback, setFeedback] = useState('');
@@ -198,14 +212,6 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const showFeedback = (message) => {
     setFeedback(message);
     window.setTimeout(() => setFeedback(''), 2200);
-  };
-
-  const cachePlaces = (places) => {
-    setPlaceCache((current) => {
-      const next = { ...current };
-      places.forEach((place) => { next[place.id] = place; });
-      return next;
-    });
   };
 
   // 카테고리 칩의 "N곳" 표시가 지역 필터랑 무관하게 항상 전국 집계만 보여주고 있던 문제 수정
@@ -264,7 +270,6 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         }
         if (cancelled) return;
         setDatePlaces(places);
-        cachePlaces(places);
       } catch {
         if (cancelled) return;
         setDateError('장소를 불러오지 못했어요');
@@ -299,7 +304,6 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         }
         if (cancelled) return;
         setStayPlaces(places);
-        cachePlaces(places);
       } catch {
         if (cancelled) return;
         setStayError('숙소를 불러오지 못했어요');
@@ -312,24 +316,26 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     return () => { cancelled = true; };
   }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword, stayPage, energyTarget, weatherLat, weatherLon]);
 
-  const builderItems = builderItemIds
-    .map((id) => placeCache[id])
-    .filter(Boolean);
-
   const toggleBuilderItem = (place) => {
-    if (builderItemIds.includes(place.id)) {
-      setBuilderItemIds((current) => current.filter((id) => id !== place.id));
+    if (builderItems.some((item) => item.id === place.id)) {
+      setBuilderItems((current) => current.filter((item) => item.id !== place.id));
       showFeedback('코스 후보에서 뺐어요');
       return;
     }
 
-    if (builderItemIds.length >= 5) {
+    if (builderItems.length >= 5) {
       showFeedback('코스 후보는 최대 5곳까지 담을 수 있어요');
       return;
     }
 
-    setBuilderItemIds((current) => [...current, place.id]);
+    setBuilderItems((current) => [...current, place]);
     showFeedback('코스 빌더 후보에 담았어요');
+  };
+
+  // 담기함 목록에서 개별 항목을 뺄 때(2026-08-20, "잘못 담은 걸 삭제할 수 있어야 한다") 쓴다 -
+  // toggleBuilderItem은 카드에서 다시 눌러 빼는 것과 같은 동작이라 재사용 가능.
+  const removeFromCart = (placeId) => {
+    setBuilderItems((current) => current.filter((item) => item.id !== placeId));
   };
 
   const toggleLike = (placeId) => {
@@ -381,7 +387,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   return (
     <div className="space-y-5 pb-10">
       <SectionTitle sub="데이트 장소와 숙박을 한곳에서 이어서 골라보세요">
-        데이트 큐레이션
+        🎬 데이트 큐레이션
       </SectionTitle>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -690,28 +696,74 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         <>
           {builderItems.length > 0 && (
             <section
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+              className="rounded-2xl px-4 py-3.5"
               style={{ background: '#fff7f7', border: '1.5px solid #f6d4dc' }}
             >
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-base shadow-sm">🗺️</span>
-                <div>
-                  <p className="text-xs font-extrabold" style={{ color: '#513e47' }}>
-                    코스 후보 {builderItems.length}곳을 골랐어요
-                  </p>
-                  <p className="mt-0.5 max-w-md truncate text-[10px]" style={{ color: '#a08b94' }}>
-                    {builderItems.map((place) => place.name).join(' · ')}
-                  </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-white text-base shadow-sm">🗺️</span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold" style={{ color: '#513e47' }}>
+                      코스 후보 {builderItems.length}곳을 골랐어요
+                    </p>
+                    {!showCart && (
+                      <p className="mt-0.5 max-w-md truncate text-[10px]" style={{ color: '#a08b94' }}>
+                        {builderItems.map((place) => place.name).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {/* "목록보기"를 잘 눈에 띄는 독립 버튼으로(2026-08-20) */}
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCart((current) => !current)}
+                    className="rounded-xl px-3.5 py-2.5 text-xs font-extrabold transition-all hover:-translate-y-0.5"
+                    style={{ background: 'white', color: '#c4818f', border: '1.5px solid #f6cdd7' }}
+                    aria-expanded={showCart}
+                  >
+                    {showCart ? '▲ 접기' : '▼ 목록보기'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={sendToBuilder}
+                    className="rounded-xl px-4 py-2.5 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5"
+                    style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)', boxShadow: '0 5px 14px rgba(255,107,138,0.2)' }}
+                  >
+                    코스 빌더로 보내기 →
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={sendToBuilder}
-                className="rounded-xl px-4 py-2.5 text-xs font-extrabold text-white transition-all hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg, #ff6b8a, #c98fd4)', boxShadow: '0 5px 14px rgba(255,107,138,0.2)' }}
-              >
-                코스 빌더로 보내기 →
-              </button>
+
+              {/* 담기함 목록(2026-08-20) - "목록보기"를 눌러야 펼쳐지고, 항목마다 ✕로 잘못 담은
+                  장소를 바로 뺄 수 있다. */}
+              {showCart && (
+                <ul className="mt-3 space-y-1.5 border-t pt-3" style={{ borderColor: '#f6d4dc' }}>
+                  {builderItems.map((place) => (
+                    <li
+                      key={place.id}
+                      className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2"
+                      style={{ border: '1px solid #f6dde2' }}
+                    >
+                      <span className="min-w-0 truncate text-[11px] font-bold" style={{ color: '#513e47' }}>
+                        {place.name}
+                        <span className="ml-1.5 font-medium" style={{ color: '#b19fa6' }}>
+                          {place.subCategory || place.parentCategory}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(place.id)}
+                        className="flex-shrink-0 rounded-full px-2 py-1 text-[10px] font-bold transition-colors hover:bg-rose-50"
+                        style={{ color: '#c4818f' }}
+                        aria-label={`${place.name} 담기함에서 빼기`}
+                      >
+                        ✕ 빼기
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 
@@ -749,7 +801,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {datePlaces.map((place) => {
-                const inBuilder = builderItemIds.includes(place.id);
+                const inBuilder = builderItems.some((item) => item.id === place.id);
                 const liked = likedItemIds.includes(place.id);
                 const tag = place.subCategory || place.parentCategory;
                 const matchingAxes = pickMatchingAxes(place, personaProfile);
