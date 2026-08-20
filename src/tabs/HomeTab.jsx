@@ -14,14 +14,20 @@ const PERFORMANCE_CATEGORIES = new Set([
 ]);
 
 // 유저 성향 축(personaProfile, 목업) <-> 장소 성향 점수(PlaceStyle, 실제 백엔드) 필드 매핑.
-// 유저 쪽 "pacing"(즉흥·계획)은 장소 쪽에 대응하는 축이 없어서 매칭 대상에서 제외한다.
 const AXIS_TO_PLACE_SCORE = {
   energetic: 'scoreEnergy',
   immersion: 'scoreImmersion',
   vibe: 'scoreVibe',
   aesthetic: 'scoreAesthetic',
   depth: 'scoreDepth',
+  // 즉흥·계획(2026-08-20 추가) - CurationTab.jsx와 동일 기준.
+  pacing: 'scorePacing',
 };
+
+// 장소 점수가 정확히 50이면 "실 데이터 없어서 중립값을 채워둔 것"이라는 뜻이라(place_categories
+// 시더 참고) 그 축으로는 매칭 대상에서 제외해야 한다 - 안 그러면 유저 성향도 50 근처일 때 "완벽히
+// 일치"로 잘못 뜬다(2026-08-20, CurationTab.jsx의 pickMatchingAxes와 동일 원칙).
+const isNeutralPlaceScore = (score) => score == null || score === 50;
 
 export function HomeTab({ onTabChange, personaProfile }) {
   // 배너 문구를 실제 커플 연결 상태에 따라 다르게 보여준다 - 예전엔 목업 커플타입(TENDENCY_TYPES)과
@@ -130,7 +136,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
         const scoreField = AXIS_TO_PLACE_SCORE[axis.id];
         const userScore = personaProfile?.scores?.[axis.id] ?? 50;
         const candidates = dedupedNearbyPool
-          .filter((p) => p[scoreField] != null && !usedPlaceIds.has(p.id))
+          .filter((p) => !isNeutralPlaceScore(p[scoreField]) && !usedPlaceIds.has(p.id))
           .filter((p) => (categoryCounts[p.category] ?? 0) < MAX_PER_CATEGORY)
           .map((p) => ({ ...p, distance: Math.abs(p[scoreField] - userScore) }))
           .sort((a, b) => a.distance - b.distance)
@@ -163,7 +169,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
       let bestDistance = Infinity;
       for (const axis of axes) {
         const scoreField = AXIS_TO_PLACE_SCORE[axis.id];
-        if (place[scoreField] == null) continue;
+        if (isNeutralPlaceScore(place[scoreField])) continue;
         const userScore = personaProfile?.scores?.[axis.id] ?? 50;
         const distance = Math.abs(place[scoreField] - userScore);
         if (distance < bestDistance) {
