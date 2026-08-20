@@ -1,9 +1,23 @@
 import { useEffect, useState } from "react";
-import { Map } from "react-kakao-maps-sdk";
+import { Map, Polyline } from "react-kakao-maps-sdk";
 
 export function CourseDetail ({data,showDetail}){
-    if (!showDetail){return null}
     const [position,setPosition] =useState({})
+    const [paths,setPaths] = useState([]);
+    const [distances,setDistances] = useState([]);
+    
+    
+    if (!showDetail) return null
+    
+
+    useEffect(()=>{
+        const pathes = showDetail.places.map(place=>({
+            lat:place.lat,
+            lng:place.lng
+        }))
+        setPaths(pathes)
+    },[])
+   
     return (
         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-pink-100 shadow-xl space-y-6 mt-8 animate-fade-in">
           <div className="flex items-center justify-between border-b border-pink-100 pb-3">
@@ -26,6 +40,13 @@ export function CourseDetail ({data,showDetail}){
               style={{ width: '100%', height: "420px" }}
               className="rounded-2xl shadow-inner border border-pink-100 overflow-hidden"
             >
+                  <Polyline
+        path={paths}
+        strokeWeight={5}
+        strokeColor="#FF69B4"
+        strokeOpacity={0.8}
+        strokeStyle="solid"
+    />
             </Map>
           </div>
 
