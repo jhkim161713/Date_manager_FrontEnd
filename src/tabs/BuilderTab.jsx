@@ -104,6 +104,14 @@ export function BuilderTab() {
         <div className="flex items-center gap-2">
           <span className="w-2 h-4 bg-pink-400 rounded-full inline-block"></span>
           <h1 className="text-lg font-bold text-slate-800">코스 그룹</h1>
+          {/* 팀원(kimhan) feature/builder 브랜치 9997d2c에서 가져옴 - 아직 클릭 핸들러 없는
+              스텁이라 currently no-op. 빈 코스 그룹을 직접 만드는 플로우는 이후 추가 예정. */}
+          <button
+            type="button"
+            className="px-3 py-1.5 text-xs font-semibold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors shrink-0 cursor-pointer"
+          >
+            코스그룹 만들기
+          </button>
         </div>
 
         {loading && <p className="text-sm text-slate-400">불러오는 중...</p>}
