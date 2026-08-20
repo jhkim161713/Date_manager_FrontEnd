@@ -176,6 +176,25 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const [likedStayIds, setLikedStayIds] = useState([]);
   const [feedback, setFeedback] = useState('');
 
+  // 에너지 게이지(2026-08-20) - 지금 원하는 활력 정도(0~100). null이면 "안 씀" 상태라 기존 정렬 그대로.
+  // 온보딩 성향값 저장 파이프라인이 아직 없어서(project-date-manager-aichat-persona-and-style-matching
+  // 메모리 참고) 유저가 그 순간 직접 조정하는 임시 대안으로 만든 것.
+  const [energyTarget, setEnergyTarget] = useState(null);
+
+  // 날씨 기반 실내/실외 자동 필터용 좌표(2026-08-20) - useNearby와 별개로 항상 한 번 조회해둔다.
+  // useNearby는 지역을 안 골랐을 때만 켜지는데, 날씨 필터는 지역을 골랐어도 동작해야 하기 때문(비가
+  // 오면 그 지역 안에서도 실외 장소는 걸러야 하니까). 위치 권한이 없으면 조용히 실패하고 날씨
+  // 필터 없이 기존처럼 동작한다.
+  const [weatherLat, setWeatherLat] = useState(null);
+  const [weatherLon, setWeatherLon] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentLocation()
+      .then(({ lat, lon }) => { if (!cancelled) { setWeatherLat(lat); setWeatherLon(lon); } })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   const showFeedback = (message) => {
     setFeedback(message);
     window.setTimeout(() => setFeedback(''), 2200);
@@ -239,7 +258,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
           setDateTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
           places = pool.slice((datePage - 1) * PAGE_SIZE, datePage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, page: datePage, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, page: datePage, size: PAGE_SIZE });
           setDateTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
@@ -256,7 +275,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword, datePage]);
+  }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
 
   useEffect(() => {
     let cancelled = false;
@@ -274,7 +293,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
           setStayTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
           places = pool.slice((stayPage - 1) * PAGE_SIZE, stayPage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region, district: subRegion, keyword: debouncedKeyword, page: stayPage, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: STAY_TOP_CATEGORY, subCategory, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, page: stayPage, size: PAGE_SIZE });
           setStayTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
@@ -291,7 +310,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadStayPlaces();
     return () => { cancelled = true; };
-  }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword, stayPage]);
+  }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword, stayPage, energyTarget, weatherLat, weatherLon]);
 
   const builderItems = builderItemIds
     .map((id) => placeCache[id])
@@ -430,41 +449,74 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
       </div>
 
       {/* 지역 필터 - 특정 지역을 고르면 위치 기반 정렬(useNearby)은 자동으로 꺼진다(지금 위치와
-          무관하게 그 지역을 보고 싶은 거라서, 위 useNearby 파생 로직 참고). */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-        <button
-          type="button"
-          onClick={() => {
-            setRegion('');
-            setSubRegion('');
-          }}
-          className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
-          style={{
-            background: region === '' ? '#4f3d46' : 'white',
-            color: region === '' ? 'white' : '#7c6a72',
-            border: '1.5px solid #f0dce2',
-          }}
-        >
-          🗺️ 전체 지역
-        </button>
-        {REGIONS.map((item) => (
+          무관하게 그 지역을 보고 싶은 거라서, 위 useNearby 파생 로직 참고). 에너지 게이지(2026-08-20)는
+          사용자 요청으로 이 지역 칩 줄 바로 옆에 배치했다 - 건전지 이모지 + 초록 계열 색상. */}
+      <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
           <button
-            key={item}
             type="button"
             onClick={() => {
-              setRegion(region === item ? '' : item);
-              setSubRegion(''); // 시/도를 바꾸면 이전에 골라둔 구/시는 더 이상 안 맞을 수 있어서 초기화
+              setRegion('');
+              setSubRegion('');
             }}
             className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
             style={{
-              background: region === item ? '#4f3d46' : 'white',
-              color: region === item ? 'white' : '#7c6a72',
+              background: region === '' ? '#4f3d46' : 'white',
+              color: region === '' ? 'white' : '#7c6a72',
               border: '1.5px solid #f0dce2',
             }}
           >
-            {item}
+            🗺️ 전체 지역
           </button>
-        ))}
+          {REGIONS.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => {
+                setRegion(region === item ? '' : item);
+                setSubRegion(''); // 시/도를 바꾸면 이전에 골라둔 구/시는 더 이상 안 맞을 수 있어서 초기화
+              }}
+              className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+              style={{
+                background: region === item ? '#4f3d46' : 'white',
+                color: region === item ? 'white' : '#7c6a72',
+                border: '1.5px solid #f0dce2',
+              }}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        {/* 에너지 게이지 - 유저 성향값 저장 파이프라인이 아직 없어서(온보딩 미완성) 지금 당장은 그
+            순간 원하는 활력 정도를 직접 조정하는 임시 방식으로 만듦. 값을 만지면 scoreEnergy가 가까운
+            장소 순으로 정렬되고(필터가 아니라 정렬이라 결과 수는 그대로), 안 만지면(null) 기존
+            정렬(최신순) 그대로 동작한다. */}
+        <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5" style={{ border: '1.5px solid #cdeacd' }}>
+          <span className="whitespace-nowrap text-[10px] font-bold" style={{ color: '#5a8a5f' }}>
+            당신의 에너지를 입력하세요
+          </span>
+          <span className="text-xs">🔋</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={energyTarget ?? 50}
+            onChange={(event) => setEnergyTarget(Number(event.target.value))}
+            className="w-20 accent-[#4caf6e]"
+          />
+          {energyTarget != null && (
+            <button
+              type="button"
+              onClick={() => setEnergyTarget(null)}
+              className="text-[10px] font-bold"
+              style={{ color: '#8fae8f' }}
+              title="에너지 게이지 초기화"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 서울/경기 구/시 세부 필터 - 데이터가 많은 두 지역만 한 단계 더 좁혀볼 수 있게 함(2026-08-19).

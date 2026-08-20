@@ -23,6 +23,10 @@ export const DATE_CATEGORIES = [
   { id: '액티비티', emoji: '🧗', label: '액티비티', color: '#f9a030', background: '#fff4e8', categories: ['액티비티'] },
   { id: '쇼핑', emoji: '🛍️', label: '쇼핑', color: '#e96f78', background: '#fff0f2', categories: ['쇼핑'] },
   { id: '축제', emoji: '🎉', label: '축제', color: '#ed8252', background: '#fff1e9', categories: ['축제'] },
+  // 2026-08-20 신규 - SportsSyncService가 채워 넣는 국내 프로스포츠 예정 경기(야구/축구, 추후
+  // 농구/배구). "액티비티"(방탈출/클라이밍 등 직접 참여형 체험)와는 성격이 달라서(관람형이라
+  // "공연" 칩에 더 가까움 - 실제로 is_activity 점수도 액티비티류보다 낮게 매겨져 있음) 별도 칩으로 둠.
+  { id: '스포츠', emoji: '🏟️', label: '스포츠', color: '#3b82c4', background: '#eaf3fb', categories: ['스포츠'] },
 ];
 
 // 홈탭 "내 주변" 칩용 - 데이트 8개 + 숙박 칩까지 다시 노출한다(2026-08-18). 숙박을 직접 선택했을 땐

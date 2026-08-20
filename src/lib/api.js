@@ -250,13 +250,20 @@ export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
 // district는 region 안에서 한 단계 더 좁히는 구/시(예: "중구") - "중구"/"고성군" 같은 이름은
 // 여러 시/도가 똑같이 쓰기 때문에, region 없이 district만 보내면 백엔드가 무시하고 전국에서
 // 찾아버린다(2026-08-19) - 반드시 region과 같이 보내야 한다.
-export function getCurationPlaces({ category = '', subCategory = '', region = '', district = '', keyword = '', page = 1, size = 20 } = {}) {
+// energyTarget(2026-08-20): 에너지 게이지(0~100) - 있으면 scoreEnergy가 가까운 순으로 정렬됨.
+// lat/lon(2026-08-20): 있으면 그 위치 날씨를 확인해서 비 오면 실외 제외, 폭염/한파면 실내 우선 정렬.
+export function getCurationPlaces({ category = '', subCategory = '', region = '', district = '', keyword = '', energyTarget = null, lat = null, lon = null, page = 1, size = 20 } = {}) {
   const params = new URLSearchParams({ page, size });
   if (category) params.set('category', category);
   if (subCategory) params.set('subCategory', subCategory);
   if (region) params.set('region', region);
   if (district) params.set('district', district);
   if (keyword) params.set('keyword', keyword);
+  if (energyTarget != null) params.set('energyTarget', energyTarget);
+  if (lat != null && lon != null) {
+    params.set('lat', lat);
+    params.set('lon', lon);
+  }
   return request(`/api/places/curation?${params.toString()}`);
 }
 
