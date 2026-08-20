@@ -1,3 +1,5 @@
+import Calendar from "react-calendar";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'dm_token';
 const MOCK_USER_KEY = 'dm_mock_user';
@@ -9,6 +11,32 @@ export const MOCK_USERS = [
   { email: 'couple', password: 'couple', nickname: '커플', gender: 'UNKNOWN' },
   { email: 'test@test.com', password: 'test1234', nickname: '테스트유저', gender: 'UNKNOWN' },
 ];
+
+export function getCalendars(start,end){
+  return request(`/calendar?start=${start}&end=${end}`);
+}
+
+export function createCalendar(calendarData){
+  return request(`/calendar`,{
+    method : 'POST',
+    body :JSON.stringify(calendarData) 
+  })
+}
+
+export function updateCalendar(id, calendarData) {
+  return request(`/calendar/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(calendarData),
+  });
+}
+
+export function deleteCalendar(id){
+  return request(`/calendar/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -272,3 +300,4 @@ export function retryChargeSubscription() {
 export function cancelSubscription() {
   return request('/api/subscriptions/cancel', { method: 'POST' });
 }
+
