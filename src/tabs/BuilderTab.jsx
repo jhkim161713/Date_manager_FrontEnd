@@ -70,8 +70,7 @@ export function BuilderTab() {
       {/* 상세보기 영역 */}
       {showDetail && 
       <CourseDetail
-      showDetail={showDetail}
-      data={data}
+      props={{showDetail}}
       />}
     </div>
   )

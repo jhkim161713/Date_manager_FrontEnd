@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Map, Polyline } from "react-kakao-maps-sdk";
+import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 
-export function CourseDetail ({data,showDetail}){
+export function CourseDetail ({props}){
+    const {showDetail} = props
     const [position,setPosition] =useState({})
     const [paths,setPaths] = useState([]);
     const [distances,setDistances] = useState([]);
-    
     
     if (!showDetail) return null
     
@@ -15,9 +15,12 @@ export function CourseDetail ({data,showDetail}){
             lat:place.lat,
             lng:place.lng
         }))
+        setPosition(pathes[0])
         setPaths(pathes)
+        
     },[])
    
+
     return (
         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-pink-100 shadow-xl space-y-6 mt-8 animate-fade-in">
           <div className="flex items-center justify-between border-b border-pink-100 pb-3">
@@ -36,10 +39,18 @@ export function CourseDetail ({data,showDetail}){
           {/* 카카오 지도 박스 */}
           <div className="flex justify-center w-full my-4">
             <Map
-              center={{ lat: 33.450701, lng: 126.570667 }}
+              center={position}
               style={{ width: '100%', height: "420px" }}
               className="rounded-2xl shadow-inner border border-pink-100 overflow-hidden"
+              level={4}
+               
+              
             >
+              {paths.map((coords)=>(
+                <MapMarker
+                position={coords}
+                />
+              ))}
                   <Polyline
         path={paths}
         strokeWeight={5}
@@ -74,7 +85,7 @@ export function CourseDetail ({data,showDetail}){
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation(); // 부모 div의 클릭 이벤트 전파 방지
-
+                      
                     }}
                     className="px-3 py-1.5 text-xs font-semibold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors shrink-0 cursor-pointer"
                     
