@@ -396,6 +396,13 @@ export function getPlaceCategoryCounts(region = '', district = '') {
 }
 
 // 숙박 탭처럼 대분류 하나를 세부분류 칩으로 한 번 더 쪼갤 때 쓰는 집계. { "호텔": 6501, ... } 형태.
+// 대분류 하나의 세부분류 목록(이름+이모지)을 DB 그대로 받아온다(2026-08-22) - 맛집 세부칩을
+// 프론트에 하드코딩했다가 실제 DB(14개)와 어긋났던 걸 겪어서, 모든 대분류의 세부칩을 이 API로
+// 항상 최신 상태로 그리도록 바꿨다. 반환 형태: [{subCategory, emoji}, ...]
+export function getPlaceSubCategoryCatalog(parent) {
+  return request(`/api/places/categories?parent=${encodeURIComponent(parent)}`);
+}
+
 export function getPlaceSubCategoryCounts(category, region = '', district = '') {
   const params = new URLSearchParams({ category });
   if (region) params.set('region', region);
@@ -409,6 +416,34 @@ export function getNearbyPlaces(lat, lon, limit = 300, category = '') {
   const params = new URLSearchParams({ lat, lon, limit });
   if (category) params.set('category', category);
   return request(`/api/places/nearby?${params.toString()}`);
+}
+
+// 좋아요 - place_likes 테이블에 실제로 저장/삭제된다(2026-08-22, 처음엔 신호만 보내고 저장은
+// 안 했는데 새로고침하면 다 꺼져서 실제 찜 기능으로 못 썼다. 진짜 좋아요로 바꿈). 새로 좋아요를
+// 누른 순간에만 백엔드가 UserStyle 실시간 갱신 엔진도 같이 트리거한다(뺄 땐 안 건드림).
+// 장소 상세 - 홈/큐레이션 카드를 클릭하면 이 API로 상세 정보를 불러온다(2026-08-22). 백엔드가
+// 로그인 유저의 이 호출 자체를 "장소 열람"(약한 신호)으로 UserStyle 실시간 갱신에도 반영한다.
+export function getPlace(placeId) {
+  return request(`/api/places/${placeId}`);
+}
+
+export function getLikedPlaceIds() {
+  return request('/api/places/likes');
+}
+
+export function likePlace(placeId) {
+  return request(`/api/places/${placeId}/like`, { method: 'POST' });
+}
+
+export function unlikePlace(placeId) {
+  return request(`/api/places/${placeId}/like`, { method: 'DELETE' });
+}
+
+// 코스 담기 - 담기함 자체는 아직 CurationTab의 로컬 state로만 관리된다(진짜 코스 저장은
+// CourseGroup/CourseItem 도메인 몫이라, 빌더 점검 때 정리 예정 - 지금 별도 테이블을 만들면
+// 나중에 두 체계로 갈라질 위험이 있어서 보류). 이 API는 "담았다"는 신호만 넘긴다.
+export function addPlaceToCourse(placeId) {
+  return request(`/api/places/${placeId}/course-add`, { method: 'POST' });
 }
 
 // 커플 초대 링크 생성 (1시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.

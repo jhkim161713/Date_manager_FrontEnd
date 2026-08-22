@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '../components/Badge';
 import { SectionTitle } from '../components/SectionTitle';
-import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts } from '../lib/api';
+import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, getPlaceSubCategoryCatalog, getLikedPlaceIds, likePlace, unlikePlace, addPlaceToCourse, getPlace } from '../lib/api';
+import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
 import { DATE_CATEGORIES } from '../data/curationCategories';
@@ -127,9 +128,15 @@ const SUB_REGIONS = {
 
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
-export function CuriationTab({ onOpenBuilder, personaProfile }) {
+export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, onAddToCalendar }) {
   const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
+  // 세부칩(2026-08-22, 처음엔 맛집만 하드코딩했다가 "전체 카테고리로 확장 + DB에서 직접
+  // 받아오자"는 요청으로 일반화함) - 선택된 dateCategory 하나의 세부분류 목록을 DB에서 그대로
+  // 받아와서 칩으로 그린다. dateCategory가 바뀌면 의미가 없어지므로 아래 effect에서 같이 초기화.
+  const [dateSubCategory, setDateSubCategory] = useState('all');
+  const [dateSubCatalog, setDateSubCatalog] = useState([]);
+  const [dateSubCounts, setDateSubCounts] = useState({});
   const [stayCategory, setStayCategory] = useState('all');
   // 지역 필터 - 빈 문자열이면 "전체 지역". 데이트/숙박 화면 둘 다 공유한다(2026-08-19).
   const [region, setRegion] = useState('');
@@ -194,6 +201,17 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   const [likedItemIds, setLikedItemIds] = useState([]);
   const [likedStayIds, setLikedStayIds] = useState([]);
   const [feedback, setFeedback] = useState('');
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+
+  // 2026-08-22 - 좋아요가 이제 서버(place_likes)에 실제로 저장돼서, 탭을 처음 열 때 저장된
+  // 찜 목록을 불러와 두 리스트(데이트/숙박)에 그대로 채운다 - 카테고리가 겹치지 않아 한쪽에
+  // 다른 모드 id가 섞여 있어도 화면엔 지장 없다. 로그인 안 했으면(401) 조용히 빈 목록으로 둔다.
+  useEffect(() => {
+    getLikedPlaceIds().then((ids) => {
+      setLikedItemIds(ids);
+      setLikedStayIds(ids);
+    }).catch(() => {});
+  }, []);
 
   // 에너지 게이지(2026-08-20) - 지금 원하는 활력 정도(0~100). null이면 "안 씀" 상태라 기존 정렬 그대로.
   // 온보딩 성향값 저장 파이프라인이 아직 없어서(project-date-manager-aichat-persona-and-style-matching
@@ -240,8 +258,39 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     loadStaySubCounts();
   }, [region, subRegion]);
 
+  // 세부칩 목록+개수를 dateCategory가 바뀔 때마다 새로 받아온다(2026-08-22) - "전체"거나 세부분류가
+  // 없는 대분류(예: 스포츠는 4개뿐이라도 있지만, 혹시라도 0개인 대분류)면 그냥 빈 배열로 둬서
+  // 칩 자체가 안 뜨게 한다. dateCategory가 바뀌면 이전에 골라둔 세부칩 선택도 같이 초기화한다 -
+  // 안 그러면 예를 들어 "캐주얼·브런치"를 고른 채로 "공연"으로 넘어갔다가 다시 "맛집"으로 돌아왔을
+  // 때 뜬금없이 그 세부칩이 계속 선택된 채로 남아있는다.
+  useEffect(() => {
+    setDateSubCategory('all');
+    if (dateCategory === 'all') {
+      setDateSubCatalog([]);
+      setDateSubCounts({});
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      getPlaceSubCategoryCatalog(dateCategory).catch(() => []),
+      getPlaceSubCategoryCounts(dateCategory, region, subRegion).catch(() => ({})),
+    ]).then(([catalog, counts]) => {
+      if (cancelled) return;
+      setDateSubCatalog(catalog);
+      setDateSubCounts(counts);
+    });
+    return () => { cancelled = true; };
+  }, [dateCategory]);
+
+  // 지역을 바꾸면 세부칩 개수도 그 지역 기준으로 다시 집계한다(카탈로그 자체는 지역과 무관해서
+  // 다시 안 받아온다).
+  useEffect(() => {
+    if (dateCategory === 'all') return;
+    getPlaceSubCategoryCounts(dateCategory, region, subRegion).then(setDateSubCounts).catch(() => setDateSubCounts({}));
+  }, [region, subRegion, dateCategory]);
+
   // 필터가 바뀌면 이전 필터 기준 페이지 번호가 더 이상 안 맞을 수 있어서 1페이지로 되돌린다(2026-08-19).
-  useEffect(() => { setDatePage(1); }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword]);
+  useEffect(() => { setDatePage(1); }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword]);
   useEffect(() => { setStayPage(1); }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword]);
 
   useEffect(() => {
@@ -258,6 +307,8 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
       const categoryParam = selected
         ? selected.categories.join(',')
         : DATE_CATEGORIES.flatMap((item) => item.categories).join(',');
+      // 세부칩(2026-08-22) - 대분류를 하나 고른 상태에서만 의미가 있어서 그 외엔 항상 빈 값.
+      const subCategoryParam = dateCategory !== 'all' && dateSubCategory !== 'all' ? dateSubCategory : '';
 
       try {
         let places;
@@ -265,11 +316,11 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
           // nearby API는 offset 페이징을 지원 안 해서(2026-08-19), 넉넉한 풀(PAGE_SIZE의 5배)을 한 번에
           // 받아온 다음 프론트에서 페이지 단위로 잘라 쓴다(홈탭 페이징과 같은 방식).
           const { lat, lon } = await getCurrentLocation();
-          const pool = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, limit: PAGE_SIZE * 5 });
+          const pool = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, subCategory: subCategoryParam, region, district: subRegion, keyword: debouncedKeyword, limit: PAGE_SIZE * 5 });
           setDateTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
           places = pool.slice((datePage - 1) * PAGE_SIZE, datePage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, page: datePage, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, subCategory: subCategoryParam, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, page: datePage, size: PAGE_SIZE });
           setDateTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
@@ -285,7 +336,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
+  }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
 
   useEffect(() => {
     let cancelled = false;
@@ -335,6 +386,25 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
 
     setBuilderItems((current) => [...current, place]);
     showFeedback('코스 빌더 후보에 담았어요');
+    // 담기함 자체는 서버 저장 없이 로컬 state로만 유지하되, "담았다"는 의사표현 신호만 UserStyle
+    // 실시간 갱신 엔진에 넘긴다(2026-08-22). 뺄 때는 호출 안 함 - 신호가 왜곡되지 않게.
+    addPlaceToCourse(place.id).then(() => onStyleChanged?.()).catch(() => {});
+  };
+
+  // "캘린더에 담기"(2026-08-22) - 공연류는 실제 공연일을 알 수 있어 자동으로 채우고(상세 API를
+  // 한 번 더 불러야 함 - CurationPlaceDto엔 날짜가 없어서), 그 외 카테고리는 카테고리마다 날짜
+  // 유무 기준이 제각각이라 정확히 판단하기 어려우므로 그냥 비워두고 사용자가 직접 입력하게 한다.
+  const addToCalendar = async (place) => {
+    let targetDate = null;
+    if (place.parentCategory === '공연') {
+      try {
+        const detail = await getPlace(place.id);
+        targetDate = detail.startDate || null;
+      } catch {
+        // 상세 조회 실패해도 캘린더 프리필 자체는 계속 진행 - 날짜만 비워둔 채로.
+      }
+    }
+    onAddToCalendar?.({ title: place.name, targetDate });
   };
 
   // 담기함 목록에서 개별 항목을 뺄 때(2026-08-20, "잘못 담은 걸 삭제할 수 있어야 한다") 쓴다 -
@@ -343,21 +413,21 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     setBuilderItems((current) => current.filter((item) => item.id !== placeId));
   };
 
-  const toggleLike = (placeId) => {
-    setLikedItemIds((current) => (
-      current.includes(placeId)
-        ? current.filter((id) => id !== placeId)
-        : [...current, placeId]
-    ));
+  // 2026-08-22 - 좋아요가 실제 서버에 저장되므로, 데이트/숙박 두 리스트 다 같은 place_likes를
+  // 보는 거라 여기서 같이 갱신해준다(둘 다 갱신해도 카테고리가 안 겹쳐 화면엔 지장 없음).
+  const applyLikeChange = (placeId, isAdding) => {
+    const updater = (current) => (
+      current.includes(placeId) ? current.filter((id) => id !== placeId) : [...current, placeId]
+    );
+    setLikedItemIds(updater);
+    setLikedStayIds(updater);
+    const call = isAdding ? likePlace(placeId) : unlikePlace(placeId);
+    call.then(() => { if (isAdding) onStyleChanged?.(); }).catch(() => {});
   };
 
-  const toggleStayLike = (placeId) => {
-    setLikedStayIds((current) => (
-      current.includes(placeId)
-        ? current.filter((id) => id !== placeId)
-        : [...current, placeId]
-    ));
-  };
+  const toggleLike = (placeId) => applyLikeChange(placeId, !likedItemIds.includes(placeId));
+
+  const toggleStayLike = (placeId) => applyLikeChange(placeId, !likedStayIds.includes(placeId));
 
   const sendToBuilder = () => {
     if (!builderItems.length) {
@@ -624,6 +694,35 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
                 );
               })}
             </div>
+
+            {/* 세부칩(2026-08-22, 기획안 3번 "성향 매치 배지" 대응) - 대분류를 하나 골랐을 때만
+                한 단계 더 좁힐 수 있는 세부분류 칩. 목록/이모지는 DB(place_categories)에서 그대로
+                받아오고(getPlaceSubCategoryCatalog), 처음에 맛집만 하드코딩했다가 실제 DB(14개)와
+                어긋났던 걸 겪고 나서 전체 대분류로 일반화했다. 색상은 선택된 대분류 칩과 통일. */}
+            {dateCategory !== 'all' && dateSubCatalog.length > 0 && (
+              <div className="relative z-10 mt-3 flex flex-wrap items-center gap-1.5">
+                {dateSubCatalog.map((item) => {
+                  const selected = dateSubCategory === item.subCategory;
+                  const count = dateSubCounts[item.subCategory] ?? 0;
+                  const chipColor = DATE_CATEGORIES.find((c) => c.id === dateCategory)?.color ?? '#ff6b8a';
+                  return (
+                    <button
+                      key={item.subCategory}
+                      type="button"
+                      onClick={() => setDateSubCategory(selected ? 'all' : item.subCategory)}
+                      className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+                      style={{
+                        background: selected ? chipColor : 'white',
+                        color: selected ? 'white' : chipColor,
+                        border: `1.5px solid ${chipColor}55`,
+                      }}
+                    >
+                      {item.emoji} {item.subCategory} <span style={{ opacity: 0.75 }}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           <section
@@ -814,7 +913,8 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
                 return (
                   <article
                     key={place.id}
-                    className="group overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
+                    onClick={() => setSelectedPlaceId(place.id)}
+                    className="group cursor-pointer overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
                     style={{ border: '1.5px solid #f0dce2', boxShadow: '0 5px 18px rgba(89, 58, 70, 0.06)' }}
                   >
                     <div className="relative h-40 overflow-hidden bg-rose-50">
@@ -837,7 +937,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
                       )}
                       <button
                         type="button"
-                        onClick={() => toggleLike(place.id)}
+                        onClick={(e) => { e.stopPropagation(); toggleLike(place.id); }}
                         className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm transition-transform hover:scale-110"
                         style={{ color: liked ? '#e8486b' : '#a9979e' }}
                         aria-label={`${place.name} 찜하기`}
@@ -892,18 +992,28 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => toggleBuilderItem(place)}
-                        className="mt-4 w-full rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
-                        style={{
-                          background: inBuilder ? '#f3edef' : '#fff0f3',
-                          color: inBuilder ? '#846f78' : '#e8486b',
-                          border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
-                        }}
-                      >
-                        {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
-                      </button>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleBuilderItem(place); }}
+                          className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+                          style={{
+                            background: inBuilder ? '#f3edef' : '#fff0f3',
+                            color: inBuilder ? '#846f78' : '#e8486b',
+                            border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
+                          }}
+                        >
+                          {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); addToCalendar(place); }}
+                          className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+                          style={{ background: '#fff8ee', color: '#c98a3d', border: '1px solid #f3ddb8' }}
+                        >
+                          📅 캘린더에 담기
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -1103,6 +1213,10 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
       >
         ✓ {feedback}
       </div>
+
+      {selectedPlaceId && (
+        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)} />
+      )}
     </div>
   );
 }

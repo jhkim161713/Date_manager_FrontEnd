@@ -46,7 +46,7 @@ function colorFor(id) {
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-export function CalendarTab() {
+export function CalendarTab({ prefill, onPrefillConsumed }) {
   const [calendars, setCalendars] = useState([]);
   const [viewDate, setViewDate] = useState(new Date());
   const [view, setView] = useState('월간');
@@ -56,6 +56,19 @@ export function CalendarTab() {
   const titleRef = useRef();
   const descriptionRef = useRef();
   const targetDateRef = useRef();
+
+  // 큐레이션 탭 "캘린더에 담기"로 넘어온 값(2026-08-22) - 제목은 항상 채우고, 날짜는 공연류처럼
+  // 실제 날짜를 아는 경우만 채운다(그 외엔 빈 값으로 둬서 사용자가 직접 입력). showForm이 켜진
+  // 다음 렌더에서야 ref가 실제 DOM에 붙으므로, 폼을 먼저 연 뒤 다음 이펙트에서 값을 채운다.
+  useEffect(() => {
+    if (prefill) setShowForm(true);
+  }, [prefill]);
+  useEffect(() => {
+    if (!showForm || !prefill) return;
+    if (titleRef.current) titleRef.current.value = prefill.title || '';
+    if (targetDateRef.current) targetDateRef.current.value = prefill.targetDate || '';
+    onPrefillConsumed?.();
+  }, [showForm, prefill]);
 
   const fetchCalendars = (baseDate) => {
     const { start, end } = getMonthRange(baseDate);

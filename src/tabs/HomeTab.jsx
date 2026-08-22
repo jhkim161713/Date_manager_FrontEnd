@@ -3,7 +3,8 @@ import { QUICK_TABS } from '../data/tabsData';
 import { Badge } from '../components/Badge';
 import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
-import { getCoupleStatus, getNearbyPlaces } from '../lib/api';
+import { getCoupleStatus, getNearbyPlaces, getLikedPlaceIds, likePlace, unlikePlace } from '../lib/api';
+import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { getCurrentLocation } from '../lib/weather';
 import { HOME_CATEGORIES } from '../data/curationCategories';
 
@@ -13,7 +14,9 @@ const PERFORMANCE_CATEGORIES = new Set([
   '공연', '뮤지컬', '대중음악', '서양음악(클래식)', '연극', '한국음악(국악)', '서커스/마술', '무용(서양/한국무용)', '대중무용', '축제',
 ]);
 
-// 유저 성향 축(personaProfile, 목업) <-> 장소 성향 점수(PlaceStyle, 실제 백엔드) 필드 매핑.
+// 유저 성향 축(personaProfile, 2026-08-20부터 GET /api/me/styles로 실제 백엔드에서 불러옴 -
+// 예전엔 온보딩 화면을 그 자리에서 완료할 때만 메모리에 잠깐 채워지는 목업이었다) <-> 장소 성향
+// 점수(PlaceStyle, 실제 백엔드) 필드 매핑.
 const AXIS_TO_PLACE_SCORE = {
   energetic: 'scoreEnergy',
   immersion: 'scoreImmersion',
@@ -29,7 +32,7 @@ const AXIS_TO_PLACE_SCORE = {
 // 일치"로 잘못 뜬다(2026-08-20, CurationTab.jsx의 pickMatchingAxes와 동일 원칙).
 const isNeutralPlaceScore = (score) => score == null || score === 50;
 
-export function HomeTab({ onTabChange, personaProfile }) {
+export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
   // 배너 문구를 실제 커플 연결 상태에 따라 다르게 보여준다 - 예전엔 목업 커플타입(TENDENCY_TYPES)과
   // 가짜 코스 개수(ALL_CARDS.length)를 썼는데, 실제 데이터 기반으로 교체(2026-08-13).
   const [coupleLinked, setCoupleLinked] = useState(false);
@@ -48,7 +51,26 @@ export function HomeTab({ onTabChange, personaProfile }) {
 
   const { weather } = useWeather();
 
-  // 성향 기반 추천 장소: 유저 성향(personaProfile, 목업)은 그대로 두고, 매칭할 장소만 실제
+  // 좋아요 - CurationTab.jsx와 동일하게 place_likes에 실제로 저장된다(2026-08-22).
+  const [likedIds, setLikedIds] = useState([]);
+  useEffect(() => {
+    getLikedPlaceIds().then(setLikedIds).catch(() => {});
+  }, []);
+  const toggleLike = (e, placeId) => {
+    e.stopPropagation(); // 카드 자체의 onClick(큐레이션 탭 이동)으로 안 번지게
+    const isAdding = !likedIds.includes(placeId);
+    setLikedIds((current) => (
+      current.includes(placeId) ? current.filter((id) => id !== placeId) : [...current, placeId]
+    ));
+    const call = isAdding ? likePlace(placeId) : unlikePlace(placeId);
+    call.then(() => { if (isAdding) onStyleChanged?.(); }).catch(() => {});
+  };
+
+  // 2026-08-22 - 카드를 클릭하면 큐레이션 탭으로 넘기기만 하던 걸(사실상 아무 정보도 안 보여줌),
+  // 상세 모달을 바로 띄우도록 바꿨다.
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+
+  // 성향 기반 추천 장소: 유저 성향(personaProfile, 실제 백엔드 데이터)은 그대로 두고, 매칭할 장소만 실제
   // 백엔드에서 접속 좌표 기준으로 가까운 순 300건을 가져온다(거리 계산은 백엔드가 SQL로 처리,
   // 82,128건 전체가 아니라 이미 지역이 좁혀진 상태로 내려와서 대전·안동처럼 먼 곳이 안 섞임).
   const [nearbyPlacePool, setNearbyPlacePool] = useState([]);
@@ -352,7 +374,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
               ? `📍 ${place.address}`
               : (kind === 'axis' ? `${entry.axis.koreanLabel} 성향에 맞는 장소` : '지금 인기 있는 공연이에요');
             return (
-              <div key={`${kind}-${place.id}`} onClick={() => onTabChange('curiation')}
+              <div key={`${kind}-${place.id}`} onClick={() => setSelectedPlaceId(place.id)}
                 className="rounded-3xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white flex flex-col shadow-sm"
                 style={{ border: '1.5px solid #ffd6e0', minHeight: '230px' }}>
                 <div className="relative overflow-hidden bg-pink-100 flex-shrink-0" style={{ height: '170px' }}>
@@ -360,13 +382,24 @@ export function HomeTab({ onTabChange, personaProfile }) {
                     <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-3xl">
-                      {kind === 'popular' ? '🎭' : '📍'}
+                      {/* 세부분류 이모지(2026-08-22) - 백엔드 PlaceResponseDto에 emoji 필드 추가,
+                          없으면(세부분류 미연결 장소) 예전처럼 공연은 🎭, 그 외는 📍로 폴백. */}
+                      {place.emoji || (kind === 'popular' ? '🎭' : '📍')}
                     </div>
                   )}
                   <div className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold text-white"
                     style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
                     📍 {place.category}
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => toggleLike(e, place.id)}
+                    className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm transition-transform hover:scale-110"
+                    style={{ color: likedIds.includes(place.id) ? '#e8486b' : '#a9979e' }}
+                    aria-label={`${place.name} 찜하기`}
+                  >
+                    {likedIds.includes(place.id) ? '♥' : '♡'}
+                  </button>
                 </div>
                 <div className="p-3 flex flex-col justify-center flex-1 text-center">
                   <Badge color={badgeColor} bg={badgeBg}>{badgeLabel}</Badge>
@@ -408,6 +441,10 @@ export function HomeTab({ onTabChange, personaProfile }) {
           </div>
         )}
       </div>
+
+      {selectedPlaceId && (
+        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)} />
+      )}
     </div>
   );
 }

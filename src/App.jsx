@@ -2,7 +2,7 @@ import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
-import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle } from '@/lib/api';
+import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle, getMySubscription } from '@/lib/api';
 import { CURATION_CART_STORAGE_KEY } from './data/curationData';
 import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
 import { avatarSrc } from './components/Avatar';
@@ -60,6 +60,10 @@ export default function App() {
   );
   const [pendingBillingAuth, setPendingBillingAuth] = useState(initialBillingAuth);
   const [personaProfile, setPersonaProfile] = useState(null);
+  // 큐레이션 탭 "캘린더에 담기" -> 캘린더 탭 등록폼 프리필용(2026-08-22). object identity가
+  // 매번 바뀌어야 CalendarTab의 useEffect가 매번 새로 반응하므로, 같은 장소를 연속으로 눌러도
+  // 항상 새 객체를 만들어 넘긴다(호출부 참고).
+  const [calendarPrefill, setCalendarPrefill] = useState(null);
   // 이메일 가입 직후, 또는 소셜 가입 후 ProfileConfirmModal(성별 확정)이 끝난 직후에 띄우는
   // 필수 성향 온보딩 오버레이. 둘 다 "방금 처음 가입한 사람"만 거치는 지점이라 이 하나의
   // 플래그로 두 경로를 합쳐서 처리한다.
@@ -152,12 +156,31 @@ export default function App() {
       // 때만 메모리에 잠깐 채워지고 새로고침하면 사라졌었다. 목업 로그인은 실제 백엔드 세션이
       // 아니라서(project-date-manager-mock-login-pattern 참고) 대상에서 제외.
       getMyStyle().then((style) => { if (style) setPersonaProfile(style); }).catch(() => {});
+      refreshSubscriptionStatus();
       return data;
     } catch {
       clearToken();
       setUser(null);
       return null;
     }
+  }, []);
+
+  // 좋아요/코스담기/장소열람/AI챗 언급으로 백엔드 성향값이 실시간으로 바뀌어도, personaProfile은
+  // 로그인 시 한 번만 불러온 값이라 화면(상단 성향 게이지 등)엔 반영이 안 됐다(2026-08-22, 실제
+  // 테스트로 확인됨 - 백엔드는 정상 갱신되는데 화면만 그대로였음). 이 신호를 트리거하는 액션이
+  // 끝난 뒤 호출해서 다시 불러오게 한다. 목업 로그인은 실제 스타일 데이터가 없어 건너뛴다.
+  const refreshPersonaProfile = useCallback(() => {
+    if (getMockUser()) return;
+    getMyStyle().then((style) => { if (style) setPersonaProfile(style); }).catch(() => {});
+  }, []);
+
+  // 상단 "구독" 칩 문구를 실제 구독 상태에 맞게 보여주기 위한 상태(2026-08-22) - 예전엔 항상
+  // "구독"이라고만 떠서 이미 구독 중인지 아닌지 버튼만 봐선 알 수 없었다. 목업 로그인은 구독
+  // 기능 자체를 안 써서(SubscriptionModal도 mockUser면 안내만 보여줌) 건너뛴다.
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const refreshSubscriptionStatus = useCallback(() => {
+    if (getMockUser()) return;
+    getMySubscription().then(setSubscriptionStatus).catch(() => setSubscriptionStatus(null));
   }, []);
 
   // 관리자 로그인 시 이 페이지는 onAuthed()를 호출하지 않은 채(user=null인 상태로)
@@ -497,7 +520,9 @@ export default function App() {
                 <button onClick={() => setShowSubscription(true)}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
-                  💳 <span className="app-profile-secondary-label">구독</span>
+                  💳 <span className="app-profile-secondary-label">
+                    {subscriptionStatus?.id != null && subscriptionStatus?.status === 'ACTIVE' ? '구독중' : '구독하기'}
+                  </span>
                 </button>
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
                   style={{ background: '#fff0f3', border: '1.5px solid #ffd6e0' }}>
@@ -564,12 +589,17 @@ export default function App() {
               </div>
             ) : (
               <>
-                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
+                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} />}
+                {tab === 'curiation' && (
+                  <CuriationTab personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile}
+                    onAddToCalendar={(item) => { setCalendarPrefill(item); changeTab('calendar'); }} />
+                )}
                 {tab === 'builder' && <BuilderTab />}
-                {tab === 'calendar' && <CalendarTab />}
-                {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} />}
+                {tab === 'calendar' && (
+                  <CalendarTab prefill={calendarPrefill} onPrefillConsumed={() => setCalendarPrefill(null)} />
+                )}
+                {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'board' && <BoardTab user={user} />}
                 {tab === 'mypage' && (
                   <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
@@ -583,7 +613,7 @@ export default function App() {
         {/* 상시 챗봇 버튼(2026-08-22, 기획안 "메인 화면 챗봇 버튼: 상시 배치" 대응 - 홈탭 전용에서
             전체 탭 공통으로 확장) - 이미 AI 상담 탭에 있을 땐 의미가 없어서 숨긴다. 화면을 가릴 수
             있다는 피드백이 있어 접기(×) 기능도 뒀고, 그 상태는 새로고침해도 유지된다. */}
-        {tab !== 'aichat' && (
+        {user && tab !== 'aichat' && (
           chatBubbleMinimized ? (
             <button type="button"
               onClick={() => { setChatBubbleMinimized(false); localStorage.removeItem('dm_chat_bubble_minimized'); }}
@@ -672,7 +702,7 @@ export default function App() {
         <SubscriptionModal
           user={user}
           pendingBillingAuth={pendingBillingAuth}
-          onClose={() => { setShowSubscription(false); setPendingBillingAuth(null); }}
+          onClose={() => { setShowSubscription(false); setPendingBillingAuth(null); refreshSubscriptionStatus(); }}
         />
       )}
     </div>

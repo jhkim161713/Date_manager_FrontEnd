@@ -168,7 +168,7 @@ function CoachAvatar({ coach, size = 40 }) {
   );
 }
 
-export function AiChatTab({ user, personaProfile }) {
+export function AiChatTab({ user, personaProfile, onStyleChanged }) {
   const coach = resolveCoachByGender(user?.gender);
   const isMockUser = typeof user?.id !== 'number';
   const storageKey = `dm_ai_chat_session_id:${user?.id ?? 'preview'}`;
@@ -352,6 +352,9 @@ export function AiChatTab({ user, personaProfile }) {
       const { lat, lon } = await getCurrentLocation();
       const aiMessage = await sendAiChatMessage(activeSessionId, text, { lat, lon });
       setMessages((previous) => [...previous, aiMessage]);
+      // 백엔드가 메시지 분석(analyzeMessage)을 응답 생성 전에 동기로 끝내기 때문에, 이 시점엔
+      // 성향값이 언급됐다면 이미 반영이 끝난 상태다 - 게이지도 같이 새로고침한다(2026-08-22).
+      onStyleChanged?.();
     } catch (requestError) {
       setError(requestError.message);
     } finally {

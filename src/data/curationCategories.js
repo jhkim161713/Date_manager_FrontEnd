@@ -29,6 +29,11 @@ export const DATE_CATEGORIES = [
   { id: '스포츠', emoji: '🏟️', label: '스포츠', color: '#3b82c4', background: '#eaf3fb', categories: ['스포츠'] },
 ];
 
+// 맛집 세부칩을 4개로 하드코딩했다가 실제 DB(14개)와 어긋났던 걸 겪고 나서(2026-08-22),
+// 세부칩은 카테고리마다 하드코딩하지 않고 PlaceController의 GET /api/places/categories로
+// DB(place_categories)에서 항상 그대로 받아오도록 일반화했다 - CurationTab.jsx의
+// getPlaceSubCategoryCatalog 참고. 새 세부분류가 DB에 추가/변경돼도 프론트 배포 없이 반영된다.
+
 // 홈탭 "내 주변" 칩용 - 데이트 8개 + 숙박 칩까지 다시 노출한다(2026-08-18). 숙박을 직접 선택했을 땐
 // 보여야 하니 칩 자체는 있어야 하고, 대신 "전체" 선택 시에는 HomeTab에서 숙박을 걸러낸다(6대 성향
 // 매칭과 안 맞아서 전체 추천에 섞이면 어색해서) - 칩 목록과 "전체" 기본 노출을 분리하는 방식.
