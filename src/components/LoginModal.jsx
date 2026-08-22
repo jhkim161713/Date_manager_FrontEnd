@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, signup, tryMockLogin, adminCheck,
-  checkEmailAvailable, checkNicknameAvailable, uploadProfilePhoto,
+  checkEmailAvailable, checkNicknameAvailable, uploadProfilePhoto, findPassword,
 } from '@/lib/api';
 import { SignupCarousel } from '@/components/SignupCarousel';
 
@@ -16,10 +16,16 @@ const GENDER_OPTIONS = [
   { value: 'FEMALE', label: '여성' },
 ];
 
+// 네이버 로그인은 네이버 개발자센터 심사(추가인증)를 통과해 "서비스 중" 상태가 되기 전까지는
+// 앱 등록 시 지정해둔 테스트 계정으로만 로그인이 된다 - 코드 문제가 아니라 심사 승인 여부에
+// 달린 문제일 수 있다. 팀원 확인 결과 정상 동작하지 않는다고 판단되면 이 값만 false로 바꾸면
+// 바로 "준비중입니다" 안내로 전환된다(백엔드 OAuth 설정은 그대로 둔 채 버튼만 막는 방식).
+const NAVER_LOGIN_ENABLED = true;
+
 // 로그인/회원가입을 한 모달 안에서 mode로 전환한다. 페이지 이동(window.location) 없이
 // 화면만 바뀌므로 회원가입 쪽 캐러셀(SignupCarousel)도 그대로 재사용한다.
 export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'find-password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -28,6 +34,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
   const [photoFile, setPhotoFile] = useState(null); // 회원가입 시 선택적 업로드 - 안 골라도 가입 가능
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(initialError ?? null);
+  const [findPasswordSent, setFindPasswordSent] = useState(false); // 비밀번호 찾기 메일 발송 완료 여부
 
   // 회원가입 화면 전용: 중복확인은 지금은 API만 먼저 열어두는 단계라 결과를 보여주기만 하고
   // 제출을 막지는 않는다 (막는 UX 게이트는 프로젝트 막판에 켜기로 팀에서 정함)
@@ -54,6 +61,27 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
     setGender(null);
     setPhotoFile(null);
     setPasswordConfirm('');
+    setFindPasswordSent(false);
+  };
+
+  // 비밀번호 찾기 - 가입 여부와 상관없이 항상 "보냈다"고 응답이 오므로, 성공/실패 구분 없이
+  // 요청이 끝나면 안내 화면으로 넘어간다(계정 존재 여부가 노출되지 않도록).
+  const handleFindPassword = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (!email.trim()) {
+      setError('이메일을 입력해주세요');
+      return;
+    }
+    setLoading('email');
+    try {
+      await findPassword(email.trim());
+      setFindPasswordSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleCheckNickname = async () => {
@@ -88,6 +116,10 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
   // 로그인이든 회원가입이든 같은 OAuth2 흐름이라 버튼 동작은 동일하다.
   const SOCIAL_LOGIN_URLS = { google: googleLoginUrl, kakao: kakaoLoginUrl, naver: naverLoginUrl };
   const handleSocialLogin = (provider) => {
+    if (provider === 'naver' && !NAVER_LOGIN_ENABLED) {
+      window.alert('네이버 로그인은 현재 준비중입니다');
+      return;
+    }
     setError(null);
     setLoading(provider);
     window.location.href = SOCIAL_LOGIN_URLS[provider]();
@@ -162,6 +194,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
   };
 
   const isSignup = mode === 'signup';
+  const isFindPassword = mode === 'find-password';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -183,10 +216,14 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
             style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' }}>💕</div>
 
           <h2 className="font-display font-bold text-xl text-center mt-2 mb-1" style={{ color: '#3d2c35' }}>
-            {isSignup ? '회원가입' : '로그인'}
+            {isSignup ? '회원가입' : isFindPassword ? '비밀번호 찾기' : '로그인'}
           </h2>
-          <p className="text-xs text-center text-stone-400 mb-5">우리만의 공간에 오신 걸 환영해요 🌸</p>
+          <p className="text-xs text-center text-stone-400 mb-5">
+            {isFindPassword ? '가입하신 이메일로 재설정 링크를 보내드릴게요' : '우리만의 공간에 오신 걸 환영해요 🌸'}
+          </p>
 
+          {!isFindPassword && (
+          <>
           <div className="space-y-2.5">
             <button onClick={() => handleSocialLogin('google')} disabled={loading !== null}
               className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60"
@@ -216,9 +253,40 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
             <span className="text-[11px] text-stone-400">{isSignup ? '또는 이메일로 가입하기' : '또는 이메일로 계속하기'}</span>
             <div className="flex-1 h-px" style={{ background: '#ffd6e0' }} />
           </div>
+          </>
+          )}
+
+          {/* 비밀번호 찾기 화면 - 이메일만 입력받는 짧은 폼. 요청이 끝나면(성공/실패 구분 없이
+              항상 "보냈다"는 응답이 오므로) 안내 문구로 바뀐다. */}
+          {isFindPassword && (
+            findPasswordSent ? (
+              <div className="rounded-2xl px-4 py-5 text-center" style={{ background: '#fff0f3' }}>
+                <p className="text-sm font-bold" style={{ color: '#3d2c35' }}>메일을 확인해주세요 💌</p>
+                <p className="text-xs text-stone-400 mt-1.5 leading-relaxed">
+                  가입하신 이메일이라면 재설정 링크를 보내드렸어요.<br />링크는 30분 동안 유효해요.
+                </p>
+              </div>
+            ) : (
+              <form className="space-y-2.5" autoComplete="off" onSubmit={handleFindPassword}>
+                <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                  <span className="text-sm">🌷</span>
+                  <input type="text" className="flex-1 text-sm outline-none bg-transparent" placeholder="가입한 이메일"
+                    value={email} onChange={e => setEmail(e.target.value)}
+                    autoComplete="off"
+                    style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
+                </div>
+                <button type="submit" disabled={loading !== null}
+                  className="w-full py-3 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 6px 20px rgba(255,107,138,0.3)' }}>
+                  {loading === 'email' ? '전송 중...' : '재설정 링크 보내기'}
+                </button>
+              </form>
+            )
+          )}
 
           {/* form으로 감싸서, 이메일/비밀번호(혹은 회원가입 필드)를 다 채운 뒤 Enter를 누르면
               브라우저 기본 동작으로 자동 제출되게 한다 - 버튼 클릭과 완전히 동일한 handleSubmit 호출. */}
+          {!isFindPassword && (
           <form className="space-y-2.5" autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
             {isSignup && (
               <div>
@@ -272,6 +340,14 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
                 autoComplete="new-password"
                 style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
             </div>
+
+            {!isSignup && (
+              <p className="text-right text-[11px] px-1 cursor-pointer hover:text-pink-400 transition-colors"
+                style={{ color: '#a89aa0' }}
+                onClick={() => switchMode('find-password')}>
+                비밀번호를 잊으셨나요?
+              </p>
+            )}
 
             {isSignup && (
               <div>
@@ -328,23 +404,25 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
               {loading === 'email' ? (isSignup ? '가입 중...' : '처리 중...') : (isSignup ? '회원가입 💖' : '로그인 💖')}
             </button>
           </form>
+          )}
 
           {error && <p className="text-center text-xs mt-3" style={{ color: '#e8486b' }}>{error}</p>}
 
-          {!isSignup && (
-            <p className="text-center text-[10px] text-stone-300 mt-3 leading-relaxed">
-              백엔드 없이 다른 탭만 보고 싶다면: admin/password, couple/couple
+          {isFindPassword ? (
+            <p className="text-center text-xs text-stone-400 mt-3 cursor-pointer hover:text-pink-400 transition-colors"
+              onClick={() => switchMode('login')}>
+              로그인으로 돌아가기
+            </p>
+          ) : (
+            <p className="text-center text-xs text-stone-400 mt-3 cursor-pointer hover:text-pink-400 transition-colors"
+              onClick={() => switchMode(isSignup ? 'login' : 'signup')}>
+              {isSignup ? (
+                <>이미 계정이 있으신가요? <span style={{ color: '#ff6b8a', fontWeight: 700 }}>로그인</span></>
+              ) : (
+                <>아직 계정이 없으신가요? <span style={{ color: '#ff6b8a', fontWeight: 700 }}>회원가입</span></>
+              )}
             </p>
           )}
-
-          <p className="text-center text-xs text-stone-400 mt-3 cursor-pointer hover:text-pink-400 transition-colors"
-            onClick={() => switchMode(isSignup ? 'login' : 'signup')}>
-            {isSignup ? (
-              <>이미 계정이 있으신가요? <span style={{ color: '#ff6b8a', fontWeight: 700 }}>로그인</span></>
-            ) : (
-              <>아직 계정이 없으신가요? <span style={{ color: '#ff6b8a', fontWeight: 700 }}>회원가입</span></>
-            )}
-          </p>
         </div>
 
         {isSignup && (

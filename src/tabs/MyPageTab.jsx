@@ -495,13 +495,21 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
             <span className="text-xs text-stone-400">{pwOpen ? '접기 ▲' : '펼치기 ▼'}</span>
           </button>
 
-          {pwOpen && (
+          {/* 소셜 로그인 전용 계정(passwordHash 없음)은 비밀번호를 설정할 수 없으므로 폼 대신
+              안내만 보여준다. getMe() 응답의 hasPassword로 판별한다(백엔드도 동일하게 차단). */}
+          {pwOpen && profile.hasPassword === false && (
+            <div className="mt-4 rounded-2xl px-4 py-3 text-center" style={{ background: '#fff0f3' }}>
+              <p className="text-xs" style={{ color: '#a89aa0' }}>소셜 로그인 계정은 비밀번호를 설정할 수 없어요</p>
+            </div>
+          )}
+
+          {pwOpen && profile.hasPassword !== false && (
             <div className="mt-4">
               <div className="mb-3">
                 <label className="text-xs font-bold text-stone-400 mb-1.5 block">현재 비밀번호</label>
                 <div className="rounded-2xl px-4 py-3" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
                   <input type="password" className="w-full text-sm outline-none bg-transparent"
-                    placeholder="소셜 로그인 계정은 비워두세요"
+                    placeholder="현재 비밀번호"
                     value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
                     style={{ color: '#3d2c35' }} />
                 </div>

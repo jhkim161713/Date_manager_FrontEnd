@@ -148,6 +148,22 @@ export async function login({ email, password }) {
   return data;
 }
 
+// 비밀번호 재설정 메일 요청. 가입 안 된 이메일이어도 응답은 항상 성공으로 온다(계정 존재 여부 비노출).
+export function findPassword(email) {
+  return request('/api/auth/find-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+// 메일 속 링크의 토큰 + 새 비밀번호로 실제 재설정을 완료한다.
+export function resetPassword({ token, newPassword }) {
+  return request('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 export function getMe() {
   return request('/api/me');
 }
