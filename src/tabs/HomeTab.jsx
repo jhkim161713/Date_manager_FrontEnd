@@ -3,7 +3,7 @@ import { QUICK_TABS } from '../data/tabsData';
 import { Badge } from '../components/Badge';
 import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
-import { getCoupleStatus, getNearbyPlaces } from '../lib/api';
+import { getCoupleStatus, getNearbyPlaces, likePlace } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
 import { HOME_CATEGORIES } from '../data/curationCategories';
 
@@ -13,7 +13,9 @@ const PERFORMANCE_CATEGORIES = new Set([
   '공연', '뮤지컬', '대중음악', '서양음악(클래식)', '연극', '한국음악(국악)', '서커스/마술', '무용(서양/한국무용)', '대중무용', '축제',
 ]);
 
-// 유저 성향 축(personaProfile, 목업) <-> 장소 성향 점수(PlaceStyle, 실제 백엔드) 필드 매핑.
+// 유저 성향 축(personaProfile, 2026-08-20부터 GET /api/me/styles로 실제 백엔드에서 불러옴 -
+// 예전엔 온보딩 화면을 그 자리에서 완료할 때만 메모리에 잠깐 채워지는 목업이었다) <-> 장소 성향
+// 점수(PlaceStyle, 실제 백엔드) 필드 매핑.
 const AXIS_TO_PLACE_SCORE = {
   energetic: 'scoreEnergy',
   immersion: 'scoreImmersion',
@@ -48,7 +50,19 @@ export function HomeTab({ onTabChange, personaProfile }) {
 
   const { weather } = useWeather();
 
-  // 성향 기반 추천 장소: 유저 성향(personaProfile, 목업)은 그대로 두고, 매칭할 장소만 실제
+  // 좋아요 - CurationTab.jsx와 동일하게 로컬 state만 유지하고(서버 저장 기능은 범위 밖), 누르는
+  // 순간의 신호만 UserStyle 실시간 갱신 엔진에 넘긴다(2026-08-22, 메인 탭에도 확장).
+  const [likedIds, setLikedIds] = useState([]);
+  const toggleLike = (e, placeId) => {
+    e.stopPropagation(); // 카드 자체의 onClick(큐레이션 탭 이동)으로 안 번지게
+    const isAdding = !likedIds.includes(placeId);
+    setLikedIds((current) => (
+      current.includes(placeId) ? current.filter((id) => id !== placeId) : [...current, placeId]
+    ));
+    if (isAdding) likePlace(placeId).catch(() => {});
+  };
+
+  // 성향 기반 추천 장소: 유저 성향(personaProfile, 실제 백엔드 데이터)은 그대로 두고, 매칭할 장소만 실제
   // 백엔드에서 접속 좌표 기준으로 가까운 순 300건을 가져온다(거리 계산은 백엔드가 SQL로 처리,
   // 82,128건 전체가 아니라 이미 지역이 좁혀진 상태로 내려와서 대전·안동처럼 먼 곳이 안 섞임).
   const [nearbyPlacePool, setNearbyPlacePool] = useState([]);
@@ -367,6 +381,15 @@ export function HomeTab({ onTabChange, personaProfile }) {
                     style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
                     📍 {place.category}
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => toggleLike(e, place.id)}
+                    className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm transition-transform hover:scale-110"
+                    style={{ color: likedIds.includes(place.id) ? '#e8486b' : '#a9979e' }}
+                    aria-label={`${place.name} 찜하기`}
+                  >
+                    {likedIds.includes(place.id) ? '♥' : '♡'}
+                  </button>
                 </div>
                 <div className="p-3 flex flex-col justify-center flex-1 text-center">
                   <Badge color={badgeColor} bg={badgeBg}>{badgeLabel}</Badge>

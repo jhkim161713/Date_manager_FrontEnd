@@ -583,7 +583,7 @@ export default function App() {
         {/* 상시 챗봇 버튼(2026-08-22, 기획안 "메인 화면 챗봇 버튼: 상시 배치" 대응 - 홈탭 전용에서
             전체 탭 공통으로 확장) - 이미 AI 상담 탭에 있을 땐 의미가 없어서 숨긴다. 화면을 가릴 수
             있다는 피드백이 있어 접기(×) 기능도 뒀고, 그 상태는 새로고침해도 유지된다. */}
-        {tab !== 'aichat' && (
+        {user && tab !== 'aichat' && (
           chatBubbleMinimized ? (
             <button type="button"
               onClick={() => { setChatBubbleMinimized(false); localStorage.removeItem('dm_chat_bubble_minimized'); }}

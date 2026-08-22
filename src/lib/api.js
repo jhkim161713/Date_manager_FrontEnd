@@ -379,6 +379,17 @@ export function getNearbyPlaces(lat, lon, limit = 300, category = '') {
   return request(`/api/places/nearby?${params.toString()}`);
 }
 
+// 좋아요/코스 담기 - 찜 목록·담기함 자체는 아직 CurationTab의 로컬 state로만 관리되고(서버 저장
+// 기능은 범위 밖) 이 두 API는 그 순간의 "의사표현" 신호만 UserStyle 실시간 갱신 엔진에 넘긴다
+// (2026-08-22). 실패해도 UI 동작(찜/담기)엔 지장이 없어야 해서 호출부에서 항상 에러를 삼킨다.
+export function likePlace(placeId) {
+  return request(`/api/places/${placeId}/like`, { method: 'POST' });
+}
+
+export function addPlaceToCourse(placeId) {
+  return request(`/api/places/${placeId}/course-add`, { method: 'POST' });
+}
+
 // 커플 초대 링크 생성 (1시간 유효). 이미 연결된 커플이 있으면 백엔드가 409 에러를 던짐.
 export function createCoupleInvite() {
   return request('/api/couple/invite', { method: 'POST' });

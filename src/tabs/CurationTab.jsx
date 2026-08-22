@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '../components/Badge';
 import { SectionTitle } from '../components/SectionTitle';
-import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts } from '../lib/api';
+import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, likePlace, addPlaceToCourse } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
 import { DATE_CATEGORIES } from '../data/curationCategories';
@@ -335,6 +335,9 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
 
     setBuilderItems((current) => [...current, place]);
     showFeedback('코스 빌더 후보에 담았어요');
+    // 담기함 자체는 서버 저장 없이 로컬 state로만 유지하되, "담았다"는 의사표현 신호만 UserStyle
+    // 실시간 갱신 엔진에 넘긴다(2026-08-22). 뺄 때는 호출 안 함 - 신호가 왜곡되지 않게.
+    addPlaceToCourse(place.id).catch(() => {});
   };
 
   // 담기함 목록에서 개별 항목을 뺄 때(2026-08-20, "잘못 담은 걸 삭제할 수 있어야 한다") 쓴다 -
@@ -344,19 +347,25 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
   };
 
   const toggleLike = (placeId) => {
+    const isAdding = !likedItemIds.includes(placeId);
     setLikedItemIds((current) => (
       current.includes(placeId)
         ? current.filter((id) => id !== placeId)
         : [...current, placeId]
     ));
+    // 찜 목록도 담기함과 동일하게 로컬 state만 유지하고, 좋아요를 누르는 순간의 신호만
+    // UserStyle 실시간 갱신 엔진에 넘긴다(2026-08-22). 찜 해제 시에는 호출 안 함.
+    if (isAdding) likePlace(placeId).catch(() => {});
   };
 
   const toggleStayLike = (placeId) => {
+    const isAdding = !likedStayIds.includes(placeId);
     setLikedStayIds((current) => (
       current.includes(placeId)
         ? current.filter((id) => id !== placeId)
         : [...current, placeId]
     ));
+    if (isAdding) likePlace(placeId).catch(() => {});
   };
 
   const sendToBuilder = () => {
