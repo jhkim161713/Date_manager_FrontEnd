@@ -1,23 +1,53 @@
-import { useState } from 'react';
-import { CALENDAR_EVENTS, CAT_COLOR, CAT_LABEL } from '../data/calendarData';
+import { useEffect, useState } from 'react';
+import { getCalendars } from '../lib/api';
 
+// yyyy-MM-dd 포맷 헬퍼(CalendarTab.jsx의 formatDate와 동일 로직).
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// 2026-08-22 - 예전엔 data/calendarData.js의 하드코딩된 목업 일정(7월 날짜 고정)을 그대로
+// 보여줘서, 오늘이 언제든 상관없이 항상 같은 지난 날짜가 "다가오는 일정"에 떴다. 이제 실제
+// /calendar API(CalendarTab.jsx와 동일)에서 이번 달 일정을 가져와 보여준다. 카테고리별
+// 색깔 점/이모지는 실제 데이터에 카테고리 필드가 없어서(원래 기획의 "프리미엄 매거진" 자동
+// 이식 개념 - 최종 프로젝트 스코프) 뺐고, 지금은 일정 유무만 단색 점으로 표시한다.
 export function MiniCalendar() {
-  const [open, setOpen] = useState(true)
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const todayDate = now.getDate()
-  const firstDay = new Date(year, month, 1).getDay()
-  const lastdaysInMonth = new Date(year, month + 1, 0).getDate()
-  const monthLabel = now.toLocaleDateString('ko-KR', { month: 'long' })
-  {/*달력 칸 개수 만드는 변수*/}
-  const cells = Array.from({ length: firstDay + lastdaysInMonth }, (_, i) =>
+  const [open, setOpen] = useState(true);
+  const [events, setEvents] = useState([]);
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const todayDate = now.getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDaysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = now.toLocaleDateString('ko-KR', { month: 'long' });
+  const cells = Array.from({ length: firstDay + lastDaysInMonth }, (_, i) =>
     i < firstDay ? null : i - firstDay + 1
-  )
-  {/*숫자 입력받아 xxxx(년)-xx(월)-xx(일) 형태로 출력해주는 함수*/}
-  const pad = (d) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  {/*일정 :xxxx(년)-xx(월)-xx(일) 형태로 출력 */}
-  const eventCount = Object.keys(CALENDAR_EVENTS).length
+  );
+
+  useEffect(() => {
+    const start = formatDate(new Date(year, month, 1));
+    const end = formatDate(new Date(year, month + 1, 0));
+    getCalendars(start, end).then(setEvents).catch(() => setEvents([]));
+  }, [year, month]);
+
+  // 날짜별 일정 존재 여부만 표시(day-dot). 같은 날 여러 개면 첫 번째 것만 대표로 씀.
+  const eventsByDate = {};
+  events.forEach((e) => {
+    if (!eventsByDate[e.targetDate]) eventsByDate[e.targetDate] = [];
+    eventsByDate[e.targetDate].push(e);
+  });
+
+  // "다가오는 일정" - 오늘 이후(오늘 포함) 일정만, 날짜 오름차순으로 최대 3개.
+  const todayKey = formatDate(now);
+  const upcoming = events
+    .filter((e) => e.targetDate >= todayKey)
+    .sort((a, b) => a.targetDate.localeCompare(b.targetDate))
+    .slice(0, 3);
 
   return (
     <div className="mx-3 my-3">
@@ -40,53 +70,31 @@ export function MiniCalendar() {
             <line x1="6" y1="1" x2="6" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
             <line x1="16" y1="1" x2="16" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          
+
           {/*헤더 문구 */}
           <div className="flex-1 text-left">
-            <p className="text-xs font-bold text-white leading-none">프리미엄 캘린더</p>
-            <p className="text-[9px] text-white/70 mt-0.5">이번 달 일정 {eventCount}개</p>
+            <p className="text-xs font-bold text-white leading-none">데이트 캘린더</p>
+            <p className="text-[9px] text-white/70 mt-0.5">이번 달 일정 {events.length}개</p>
           </div>
 
           {/* 옆에 있는 △ */}
           <span className="text-white/80 text-xs" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', display: 'inline-block', transition: 'transform .2s' }}>▾</span>
         </div>
-
-        
-        {/* 접었을때 미리보기 */}
-        {!open && (
-          <div className="px-2 py-1.5 flex gap-1.5 flex-wrap" style={{ background: '#fff8f4' }}>
-            {Object.entries(CAT_LABEL).map(([emoji, label]) => (
-              <span key={label} className="rounded-full px-1.5 py-0.5 text-[9px] font-bold flex items-center gap-0.5"
-                style={{ background: `${CAT_COLOR[emoji]}20`, color: CAT_COLOR[emoji] }}>
-                {emoji} {label}
-              </span>
-            ))}
-          </div>
-        )}
       </button>
 
       {/*아래 달력 본문 */}
       {open && (
-        
         <div className="mt-1.5 rounded-2xl overflow-hidden" style={{ border: '1.5px solid #ffd6e0' }}>
-          
+
           {/* 달력 헤더 부분 */}
-          <div className="px-3 py-2 items-center justify-between"
+          <div className="px-3 py-2 flex items-center justify-between"
             style={{ background: 'linear-gradient(90deg, #fff0f3, #f5eef9)' }}>
-              {/* xxxx년 xx월  */}
             <span className="text-xs font-bold" style={{ color: '#3d2c35' }}>{year}년 {monthLabel}</span>
-              {/* 일정 이모지 표시 */}
-            <div className="flex gap-1">
-              {Object.entries(CAT_COLOR).map(([emoji, color]) => (
-                <span key={emoji} className="text-[10px] w-4 h-4 rounded-full flex items-center justify-center"
-                  style={{ background: `${color}30` }}>{emoji}</span>
-              ))}
-            </div>
           </div>
 
-            {/* 일수 표기 칸 설정*/}
+          {/* 일수 표기 칸 설정*/}
           <div className="p-2" style={{ background: 'white' }}>
-            {/* 월 ~ 금 표기*/}
+            {/* 일 ~ 토 표기*/}
             <div className="grid grid-cols-7 mb-1">
               {['일','월','화','수','목','금','토'].map((d, i) => (
                 <div key={d} className="text-center text-[9px] font-bold py-0.5 rounded-sm"
@@ -97,67 +105,51 @@ export function MiniCalendar() {
             {/* 일수 칸 */}
             <div className="grid grid-cols-7 gap-y-1">
               {cells.map((day, i) => {
-                {/*만약 일 수 null이면 빈칸 return*/}
-                if (!day) return <div key={i}/>
-                
-                
-                {/*xxxx-xx-xx로 출력 */}
-                const key = pad(day)
-                {/*입력된 이벤트랑 날짜 비교*/}
-                const ev = CALENDAR_EVENTS[key]
-                {/*달력속의 날짜가 오늘인지 확인 */}
-                const isToday = day === todayDate
-                {/*만약 이벤트가 있으면 해당하는 그 이벤트 색깔 가져오기*/}
-                const dotColor = ev ? CAT_COLOR[ev] : undefined
+                if (!day) return <div key={i}/>;
+                const key = formatDate(new Date(year, month, day));
+                const hasEvent = !!eventsByDate[key];
+                const isToday = day === todayDate;
 
-                {/*달력 아래 이벤트 유뮤 점*/}
                 return (
                   <div key={i} className="flex flex-col items-center">
                     <div className="w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold"
                       style={{
-                        // 오늘 날짜 그라데이션 및 일정 있는 날 배경색 지정
-                        background: isToday ? 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' : ev ? `${dotColor}15` : undefined,
-                        //일요일:분홍색/토요일:보라색/평일:일반택스트색/오늘 날짜 :흰색 
+                        background: isToday ? 'linear-gradient(135deg, #ff6b8a, #c4a0e8)' : hasEvent ? '#ff6b8a15' : undefined,
                         color: isToday ? 'white' : i % 7 === 0 ? '#ff6b8a' : i % 7 === 6 ? '#c4a0e8' : '#3d2c35',
-                        // 일정 있는 날 원 테두리(Outline) 지정
-                        outline: isToday ? 'none' : ev ? `1.5px solid ${dotColor}50` : 'none',
+                        outline: isToday ? 'none' : hasEvent ? '1.5px solid #ff6b8a50' : 'none',
                       }}>
-                      {/*일수표시*/}
                       {day}
                     </div>
-                    {/*해당 날짜에 일정 있으면 아래 점표시 표시 */}
-                    {ev && (
-                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: dotColor }} />
+                    {hasEvent && (
+                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: '#ff6b8a' }} />
                     )}
                   </div>
-                )
+                );
               })}
             </div>
 
             {/*다가오는 일정 표시*/}
-              {/*구분선*/}
             <div className="mt-2 pt-2" style={{ borderTop: '1px dashed #f590aa' }}>
               <p className="text-[9px] font-bold text-stone-400 mb-1">다가오는 일정</p>
-              {/*리스트에 있는 일정 구조분해 할당 후 d에 날자 값 할당(쵀대 3개까지)*/}
-              {Object.entries(CALENDAR_EVENTS).slice(0, 3).map(([date, emoji]) => {
-                const d = new Date(date)
+              {upcoming.length === 0 && (
+                <p className="text-[10px] text-stone-300 py-1">다가오는 일정이 없어요</p>
+              )}
+              {upcoming.map((e) => {
+                const d = new Date(e.targetDate);
                 return (
-                  //일정표 스타일
-                  <div key={date} className="flex items-center gap-1.5 py-0.5">
-                    {/*이모지 스타일*/} 
-                    <span className="w-4 h-4 rounded flex items-center justify-center text-[9px]">{emoji}</span>
-                    <span className="text-[11px] font-semibold" style={{ color: CAT_COLOR[emoji] }}>{CAT_LABEL[emoji]}</span>
-                    <span className="text-[10px] ml-auto font-semibold 30" style={{ color: '#3d2c35' }}>
-                      {/*일정 날짜 표시*/}
+                  <div key={e.id} className="flex items-center gap-1.5 py-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#ff6b8a' }} />
+                    <span className="text-[11px] font-semibold truncate" style={{ color: '#3d2c35' }}>{e.title}</span>
+                    <span className="text-[10px] ml-auto font-semibold flex-shrink-0" style={{ color: '#a08b94' }}>
                       {d.getMonth() + 1}/{d.getDate()}
                     </span>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

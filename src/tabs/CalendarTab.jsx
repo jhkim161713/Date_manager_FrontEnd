@@ -175,15 +175,21 @@ const isSameDate = (a, b) =>
         {/* 월 이동 + 뷰 전환 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-base" style={{ color: '#3d2c35' }}>{year}년 {month + 1}월</span>
             <button onClick={goPrevMonth} className="w-4 h-6 flex items-center justify-center text-sm rounded-full hover:bg-black/5" style={{ color: '#999' }}>◁</button>
+            <span className="font-bold text-base" style={{ color: '#3d2c35' }}>{year}년 {month + 1}월</span>
             <button onClick={goNextMonth} className="w-4 h-6 flex items-center justify-center text-sm rounded-full hover:bg-black/5" style={{ color: '#999' }}>▷</button>
           </div>
           <div className="flex gap-1 rounded-full p-0.5" style={{ background: '#fdf1f5' }}>
             {['월간', '주간', '목록'].map((v) => (
               <button
                 key={v}
-                onClick={() => setView(v)}
+                onClick={() => {
+                  // 월간 뷰에서 다른 달로 이동해둔 상태로 "주간" 탭을 누르면, 그 이동한 달의
+                  // 1일이 속한 주가 나와버렸다(2026-08-22 발견) - 주간 탭을 누르는 순간엔
+                  // 항상 오늘이 속한 실제 이번 주로 보여주는 게 맞다고 판단해 여기서 리셋한다.
+                  if (v === '주간') setViewDate(new Date());
+                  setView(v);
+                }}
                 className="px-3 py-1 rounded-full text-[11px] font-semibold transition-colors"
                 style={{
                   background: view === v ? '#ff6b8a' : 'transparent',

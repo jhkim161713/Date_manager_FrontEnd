@@ -196,11 +196,13 @@ export function BoardTab({ user }) {
     <div className="max-w-2xl">
       <SectionTitle sub="자유롭게 이야기를 나눠보세요">📋 게시판</SectionTitle>
 
-      <button onClick={() => setWriting((w) => !w)}
-        className="rounded-2xl px-4 py-2.5 text-sm font-bold text-white mb-4 transition-all hover:scale-105"
-        style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 4px 12px rgba(255,107,138,0.25)' }}>
-        {writing ? '취소' : '✏️ 글쓰기'}
-      </button>
+      <div className="flex justify-end mb-4">
+        <button onClick={() => setWriting((w) => !w)}
+          className="rounded-2xl px-4 py-2.5 text-sm font-bold text-white transition-all hover:scale-105"
+          style={{ background: 'linear-gradient(135deg, #ff6b8a, #c4a0e8)', boxShadow: '0 4px 12px rgba(255,107,138,0.25)' }}>
+          {writing ? '취소' : '✏️ 글쓰기'}
+        </button>
+      </div>
 
       {writing && (
         <form onSubmit={handleSubmit} className="rounded-2xl p-4 mb-4 space-y-2.5" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
