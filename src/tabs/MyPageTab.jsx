@@ -280,7 +280,10 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
   };
 
   return (
-    <div className="max-w-md md:max-w-4xl mx-auto">
+    <div className="w-full">
+      {/* 제목은 캘린더/게시판/챗봇과 동일하게 폭 제한 없이 왼쪽에 붙이고, 카드 그리드만
+          아래에서 따로 max-w-4xl mx-auto로 감싼다(2026-08-22) - 예전엔 제목까지 같이
+          mx-auto로 감싸서 다른 탭들과 다르게 제목이 가운데로 밀려 보였다. */}
       <div className="flex items-start justify-between gap-3">
         <SectionTitle sub="내 정보를 확인하고 수정할 수 있어요">⚙️ 마이페이지</SectionTitle>
         {!loading && profile && (
@@ -297,7 +300,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
           grid는 각 행 높이가 그 행에서 제일 큰 카드에 맞춰지므로, 같은 행 카드끼리 항상
           나란히 시작한다 - flex 컬럼을 각자 쌓을 때와 달리 왼쪽/오른쪽 카드 개수·높이가
           달라도 어긋나지 않는다. items-stretch(기본값)라서 같은 행의 두 카드는 높이도 맞는다. */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.25fr] gap-5">
+      <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_1.25fr] gap-5">
       <div className="rounded-3xl p-6"
         style={{ background: 'white', border: '1.5px solid #ffd6e0', boxShadow: '0 2px 12px rgba(255,107,138,0.08)' }}>
         {loading ? (
