@@ -1,6 +1,11 @@
 export const GENDER_LABEL = { MALE: '남성', FEMALE: '여성', UNKNOWN: '선택 안 함' };
 export const GENDER_OPTIONS = ['UNKNOWN', 'MALE', 'FEMALE'];
 
+// Report.targetType/status 값과 1:1로 맞춰야 한다 (report/entity/Report.java, ReportController 참고).
+export const REPORT_TARGET_LABEL = { USER: '회원', POST: '게시글', COMMENT: '댓글' };
+export const REPORT_STATUS_LABEL = { PENDING: '대기중', RESOLVED: '처리완료', REJECTED: '반려' };
+export const REPORT_STATUS_OPTIONS = ['PENDING', 'RESOLVED', 'REJECTED'];
+
 export function formatDate(value) {
   if (!value) return '-';
   return new Date(value).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });

@@ -327,6 +327,22 @@ export function adminDeleteNotice(id) {
   return request(`/api/admin/notices/${id}`, { method: 'DELETE' });
 }
 
+// status: 'all' | 'PENDING' | 'RESOLVED' | 'REJECTED' - 'all'이면 백엔드에 status 파라미터 자체를
+// 안 보낸다(AdminReportController가 status가 없으면 전체를 반환하는 방식이라).
+export function adminListReports({ page = 1, status = 'all' } = {}) {
+  const params = new URLSearchParams({ page, size: 15 });
+  if (status !== 'all') params.set('status', status);
+  return request(`/api/admin/reports?${params.toString()}`);
+}
+
+// status만 바꾸는 용도 - 신고 내용(사유/대상) 자체는 신고자가 접수한 그대로 두고 처리 상태만 갱신한다.
+export function adminUpdateReportStatus(id, { status }) {
+  return request(`/api/admin/reports/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}
+
 // 장소 목록 조회 - 실제 places/place_styles 테이블 데이터를 그대로 내려받는다(성향점수 검증용).
 // 인증이 필요 없는 공개 API(PlaceController가 permitAll).
 export function getPlaces({ category = '', page = 1, size = 20 } = {}) {

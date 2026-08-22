@@ -5,18 +5,20 @@ import { AdminUserDirectory } from '@/pages/admin/AdminUserDirectory';
 import { AdminCoupleDirectory } from '@/pages/admin/AdminCoupleDirectory';
 import { AdminSubscriptionDirectory } from '@/pages/admin/AdminSubscriptionDirectory';
 import { AdminNoticeBoard } from '@/pages/admin/AdminNoticeBoard';
+import { AdminReportDirectory } from '@/pages/admin/AdminReportDirectory';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: '대시보드', emoji: '📊' },
   { id: 'users', label: '회원 관리', emoji: '👤' },
   { id: 'couples', label: '커플 관리', emoji: '💑' },
   { id: 'subscriptions', label: '구독 관리', emoji: '💳' },
+  { id: 'reports', label: '신고 관리', emoji: '🚨' },
   { id: 'notices', label: '공지사항', emoji: '📢' },
 ];
 
 const PAGE_TITLE = {
   dashboard: '대시보드', users: '회원 디렉토리', couples: '커플 디렉토리',
-  subscriptions: '구독 관리', notices: '공지사항',
+  subscriptions: '구독 관리', reports: '신고 관리', notices: '공지사항',
 };
 
 // 로그인 모달/회원가입과 별개의 독립 페이지(/admin). 관리자 계정(ADMIN_EMAIL)으로 로그인한 경우에만
@@ -126,6 +128,7 @@ export function AdminPage() {
           {nav === 'users' && <AdminUserDirectory />}
           {nav === 'couples' && <AdminCoupleDirectory />}
           {nav === 'subscriptions' && <AdminSubscriptionDirectory />}
+          {nav === 'reports' && <AdminReportDirectory />}
           {nav === 'notices' && <AdminNoticeBoard />}
         </div>
       </div>
