@@ -35,7 +35,10 @@ export function BoardTab({ user }) {
     setLoading(true);
     setListError(null);
     getBoardPosts()
-      .then(setPosts)
+      // 서버가 재시작 중이거나 응답이 끊기면 request()가 빈 body를 null로 파싱해서 넘길 수 있는데,
+      // 그걸 그대로 posts에 넣으면 아래 posts.length에서 렌더링 자체가 죽어버린다(탭 전체가 하얘짐) -
+      // 배열이 아니면 빈 배열로 대체해서 "글 없음" 화면으로 안전하게 떨어지게 한다.
+      .then((data) => setPosts(Array.isArray(data) ? data : []))
       .catch((err) => setListError(err.message))
       .finally(() => setLoading(false));
   };

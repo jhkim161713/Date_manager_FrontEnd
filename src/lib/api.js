@@ -14,26 +14,28 @@ export const MOCK_USERS = [
   { email: 'female@test.com', password: 'test1234', nickname: '여성 테스트', gender: 'FEMALE' },
 ];
 
+// 백엔드가 "/calendar"에서 "/api/calendar"로 바뀌었다(2026-08-22) - 원래 경로는 SecurityConfig의
+// 인증 필수 규칙("/api/**")을 안 타서 로그인 없이도 뚫리다가 500이 나는 버그가 있었음.
 export function getCalendars(start,end){
-  return request(`/calendar?start=${start}&end=${end}`);
+  return request(`/api/calendar?start=${start}&end=${end}`);
 }
 
 export function createCalendar(calendarData){
-  return request(`/calendar`,{
+  return request(`/api/calendar`,{
     method : 'POST',
-    body :JSON.stringify(calendarData) 
+    body :JSON.stringify(calendarData)
   })
 }
 
 export function updateCalendar(id, calendarData) {
-  return request(`/calendar/${id}`, {
+  return request(`/api/calendar/${id}`, {
     method: 'PUT',
     body: JSON.stringify(calendarData),
   });
 }
 
 export function deleteCalendar(id){
-  return request(`/calendar/${id}`, {
+  return request(`/api/calendar/${id}`, {
     method: 'DELETE',
   });
 }

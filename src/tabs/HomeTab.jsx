@@ -54,7 +54,9 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
   // 좋아요 - CurationTab.jsx와 동일하게 place_likes에 실제로 저장된다(2026-08-22).
   const [likedIds, setLikedIds] = useState([]);
   useEffect(() => {
-    getLikedPlaceIds().then(setLikedIds).catch(() => {});
+    // 서버 응답이 배열이 아니면(재시작 중 빈 응답 등) 그대로 넣지 않는다 - 아래 likedIds.includes()가
+    // null/undefined에서 터져서 하트 렌더링 전체가 죽는 걸 막기 위함(BoardTab에서 겪은 것과 동일한 문제).
+    getLikedPlaceIds().then((ids) => setLikedIds(Array.isArray(ids) ? ids : [])).catch(() => {});
   }, []);
   const toggleLike = (e, placeId) => {
     e.stopPropagation(); // 카드 자체의 onClick(큐레이션 탭 이동)으로 안 번지게

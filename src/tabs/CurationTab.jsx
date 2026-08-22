@@ -207,9 +207,12 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
   // 찜 목록을 불러와 두 리스트(데이트/숙박)에 그대로 채운다 - 카테고리가 겹치지 않아 한쪽에
   // 다른 모드 id가 섞여 있어도 화면엔 지장 없다. 로그인 안 했으면(401) 조용히 빈 목록으로 둔다.
   useEffect(() => {
+    // 배열이 아닌 값(서버 재시작 중 빈 응답 등)이 오면 그대로 넣지 않는다 - HomeTab과 동일한 이유로
+    // likedItemIds.includes() 등이 null/undefined에서 터지는 걸 막기 위한 방어.
     getLikedPlaceIds().then((ids) => {
-      setLikedItemIds(ids);
-      setLikedStayIds(ids);
+      const safeIds = Array.isArray(ids) ? ids : [];
+      setLikedItemIds(safeIds);
+      setLikedStayIds(safeIds);
     }).catch(() => {});
   }, []);
 
@@ -286,7 +289,11 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
   // 다시 안 받아온다).
   useEffect(() => {
     if (dateCategory === 'all') return;
-    getPlaceSubCategoryCounts(dateCategory, region, subRegion).then(setDateSubCounts).catch(() => setDateSubCounts({}));
+    // 서버 응답이 객체가 아니면(재시작 중 빈 응답 등) 그대로 넣지 않는다 - dateSubCounts[key] 접근이
+    // null에서 터지는 걸 막기 위함.
+    getPlaceSubCategoryCounts(dateCategory, region, subRegion)
+      .then((counts) => setDateSubCounts(counts && typeof counts === 'object' ? counts : {}))
+      .catch(() => setDateSubCounts({}));
   }, [region, subRegion, dateCategory]);
 
   // 필터가 바뀌면 이전 필터 기준 페이지 번호가 더 이상 안 맞을 수 있어서 1페이지로 되돌린다(2026-08-19).

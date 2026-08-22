@@ -35,7 +35,9 @@ export function MiniCalendar() {
   useEffect(() => {
     const start = formatDate(new Date(year, month, 1));
     const end = formatDate(new Date(year, month + 1, 0));
-    getCalendars(start, end).then(setEvents).catch(() => setEvents([]));
+    // 배열이 아닌 값이 오면(서버 재시작 중 빈 응답 등) 그대로 넣지 않는다 - 아래 events.forEach가
+    // null/undefined에서 터지는 걸 막기 위한 방어.
+    getCalendars(start, end).then((data) => setEvents(Array.isArray(data) ? data : [])).catch(() => setEvents([]));
   }, [year, month]);
 
   // 날짜별 일정 존재 여부만 표시(day-dot). 같은 날 여러 개면 첫 번째 것만 대표로 씀.
@@ -53,7 +55,7 @@ export function MiniCalendar() {
     const start = formatDate(now);
     const rangeEnd = new Date(now);
     rangeEnd.setDate(rangeEnd.getDate() + 60);
-    getCalendars(start, formatDate(rangeEnd)).then(setUpcomingEvents).catch(() => setUpcomingEvents([]));
+    getCalendars(start, formatDate(rangeEnd)).then((data) => setUpcomingEvents(Array.isArray(data) ? data : [])).catch(() => setUpcomingEvents([]));
   }, []);
 
   const todayKey = formatDate(now);
