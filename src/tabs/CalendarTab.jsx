@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getCalendars, createCalendar, deleteCalendar } from '../lib/api';
+import { SectionTitle } from '../components/SectionTitle';
 
 // yyyy-MM-dd 형태로 날짜를 맞춰주는 헬퍼
 function formatDate(d) {
@@ -159,12 +160,15 @@ const isSameDate = (a, b) =>
   };
 
   return (
-    <div className="w-full max-w-[960px] mx-auto flex flex-col md:flex-row gap-4 p-3">
+    <div className="space-y-4">
+      <SectionTitle sub="만나기로 한 날짜와 일정을 캘린더로 관리해보세요">
+        📅 데이트 캘린더
+      </SectionTitle>
+      <div className="w-full max-w-[960px] mx-auto flex flex-col md:flex-row gap-4 p-3">
       {/* 왼쪽: 캘린더 카드 */}
       <div className="flex-1 rounded-2xl overflow-hidden shadow-sm bg-white" style={{ border: '1px solid #f0dbe4' }}>
         {/* 상단 타이틀 바 */}
         <div className="flex items-center gap-2 px-5 py-3.5" style={{ background: '#fff0f4' }}>
-          <span className="text-lg">📅</span>
           <span className="font-bold text-xxl" style={{ color: '#3d2c35' }}>데이트 캘린더</span>
         </div>
 
@@ -515,6 +519,7 @@ const isSameDate = (a, b) =>
           </form>
         </div>
       )}
+      </div>
     </div>
   );
 }

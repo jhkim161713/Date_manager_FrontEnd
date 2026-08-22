@@ -19,7 +19,7 @@ import { LoginModal } from './components/LoginModal';
 import { ProfileConfirmModal } from './components/ProfileConfirmModal';
 import { Avatar } from './components/Avatar';
 import { SubscriptionModal } from './components/SubscriptionModal';
-import { AiChatTab } from './tabs/AiChatTab';
+import { AiChatTab, resolveCoachByGender } from './tabs/AiChatTab';
 import { BoardTab } from './tabs/BoardTab';
 
 // 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
@@ -34,6 +34,11 @@ const MOBILE_NAV_TABS = [
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('home');
+  // 상시 챗봇 버튼(2026-08-22, 홈탭 전용에서 전체 탭 공통으로 확장) 최소화 여부 - 화면을
+  // 가릴 수 있어서 유저가 접어두면 새로고침해도 그 상태가 유지되도록 localStorage에 저장한다.
+  const [chatBubbleMinimized, setChatBubbleMinimized] = useState(
+    () => localStorage.getItem('dm_chat_bubble_minimized') === '1'
+  );
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -248,6 +253,12 @@ export default function App() {
     // 큐레이션 담기함(2026-08-20)은 계정 구분 없이 브라우저에 남는 임시 상태라, 로그아웃 시점에는
     // 지워서 다음 사람(같은 브라우저로 다른 계정 로그인)에게 이전 사용자의 담기함이 새지 않게 한다.
     localStorage.removeItem(CURATION_CART_STORAGE_KEY);
+    // AI 챗봇의 "마지막 세션" 포인터(AiChatTab.jsx의 storageKey)도 로그아웃 시점엔 지운다 -
+    // 이걸 안 지우면 다시 로그인했을 때 지난 대화가 화면에 자동으로 이어져서 뜨는데, 젬미나이처럼
+    // "로그인 직후엔 항상 새 대화로 시작하고, 지난 대화는 별도 목록에서 골라서 보게" 하고 싶다는
+    // 요청(2026-08-22)에 따라 로그아웃마다 초기화한다. 대화 자체는 DB에 남아있어서 안 사라지고,
+    // "지난 대화 보기" 목록(GET /api/aichat/sessions)에서 언제든 다시 찾아 이어갈 수 있다.
+    if (user?.id) localStorage.removeItem(`dm_ai_chat_session_id:${user.id}`);
     setUser(null);
     // 로그아웃 시점에 마이페이지/커플탭처럼 user를 전제로 하는 탭에 그대로 남아있으면
     // user=null 상태로 그 탭이 렌더링되며 오류가 날 수 있어, 누구나 볼 수 있는 홈탭으로 보낸다.
@@ -255,6 +266,7 @@ export default function App() {
   };
 
   const displayName = user?.nickname || user?.email || '';
+  const chatBubbleCoach = resolveCoachByGender(user?.gender);
 
   const updatePersonaScrollState = useCallback(() => {
     const scroller = personaScrollerRef.current;
@@ -557,7 +569,7 @@ export default function App() {
                 {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
-                {tab === 'aichat' && <AiChatTab user={user} />}
+                {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} />}
                 {tab === 'board' && <BoardTab />}
                 {tab === 'mypage' && (
                   <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
@@ -567,6 +579,39 @@ export default function App() {
             )}
           </div>
         </main>
+
+        {/* 상시 챗봇 버튼(2026-08-22, 기획안 "메인 화면 챗봇 버튼: 상시 배치" 대응 - 홈탭 전용에서
+            전체 탭 공통으로 확장) - 이미 AI 상담 탭에 있을 땐 의미가 없어서 숨긴다. 화면을 가릴 수
+            있다는 피드백이 있어 접기(×) 기능도 뒀고, 그 상태는 새로고침해도 유지된다. */}
+        {tab !== 'aichat' && (
+          chatBubbleMinimized ? (
+            <button type="button"
+              onClick={() => { setChatBubbleMinimized(false); localStorage.removeItem('dm_chat_bubble_minimized'); }}
+              aria-label="AI 데이트 상담 버튼 다시 보기"
+              className="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-40 h-9 w-9 rounded-full flex items-center justify-center text-base transition-all hover:scale-110"
+              style={{ background: chatBubbleCoach.gradient, boxShadow: `0 6px 16px ${chatBubbleCoach.accent}55` }}>
+              💬
+            </button>
+          ) : (
+            <div className="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-40 flex items-center gap-1.5">
+              <button type="button" onClick={() => changeTab('aichat')}
+                aria-label={`${chatBubbleCoach.name}에게 데이트 상담하기`}
+                className="flex items-center gap-2 rounded-full pl-1.5 pr-4 py-1.5 transition-all hover:scale-105"
+                style={{ background: chatBubbleCoach.gradient, boxShadow: `0 10px 24px ${chatBubbleCoach.accent}55` }}>
+                <img src={chatBubbleCoach.image} alt="" aria-hidden="true"
+                  className="h-10 w-10 rounded-full object-cover border-2 border-white" />
+                <span className="text-xs font-bold text-white whitespace-nowrap">{chatBubbleCoach.name}에게 물어보기</span>
+              </button>
+              <button type="button"
+                onClick={() => { setChatBubbleMinimized(true); localStorage.setItem('dm_chat_bubble_minimized', '1'); }}
+                aria-label="AI 데이트 상담 버튼 접기"
+                className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={{ background: 'white', color: '#a89aa0', border: '1.5px solid #ffd6e0' }}>
+                ×
+              </button>
+            </div>
+          )
+        )}
 
         {/* ── 모바일 하단 네비게이션 (데스크톱에서는 숨김) ── */}
         <nav className="flex md:hidden flex-shrink-0 items-center justify-around px-1 pt-1.5 pb-1"

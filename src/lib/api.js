@@ -215,6 +215,15 @@ export function withdrawMe() {
 // 아래 admin* 함수들은 전부 관리자 전용 API (백엔드가 app.admin-email과 로그인 이메일을
 // 비교해서 403을 돌려줄 수 있음). 페이지네이션이 있는 곳은 page=1이 첫 페이지 - 백엔드가
 // spring.data.web.pageable.one-indexed-parameters=true라서 그렇다(0으로 보내면 안 됨).
+// 신고 접수 - 게시판 글/댓글/유저 등 targetType은 백엔드 ReportController.VALID_TARGET_TYPES
+// (USER/POST/COMMENT)와 반드시 일치해야 한다.
+export function createReport({ targetType, targetId, reason }) {
+  return request('/api/reports', {
+    method: 'POST',
+    body: JSON.stringify({ targetType, targetId, reason }),
+  });
+}
+
 export function adminCheck() {
   return request('/api/admin/check');
 }
@@ -439,7 +448,41 @@ export function cancelSubscription() {
   return request('/api/subscriptions/cancel', { method: 'POST' });
 }
 
+// 게시판(자유게시판) - BoardController CRUD 그대로 연결.
+export function getBoardPosts() {
+  return request('/api/board');
+}
+
+export function getBoardPost(id) {
+  return request(`/api/board/${id}`);
+}
+
+export function createBoardPost({ title, content }) {
+  return request('/api/board', {
+    method: 'POST',
+    body: JSON.stringify({ title, content }),
+  });
+}
+
+export function updateBoardPost(id, { title, content }) {
+  return request(`/api/board/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ title, content }),
+  });
+}
+
+export function deleteBoardPost(id) {
+  return request(`/api/board/${id}`, { method: 'DELETE' });
+}
+
 // AI 챗봇 - 새 대화 세션 시작 (title은 선택, 안 넘기면 백엔드가 null로 저장)
+// "지난 대화 보기" 목록 - 로그아웃 후 다른 브라우저로 들어와도(localStorage 세션 포인터가 없어도)
+// DB에 저장된 이 유저의 세션을 최신순으로 보여준다. 대화가 쌓일 걸 감안해 15개씩 페이지네이션
+// (AiChatController가 Spring의 Pageable을 그대로 바인딩해서 0페이지가 첫 페이지라, 여기서 하나 뺀다).
+export function getAiChatSessions({ page = 1 } = {}) {
+  return request(`/api/aichat/sessions?page=${page - 1}&size=15`);
+}
+
 export function createAiChatSession(title) {
   return request('/api/aichat/sessions', {
     method: 'POST',
