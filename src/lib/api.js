@@ -379,13 +379,24 @@ export function getNearbyPlaces(lat, lon, limit = 300, category = '') {
   return request(`/api/places/nearby?${params.toString()}`);
 }
 
-// 좋아요/코스 담기 - 찜 목록·담기함 자체는 아직 CurationTab의 로컬 state로만 관리되고(서버 저장
-// 기능은 범위 밖) 이 두 API는 그 순간의 "의사표현" 신호만 UserStyle 실시간 갱신 엔진에 넘긴다
-// (2026-08-22). 실패해도 UI 동작(찜/담기)엔 지장이 없어야 해서 호출부에서 항상 에러를 삼킨다.
+// 좋아요 - place_likes 테이블에 실제로 저장/삭제된다(2026-08-22, 처음엔 신호만 보내고 저장은
+// 안 했는데 새로고침하면 다 꺼져서 실제 찜 기능으로 못 썼다. 진짜 좋아요로 바꿈). 새로 좋아요를
+// 누른 순간에만 백엔드가 UserStyle 실시간 갱신 엔진도 같이 트리거한다(뺄 땐 안 건드림).
+export function getLikedPlaceIds() {
+  return request('/api/places/likes');
+}
+
 export function likePlace(placeId) {
   return request(`/api/places/${placeId}/like`, { method: 'POST' });
 }
 
+export function unlikePlace(placeId) {
+  return request(`/api/places/${placeId}/like`, { method: 'DELETE' });
+}
+
+// 코스 담기 - 담기함 자체는 아직 CurationTab의 로컬 state로만 관리된다(진짜 코스 저장은
+// CourseGroup/CourseItem 도메인 몫이라, 빌더 점검 때 정리 예정 - 지금 별도 테이블을 만들면
+// 나중에 두 체계로 갈라질 위험이 있어서 보류). 이 API는 "담았다"는 신호만 넘긴다.
 export function addPlaceToCourse(placeId) {
   return request(`/api/places/${placeId}/course-add`, { method: 'POST' });
 }

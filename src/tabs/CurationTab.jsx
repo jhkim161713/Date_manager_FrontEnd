@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '../components/Badge';
 import { SectionTitle } from '../components/SectionTitle';
-import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, likePlace, addPlaceToCourse } from '../lib/api';
+import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, getLikedPlaceIds, likePlace, unlikePlace, addPlaceToCourse } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
 import { DATE_CATEGORIES } from '../data/curationCategories';
@@ -195,6 +195,16 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
   const [likedStayIds, setLikedStayIds] = useState([]);
   const [feedback, setFeedback] = useState('');
 
+  // 2026-08-22 - 좋아요가 이제 서버(place_likes)에 실제로 저장돼서, 탭을 처음 열 때 저장된
+  // 찜 목록을 불러와 두 리스트(데이트/숙박)에 그대로 채운다 - 카테고리가 겹치지 않아 한쪽에
+  // 다른 모드 id가 섞여 있어도 화면엔 지장 없다. 로그인 안 했으면(401) 조용히 빈 목록으로 둔다.
+  useEffect(() => {
+    getLikedPlaceIds().then((ids) => {
+      setLikedItemIds(ids);
+      setLikedStayIds(ids);
+    }).catch(() => {});
+  }, []);
+
   // 에너지 게이지(2026-08-20) - 지금 원하는 활력 정도(0~100). null이면 "안 씀" 상태라 기존 정렬 그대로.
   // 온보딩 성향값 저장 파이프라인이 아직 없어서(project-date-manager-aichat-persona-and-style-matching
   // 메모리 참고) 유저가 그 순간 직접 조정하는 임시 대안으로 만든 것.
@@ -346,27 +356,21 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
     setBuilderItems((current) => current.filter((item) => item.id !== placeId));
   };
 
-  const toggleLike = (placeId) => {
-    const isAdding = !likedItemIds.includes(placeId);
-    setLikedItemIds((current) => (
-      current.includes(placeId)
-        ? current.filter((id) => id !== placeId)
-        : [...current, placeId]
-    ));
-    // 찜 목록도 담기함과 동일하게 로컬 state만 유지하고, 좋아요를 누르는 순간의 신호만
-    // UserStyle 실시간 갱신 엔진에 넘긴다(2026-08-22). 찜 해제 시에는 호출 안 함.
-    if (isAdding) likePlace(placeId).then(() => onStyleChanged?.()).catch(() => {});
+  // 2026-08-22 - 좋아요가 실제 서버에 저장되므로, 데이트/숙박 두 리스트 다 같은 place_likes를
+  // 보는 거라 여기서 같이 갱신해준다(둘 다 갱신해도 카테고리가 안 겹쳐 화면엔 지장 없음).
+  const applyLikeChange = (placeId, isAdding) => {
+    const updater = (current) => (
+      current.includes(placeId) ? current.filter((id) => id !== placeId) : [...current, placeId]
+    );
+    setLikedItemIds(updater);
+    setLikedStayIds(updater);
+    const call = isAdding ? likePlace(placeId) : unlikePlace(placeId);
+    call.then(() => { if (isAdding) onStyleChanged?.(); }).catch(() => {});
   };
 
-  const toggleStayLike = (placeId) => {
-    const isAdding = !likedStayIds.includes(placeId);
-    setLikedStayIds((current) => (
-      current.includes(placeId)
-        ? current.filter((id) => id !== placeId)
-        : [...current, placeId]
-    ));
-    if (isAdding) likePlace(placeId).then(() => onStyleChanged?.()).catch(() => {});
-  };
+  const toggleLike = (placeId) => applyLikeChange(placeId, !likedItemIds.includes(placeId));
+
+  const toggleStayLike = (placeId) => applyLikeChange(placeId, !likedStayIds.includes(placeId));
 
   const sendToBuilder = () => {
     if (!builderItems.length) {

@@ -3,7 +3,7 @@ import { QUICK_TABS } from '../data/tabsData';
 import { Badge } from '../components/Badge';
 import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
-import { getCoupleStatus, getNearbyPlaces, likePlace } from '../lib/api';
+import { getCoupleStatus, getNearbyPlaces, getLikedPlaceIds, likePlace, unlikePlace } from '../lib/api';
 import { getCurrentLocation } from '../lib/weather';
 import { HOME_CATEGORIES } from '../data/curationCategories';
 
@@ -50,16 +50,19 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
 
   const { weather } = useWeather();
 
-  // 좋아요 - CurationTab.jsx와 동일하게 로컬 state만 유지하고(서버 저장 기능은 범위 밖), 누르는
-  // 순간의 신호만 UserStyle 실시간 갱신 엔진에 넘긴다(2026-08-22, 메인 탭에도 확장).
+  // 좋아요 - CurationTab.jsx와 동일하게 place_likes에 실제로 저장된다(2026-08-22).
   const [likedIds, setLikedIds] = useState([]);
+  useEffect(() => {
+    getLikedPlaceIds().then(setLikedIds).catch(() => {});
+  }, []);
   const toggleLike = (e, placeId) => {
     e.stopPropagation(); // 카드 자체의 onClick(큐레이션 탭 이동)으로 안 번지게
     const isAdding = !likedIds.includes(placeId);
     setLikedIds((current) => (
       current.includes(placeId) ? current.filter((id) => id !== placeId) : [...current, placeId]
     ));
-    if (isAdding) likePlace(placeId).then(() => onStyleChanged?.()).catch(() => {});
+    const call = isAdding ? likePlace(placeId) : unlikePlace(placeId);
+    call.then(() => { if (isAdding) onStyleChanged?.(); }).catch(() => {});
   };
 
   // 성향 기반 추천 장소: 유저 성향(personaProfile, 실제 백엔드 데이터)은 그대로 두고, 매칭할 장소만 실제

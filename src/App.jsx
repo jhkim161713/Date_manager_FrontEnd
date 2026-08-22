@@ -578,7 +578,7 @@ export default function App() {
                 {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
-                {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} />}
+                {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'board' && <BoardTab user={user} />}
                 {tab === 'mypage' && (
                   <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
