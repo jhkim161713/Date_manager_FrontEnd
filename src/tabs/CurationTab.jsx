@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '../components/Badge';
 import { SectionTitle } from '../components/SectionTitle';
-import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, getLikedPlaceIds, likePlace, unlikePlace, addPlaceToCourse } from '../lib/api';
+import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, getLikedPlaceIds, likePlace, unlikePlace, addPlaceToCourse, getPlace } from '../lib/api';
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
@@ -128,7 +128,7 @@ const SUB_REGIONS = {
 
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
-export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) {
+export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, onAddToCalendar }) {
   const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
   const [stayCategory, setStayCategory] = useState('all');
@@ -350,6 +350,22 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
     // 담기함 자체는 서버 저장 없이 로컬 state로만 유지하되, "담았다"는 의사표현 신호만 UserStyle
     // 실시간 갱신 엔진에 넘긴다(2026-08-22). 뺄 때는 호출 안 함 - 신호가 왜곡되지 않게.
     addPlaceToCourse(place.id).then(() => onStyleChanged?.()).catch(() => {});
+  };
+
+  // "캘린더에 담기"(2026-08-22) - 공연류는 실제 공연일을 알 수 있어 자동으로 채우고(상세 API를
+  // 한 번 더 불러야 함 - CurationPlaceDto엔 날짜가 없어서), 그 외 카테고리는 카테고리마다 날짜
+  // 유무 기준이 제각각이라 정확히 판단하기 어려우므로 그냥 비워두고 사용자가 직접 입력하게 한다.
+  const addToCalendar = async (place) => {
+    let targetDate = null;
+    if (place.parentCategory === '공연') {
+      try {
+        const detail = await getPlace(place.id);
+        targetDate = detail.startDate || null;
+      } catch {
+        // 상세 조회 실패해도 캘린더 프리필 자체는 계속 진행 - 날짜만 비워둔 채로.
+      }
+    }
+    onAddToCalendar?.({ title: place.name, targetDate });
   };
 
   // 담기함 목록에서 개별 항목을 뺄 때(2026-08-20, "잘못 담은 걸 삭제할 수 있어야 한다") 쓴다 -
@@ -908,18 +924,28 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); toggleBuilderItem(place); }}
-                        className="mt-4 w-full rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
-                        style={{
-                          background: inBuilder ? '#f3edef' : '#fff0f3',
-                          color: inBuilder ? '#846f78' : '#e8486b',
-                          border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
-                        }}
-                      >
-                        {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
-                      </button>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleBuilderItem(place); }}
+                          className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+                          style={{
+                            background: inBuilder ? '#f3edef' : '#fff0f3',
+                            color: inBuilder ? '#846f78' : '#e8486b',
+                            border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
+                          }}
+                        >
+                          {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); addToCalendar(place); }}
+                          className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+                          style={{ background: '#fff8ee', color: '#c98a3d', border: '1px solid #f3ddb8' }}
+                        >
+                          📅 캘린더에 담기
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
