@@ -5,7 +5,7 @@ import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, get
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
-import { DATE_CATEGORIES } from '../data/curationCategories';
+import { DATE_CATEGORIES, RESTAURANT_SUBCATEGORIES } from '../data/curationCategories';
 import { STAY_CATEGORIES, STAY_HERO } from '../data/stayData';
 import { PERSONA_AXES } from '../data/onboardingData';
 
@@ -131,6 +131,9 @@ const SUB_REGIONS = {
 export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, onAddToCalendar }) {
   const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
+  // 맛집 세부칩(2026-08-22) - STAY_CATEGORIES/stayCategory와 완전히 같은 패턴. 맛집이 아닌 다른
+  // 대분류로 넘어가면 의미가 없어지므로 dateCategory가 바뀌는 아래 effect에서 같이 초기화한다.
+  const [restaurantSubCategory, setRestaurantSubCategory] = useState('all');
   const [stayCategory, setStayCategory] = useState('all');
   // 지역 필터 - 빈 문자열이면 "전체 지역". 데이트/숙박 화면 둘 다 공유한다(2026-08-19).
   const [region, setRegion] = useState('');
@@ -164,6 +167,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
 
   const [categoryCounts, setCategoryCounts] = useState({});
   const [staySubCounts, setStaySubCounts] = useState({});
+  const [restaurantSubCounts, setRestaurantSubCounts] = useState({});
 
   // 위치 기반(거리순) 조회 여부 - 수동 토글 없이, 지역을 특정 안 골랐을 때(effectiveRegion === '')만
   // 자동으로 켜진다. 특정 지역을 고르면 이미 위치 개념과 충돌해서 무조건 꺼야 했고, 안 고르면 항상
@@ -248,12 +252,27 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
         setStaySubCounts({});
       }
     };
+    const loadRestaurantSubCounts = async () => {
+      try {
+        setRestaurantSubCounts(await getPlaceSubCategoryCounts('맛집', region, subRegion));
+      } catch {
+        setRestaurantSubCounts({});
+      }
+    };
     loadCategoryCounts();
     loadStaySubCounts();
+    loadRestaurantSubCounts();
   }, [region, subRegion]);
 
+  // 맛집이 아닌 다른 대분류로 바꾸면 세부칩 선택을 초기화한다(2026-08-22) - 안 그러면 예를 들어
+  // "캐주얼·브런치"를 고른 채로 "공연"으로 넘어갔다가 다시 "맛집"으로 돌아왔을 때 뜬금없이
+  // 그 세부칩이 계속 선택된 채로 남아있는다.
+  useEffect(() => {
+    if (dateCategory !== '맛집') setRestaurantSubCategory('all');
+  }, [dateCategory]);
+
   // 필터가 바뀌면 이전 필터 기준 페이지 번호가 더 이상 안 맞을 수 있어서 1페이지로 되돌린다(2026-08-19).
-  useEffect(() => { setDatePage(1); }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword]);
+  useEffect(() => { setDatePage(1); }, [dateCategory, restaurantSubCategory, useNearby, effectiveRegion, debouncedKeyword]);
   useEffect(() => { setStayPage(1); }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword]);
 
   useEffect(() => {
@@ -270,6 +289,8 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
       const categoryParam = selected
         ? selected.categories.join(',')
         : DATE_CATEGORIES.flatMap((item) => item.categories).join(',');
+      // 맛집 세부칩(2026-08-22) - 맛집을 고른 상태에서만 의미가 있어서 그 외엔 항상 빈 값.
+      const subCategoryParam = dateCategory === '맛집' && restaurantSubCategory !== 'all' ? restaurantSubCategory : '';
 
       try {
         let places;
@@ -277,11 +298,11 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
           // nearby API는 offset 페이징을 지원 안 해서(2026-08-19), 넉넉한 풀(PAGE_SIZE의 5배)을 한 번에
           // 받아온 다음 프론트에서 페이지 단위로 잘라 쓴다(홈탭 페이징과 같은 방식).
           const { lat, lon } = await getCurrentLocation();
-          const pool = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, limit: PAGE_SIZE * 5 });
+          const pool = await getNearbyCurationPlaces({ lat, lon, category: categoryParam, subCategory: subCategoryParam, region, district: subRegion, keyword: debouncedKeyword, limit: PAGE_SIZE * 5 });
           setDateTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
           places = pool.slice((datePage - 1) * PAGE_SIZE, datePage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, page: datePage, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, subCategory: subCategoryParam, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, page: datePage, size: PAGE_SIZE });
           setDateTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
@@ -297,7 +318,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
+  }, [dateCategory, restaurantSubCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
 
   useEffect(() => {
     let cancelled = false;
@@ -655,6 +676,32 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
                 );
               })}
             </div>
+
+            {/* 맛집 세부칩(2026-08-22, 기획안 3번 "성향 매치 배지" 대응) - 맛집을 골랐을 때만
+                한 단계 더 좁힐 수 있는 세부분류 칩. subRegion(구/시) 칩과 같은 알약형 스타일. */}
+            {dateCategory === '맛집' && (
+              <div className="relative z-10 mt-3 flex flex-wrap items-center gap-1.5">
+                {RESTAURANT_SUBCATEGORIES.map((item) => {
+                  const selected = restaurantSubCategory === item.id;
+                  const count = restaurantSubCounts[item.id] ?? 0;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setRestaurantSubCategory(selected ? 'all' : item.id)}
+                      className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+                      style={{
+                        background: selected ? item.color : 'white',
+                        color: selected ? 'white' : item.color,
+                        border: `1.5px solid ${item.color}55`,
+                      }}
+                    >
+                      {item.emoji} {item.label} <span style={{ opacity: 0.75 }}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           <section

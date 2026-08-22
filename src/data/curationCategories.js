@@ -29,6 +29,31 @@ export const DATE_CATEGORIES = [
   { id: '스포츠', emoji: '🏟️', label: '스포츠', color: '#3b82c4', background: '#eaf3fb', categories: ['스포츠'] },
 ];
 
+// 맛집 세부칩(2026-08-22) - STAY_CATEGORIES(숙박 세부칩)와 완전히 같은 패턴. 처음엔
+// PlaceCategoryLinker.KEYWORDS에 있는 4개만 보고 만들었는데, 실제 place_categories DB를 확인해보니
+// "맛집" 아래 14개 세부분류가 전부 있었다(식당(한식/중식/일식/양식/아시아음식/분식/뷔페/기타),
+// 카페(일반/브런치)까지) - 앞의 4개는 이름 키워드 매칭용이고, 나머지 10개는 TourAPI 등 다른
+// 소스가 직접 채워 넣은 것으로 보인다. 이모지는 place_categories.emoji 실측값 그대로 씀
+// (실측 건수: 식당(한식) 778, 카페(일반) 769, 식당(중식) 102, 식당(일식) 94, 식당(양식) 88,
+// 식당(기타) 98, 식당(뷔페) 27, 식당(분식) 54, 식당(아시아음식) 9, 캐주얼 맛집/브런치 11,
+// 카페(브런치) 7, 술집/포차/이자카야 5, 조용한 다이닝 1, 로컬 노포/전통시장 0).
+export const RESTAURANT_SUBCATEGORIES = [
+  { id: '식당(한식)', emoji: '🍚', label: '한식', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '카페(일반)', emoji: '☕', label: '카페', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '식당(중식)', emoji: '🥟', label: '중식', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '식당(일식)', emoji: '🍣', label: '일식', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '식당(양식)', emoji: '🍝', label: '양식', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '식당(기타)', emoji: '🍴', label: '기타 식당', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '식당(뷔페)', emoji: '🍱', label: '뷔페', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '식당(분식)', emoji: '🌭', label: '분식', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '식당(아시아음식)', emoji: '🍜', label: '아시아음식', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '캐주얼 맛집/브런치', emoji: '🥐', label: '캐주얼·브런치', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '카페(브런치)', emoji: '🥐', label: '브런치카페', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '술집/포차/이자카야', emoji: '🍻', label: '술집·포차·이자카야', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '조용한 다이닝(파인다이닝/오마카세)', emoji: '🍽️', label: '파인다이닝·오마카세', color: '#ff6b8a', background: '#fff0f3' },
+  { id: '로컬 노포/전통시장', emoji: '🍢', label: '로컬 노포', color: '#ff6b8a', background: '#fff0f3' },
+];
+
 // 홈탭 "내 주변" 칩용 - 데이트 8개 + 숙박 칩까지 다시 노출한다(2026-08-18). 숙박을 직접 선택했을 땐
 // 보여야 하니 칩 자체는 있어야 하고, 대신 "전체" 선택 시에는 HomeTab에서 숙박을 걸러낸다(6대 성향
 // 매칭과 안 맞아서 전체 추천에 섞이면 어색해서) - 칩 목록과 "전체" 기본 노출을 분리하는 방식.
