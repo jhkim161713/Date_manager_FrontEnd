@@ -64,7 +64,7 @@ export function PlaceDetailModal({ placeId, onClose }) {
               {place.imageUrl ? (
                 <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-5xl">📍</div>
+                <div className="w-full h-full flex items-center justify-center text-5xl">{place.emoji || '📍'}</div>
               )}
               <span className="absolute left-4 bottom-4 rounded-full px-3 py-1 text-xs font-bold text-white"
                 style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>

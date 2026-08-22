@@ -364,6 +364,13 @@ export function getPlaceCategoryCounts(region = '', district = '') {
 }
 
 // 숙박 탭처럼 대분류 하나를 세부분류 칩으로 한 번 더 쪼갤 때 쓰는 집계. { "호텔": 6501, ... } 형태.
+// 대분류 하나의 세부분류 목록(이름+이모지)을 DB 그대로 받아온다(2026-08-22) - 맛집 세부칩을
+// 프론트에 하드코딩했다가 실제 DB(14개)와 어긋났던 걸 겪어서, 모든 대분류의 세부칩을 이 API로
+// 항상 최신 상태로 그리도록 바꿨다. 반환 형태: [{subCategory, emoji}, ...]
+export function getPlaceSubCategoryCatalog(parent) {
+  return request(`/api/places/categories?parent=${encodeURIComponent(parent)}`);
+}
+
 export function getPlaceSubCategoryCounts(category, region = '', district = '') {
   const params = new URLSearchParams({ category });
   if (region) params.set('region', region);

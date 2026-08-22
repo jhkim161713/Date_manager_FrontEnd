@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '../components/Badge';
 import { SectionTitle } from '../components/SectionTitle';
-import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, getLikedPlaceIds, likePlace, unlikePlace, addPlaceToCourse, getPlace } from '../lib/api';
+import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, getPlaceSubCategoryCatalog, getLikedPlaceIds, likePlace, unlikePlace, addPlaceToCourse, getPlace } from '../lib/api';
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
-import { DATE_CATEGORIES, RESTAURANT_SUBCATEGORIES } from '../data/curationCategories';
+import { DATE_CATEGORIES } from '../data/curationCategories';
 import { STAY_CATEGORIES, STAY_HERO } from '../data/stayData';
 import { PERSONA_AXES } from '../data/onboardingData';
 
@@ -131,9 +131,12 @@ const SUB_REGIONS = {
 export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, onAddToCalendar }) {
   const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
-  // 맛집 세부칩(2026-08-22) - STAY_CATEGORIES/stayCategory와 완전히 같은 패턴. 맛집이 아닌 다른
-  // 대분류로 넘어가면 의미가 없어지므로 dateCategory가 바뀌는 아래 effect에서 같이 초기화한다.
-  const [restaurantSubCategory, setRestaurantSubCategory] = useState('all');
+  // 세부칩(2026-08-22, 처음엔 맛집만 하드코딩했다가 "전체 카테고리로 확장 + DB에서 직접
+  // 받아오자"는 요청으로 일반화함) - 선택된 dateCategory 하나의 세부분류 목록을 DB에서 그대로
+  // 받아와서 칩으로 그린다. dateCategory가 바뀌면 의미가 없어지므로 아래 effect에서 같이 초기화.
+  const [dateSubCategory, setDateSubCategory] = useState('all');
+  const [dateSubCatalog, setDateSubCatalog] = useState([]);
+  const [dateSubCounts, setDateSubCounts] = useState({});
   const [stayCategory, setStayCategory] = useState('all');
   // 지역 필터 - 빈 문자열이면 "전체 지역". 데이트/숙박 화면 둘 다 공유한다(2026-08-19).
   const [region, setRegion] = useState('');
@@ -167,7 +170,6 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
 
   const [categoryCounts, setCategoryCounts] = useState({});
   const [staySubCounts, setStaySubCounts] = useState({});
-  const [restaurantSubCounts, setRestaurantSubCounts] = useState({});
 
   // 위치 기반(거리순) 조회 여부 - 수동 토글 없이, 지역을 특정 안 골랐을 때(effectiveRegion === '')만
   // 자동으로 켜진다. 특정 지역을 고르면 이미 위치 개념과 충돌해서 무조건 꺼야 했고, 안 고르면 항상
@@ -252,27 +254,43 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
         setStaySubCounts({});
       }
     };
-    const loadRestaurantSubCounts = async () => {
-      try {
-        setRestaurantSubCounts(await getPlaceSubCategoryCounts('맛집', region, subRegion));
-      } catch {
-        setRestaurantSubCounts({});
-      }
-    };
     loadCategoryCounts();
     loadStaySubCounts();
-    loadRestaurantSubCounts();
   }, [region, subRegion]);
 
-  // 맛집이 아닌 다른 대분류로 바꾸면 세부칩 선택을 초기화한다(2026-08-22) - 안 그러면 예를 들어
-  // "캐주얼·브런치"를 고른 채로 "공연"으로 넘어갔다가 다시 "맛집"으로 돌아왔을 때 뜬금없이
-  // 그 세부칩이 계속 선택된 채로 남아있는다.
+  // 세부칩 목록+개수를 dateCategory가 바뀔 때마다 새로 받아온다(2026-08-22) - "전체"거나 세부분류가
+  // 없는 대분류(예: 스포츠는 4개뿐이라도 있지만, 혹시라도 0개인 대분류)면 그냥 빈 배열로 둬서
+  // 칩 자체가 안 뜨게 한다. dateCategory가 바뀌면 이전에 골라둔 세부칩 선택도 같이 초기화한다 -
+  // 안 그러면 예를 들어 "캐주얼·브런치"를 고른 채로 "공연"으로 넘어갔다가 다시 "맛집"으로 돌아왔을
+  // 때 뜬금없이 그 세부칩이 계속 선택된 채로 남아있는다.
   useEffect(() => {
-    if (dateCategory !== '맛집') setRestaurantSubCategory('all');
+    setDateSubCategory('all');
+    if (dateCategory === 'all') {
+      setDateSubCatalog([]);
+      setDateSubCounts({});
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      getPlaceSubCategoryCatalog(dateCategory).catch(() => []),
+      getPlaceSubCategoryCounts(dateCategory, region, subRegion).catch(() => ({})),
+    ]).then(([catalog, counts]) => {
+      if (cancelled) return;
+      setDateSubCatalog(catalog);
+      setDateSubCounts(counts);
+    });
+    return () => { cancelled = true; };
   }, [dateCategory]);
 
+  // 지역을 바꾸면 세부칩 개수도 그 지역 기준으로 다시 집계한다(카탈로그 자체는 지역과 무관해서
+  // 다시 안 받아온다).
+  useEffect(() => {
+    if (dateCategory === 'all') return;
+    getPlaceSubCategoryCounts(dateCategory, region, subRegion).then(setDateSubCounts).catch(() => setDateSubCounts({}));
+  }, [region, subRegion, dateCategory]);
+
   // 필터가 바뀌면 이전 필터 기준 페이지 번호가 더 이상 안 맞을 수 있어서 1페이지로 되돌린다(2026-08-19).
-  useEffect(() => { setDatePage(1); }, [dateCategory, restaurantSubCategory, useNearby, effectiveRegion, debouncedKeyword]);
+  useEffect(() => { setDatePage(1); }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword]);
   useEffect(() => { setStayPage(1); }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword]);
 
   useEffect(() => {
@@ -289,8 +307,8 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
       const categoryParam = selected
         ? selected.categories.join(',')
         : DATE_CATEGORIES.flatMap((item) => item.categories).join(',');
-      // 맛집 세부칩(2026-08-22) - 맛집을 고른 상태에서만 의미가 있어서 그 외엔 항상 빈 값.
-      const subCategoryParam = dateCategory === '맛집' && restaurantSubCategory !== 'all' ? restaurantSubCategory : '';
+      // 세부칩(2026-08-22) - 대분류를 하나 고른 상태에서만 의미가 있어서 그 외엔 항상 빈 값.
+      const subCategoryParam = dateCategory !== 'all' && dateSubCategory !== 'all' ? dateSubCategory : '';
 
       try {
         let places;
@@ -318,7 +336,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, restaurantSubCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
+  }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
 
   useEffect(() => {
     let cancelled = false;
@@ -677,26 +695,29 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
               })}
             </div>
 
-            {/* 맛집 세부칩(2026-08-22, 기획안 3번 "성향 매치 배지" 대응) - 맛집을 골랐을 때만
-                한 단계 더 좁힐 수 있는 세부분류 칩. subRegion(구/시) 칩과 같은 알약형 스타일. */}
-            {dateCategory === '맛집' && (
+            {/* 세부칩(2026-08-22, 기획안 3번 "성향 매치 배지" 대응) - 대분류를 하나 골랐을 때만
+                한 단계 더 좁힐 수 있는 세부분류 칩. 목록/이모지는 DB(place_categories)에서 그대로
+                받아오고(getPlaceSubCategoryCatalog), 처음에 맛집만 하드코딩했다가 실제 DB(14개)와
+                어긋났던 걸 겪고 나서 전체 대분류로 일반화했다. 색상은 선택된 대분류 칩과 통일. */}
+            {dateCategory !== 'all' && dateSubCatalog.length > 0 && (
               <div className="relative z-10 mt-3 flex flex-wrap items-center gap-1.5">
-                {RESTAURANT_SUBCATEGORIES.map((item) => {
-                  const selected = restaurantSubCategory === item.id;
-                  const count = restaurantSubCounts[item.id] ?? 0;
+                {dateSubCatalog.map((item) => {
+                  const selected = dateSubCategory === item.subCategory;
+                  const count = dateSubCounts[item.subCategory] ?? 0;
+                  const chipColor = DATE_CATEGORIES.find((c) => c.id === dateCategory)?.color ?? '#ff6b8a';
                   return (
                     <button
-                      key={item.id}
+                      key={item.subCategory}
                       type="button"
-                      onClick={() => setRestaurantSubCategory(selected ? 'all' : item.id)}
+                      onClick={() => setDateSubCategory(selected ? 'all' : item.subCategory)}
                       className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
                       style={{
-                        background: selected ? item.color : 'white',
-                        color: selected ? 'white' : item.color,
-                        border: `1.5px solid ${item.color}55`,
+                        background: selected ? chipColor : 'white',
+                        color: selected ? 'white' : chipColor,
+                        border: `1.5px solid ${chipColor}55`,
                       }}
                     >
-                      {item.emoji} {item.label} <span style={{ opacity: 0.75 }}>{count}</span>
+                      {item.emoji} {item.subCategory} <span style={{ opacity: 0.75 }}>{count}</span>
                     </button>
                   );
                 })}

@@ -382,7 +382,9 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
                     <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-3xl">
-                      {kind === 'popular' ? '🎭' : '📍'}
+                      {/* 세부분류 이모지(2026-08-22) - 백엔드 PlaceResponseDto에 emoji 필드 추가,
+                          없으면(세부분류 미연결 장소) 예전처럼 공연은 🎭, 그 외는 📍로 폴백. */}
+                      {place.emoji || (kind === 'popular' ? '🎭' : '📍')}
                     </div>
                   )}
                   <div className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold text-white"
