@@ -160,6 +160,15 @@ export default function App() {
     }
   }, []);
 
+  // 좋아요/코스담기/장소열람/AI챗 언급으로 백엔드 성향값이 실시간으로 바뀌어도, personaProfile은
+  // 로그인 시 한 번만 불러온 값이라 화면(상단 성향 게이지 등)엔 반영이 안 됐다(2026-08-22, 실제
+  // 테스트로 확인됨 - 백엔드는 정상 갱신되는데 화면만 그대로였음). 이 신호를 트리거하는 액션이
+  // 끝난 뒤 호출해서 다시 불러오게 한다. 목업 로그인은 실제 스타일 데이터가 없어 건너뛴다.
+  const refreshPersonaProfile = useCallback(() => {
+    if (getMockUser()) return;
+    getMyStyle().then((style) => { if (style) setPersonaProfile(style); }).catch(() => {});
+  }, []);
+
   // 관리자 로그인 시 이 페이지는 onAuthed()를 호출하지 않은 채(user=null인 상태로)
   // /admin으로 이동한다. 그 뒤 브라우저 뒤로가기를 누르면 bfcache가 그 당시의 user=null
   // 스냅샷을 그대로 복원해서 실제로는 로그인돼 있는데도 로그아웃된 것처럼 보인다.
@@ -564,9 +573,9 @@ export default function App() {
               </div>
             ) : (
               <>
-                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} />}
+                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
-                {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} />}
+                {tab === 'curiation' && <CuriationTab personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
                 {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} />}

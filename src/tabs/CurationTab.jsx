@@ -127,7 +127,7 @@ const SUB_REGIONS = {
 
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
-export function CuriationTab({ onOpenBuilder, personaProfile }) {
+export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) {
   const [curationView, setCurationView] = useState('date');
   const [dateCategory, setDateCategory] = useState('all');
   const [stayCategory, setStayCategory] = useState('all');
@@ -337,7 +337,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     showFeedback('코스 빌더 후보에 담았어요');
     // 담기함 자체는 서버 저장 없이 로컬 state로만 유지하되, "담았다"는 의사표현 신호만 UserStyle
     // 실시간 갱신 엔진에 넘긴다(2026-08-22). 뺄 때는 호출 안 함 - 신호가 왜곡되지 않게.
-    addPlaceToCourse(place.id).catch(() => {});
+    addPlaceToCourse(place.id).then(() => onStyleChanged?.()).catch(() => {});
   };
 
   // 담기함 목록에서 개별 항목을 뺄 때(2026-08-20, "잘못 담은 걸 삭제할 수 있어야 한다") 쓴다 -
@@ -355,7 +355,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
     ));
     // 찜 목록도 담기함과 동일하게 로컬 state만 유지하고, 좋아요를 누르는 순간의 신호만
     // UserStyle 실시간 갱신 엔진에 넘긴다(2026-08-22). 찜 해제 시에는 호출 안 함.
-    if (isAdding) likePlace(placeId).catch(() => {});
+    if (isAdding) likePlace(placeId).then(() => onStyleChanged?.()).catch(() => {});
   };
 
   const toggleStayLike = (placeId) => {
@@ -365,7 +365,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile }) {
         ? current.filter((id) => id !== placeId)
         : [...current, placeId]
     ));
-    if (isAdding) likePlace(placeId).catch(() => {});
+    if (isAdding) likePlace(placeId).then(() => onStyleChanged?.()).catch(() => {});
   };
 
   const sendToBuilder = () => {

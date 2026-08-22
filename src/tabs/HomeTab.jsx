@@ -31,7 +31,7 @@ const AXIS_TO_PLACE_SCORE = {
 // 일치"로 잘못 뜬다(2026-08-20, CurationTab.jsx의 pickMatchingAxes와 동일 원칙).
 const isNeutralPlaceScore = (score) => score == null || score === 50;
 
-export function HomeTab({ onTabChange, personaProfile }) {
+export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
   // 배너 문구를 실제 커플 연결 상태에 따라 다르게 보여준다 - 예전엔 목업 커플타입(TENDENCY_TYPES)과
   // 가짜 코스 개수(ALL_CARDS.length)를 썼는데, 실제 데이터 기반으로 교체(2026-08-13).
   const [coupleLinked, setCoupleLinked] = useState(false);
@@ -59,7 +59,7 @@ export function HomeTab({ onTabChange, personaProfile }) {
     setLikedIds((current) => (
       current.includes(placeId) ? current.filter((id) => id !== placeId) : [...current, placeId]
     ));
-    if (isAdding) likePlace(placeId).catch(() => {});
+    if (isAdding) likePlace(placeId).then(() => onStyleChanged?.()).catch(() => {});
   };
 
   // 성향 기반 추천 장소: 유저 성향(personaProfile, 실제 백엔드 데이터)은 그대로 두고, 매칭할 장소만 실제
