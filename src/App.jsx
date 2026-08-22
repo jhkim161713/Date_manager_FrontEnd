@@ -570,7 +570,7 @@ export default function App() {
                 {tab === 'builder' && <BuilderTab />}
                 {tab === 'calendar' && <CalendarTab />}
                 {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} />}
-                {tab === 'board' && <BoardTab />}
+                {tab === 'board' && <BoardTab user={user} />}
                 {tab === 'mypage' && (
                   <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
                     onWithdrawn={() => { handleLogout(); changeTab('home', false); }} />
