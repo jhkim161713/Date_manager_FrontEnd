@@ -17,14 +17,17 @@ function formatDate(d) {
 export function MiniCalendar() {
   const [open, setOpen] = useState(true);
   const [events, setEvents] = useState([]);
+  // 달력 그리드가 보고 있는 달(월 이동 가능) - 2026-08-22 추가. "오늘"과 분리해서, 사용자가
+  // 다음/이전 달로 넘겨도 아래 todayDate/todayKey 계산은 항상 실제 오늘 기준을 유지한다.
+  const [viewDate, setViewDate] = useState(new Date());
 
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
   const todayDate = now.getDate();
   const firstDay = new Date(year, month, 1).getDay();
   const lastDaysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthLabel = now.toLocaleDateString('ko-KR', { month: 'long' });
+  const monthLabel = viewDate.toLocaleDateString('ko-KR', { month: 'long' });
   const cells = Array.from({ length: firstDay + lastDaysInMonth }, (_, i) =>
     i < firstDay ? null : i - firstDay + 1
   );
@@ -42,9 +45,19 @@ export function MiniCalendar() {
     eventsByDate[e.targetDate].push(e);
   });
 
-  // "다가오는 일정" - 오늘 이후(오늘 포함) 일정만, 날짜 오름차순으로 최대 3개.
+  // "다가오는 일정" - 그리드가 보여주는 달(viewDate)과 무관하게 항상 실제 오늘 이후 일정을
+  // 보여줘야 해서(2026-08-22, 달을 넘겨도 다음 일정이 계속 보이게), 그리드용 events와는
+  // 별도로 오늘부터 60일 범위를 따로 조회한다.
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  useEffect(() => {
+    const start = formatDate(now);
+    const rangeEnd = new Date(now);
+    rangeEnd.setDate(rangeEnd.getDate() + 60);
+    getCalendars(start, formatDate(rangeEnd)).then(setUpcomingEvents).catch(() => setUpcomingEvents([]));
+  }, []);
+
   const todayKey = formatDate(now);
-  const upcoming = events
+  const upcoming = upcomingEvents
     .filter((e) => e.targetDate >= todayKey)
     .sort((a, b) => a.targetDate.localeCompare(b.targetDate))
     .slice(0, 3);
@@ -74,7 +87,9 @@ export function MiniCalendar() {
           {/*헤더 문구 */}
           <div className="flex-1 text-left">
             <p className="text-xs font-bold text-white leading-none">데이트 캘린더</p>
-            <p className="text-[9px] text-white/70 mt-0.5">이번 달 일정 {events.length}개</p>
+            {/* 2026-08-22 - 월 이동이 생기면서 "이번 달"이 항상 맞는 표현이 아니게 돼서, 지금
+                보고 있는 달 기준으로 바꿈. */}
+            <p className="text-[9px] text-white/70 mt-0.5">{month + 1}월 일정 {events.length}개</p>
           </div>
 
           {/* 옆에 있는 △ */}
@@ -86,10 +101,14 @@ export function MiniCalendar() {
       {open && (
         <div className="mt-1.5 rounded-2xl overflow-hidden" style={{ border: '1.5px solid #ffd6e0' }}>
 
-          {/* 달력 헤더 부분 */}
+          {/* 달력 헤더 부분 - 월 이동 버튼 추가(2026-08-22) */}
           <div className="px-3 py-2 flex items-center justify-between"
             style={{ background: 'linear-gradient(90deg, #fff0f3, #f5eef9)' }}>
+            <button type="button" onClick={() => setViewDate(new Date(year, month - 1, 1))}
+              className="text-xs font-bold px-1" style={{ color: '#c4a0e8' }}>◁</button>
             <span className="text-xs font-bold" style={{ color: '#3d2c35' }}>{year}년 {monthLabel}</span>
+            <button type="button" onClick={() => setViewDate(new Date(year, month + 1, 1))}
+              className="text-xs font-bold px-1" style={{ color: '#c4a0e8' }}>▷</button>
           </div>
 
           {/* 일수 표기 칸 설정*/}
@@ -108,7 +127,9 @@ export function MiniCalendar() {
                 if (!day) return <div key={i}/>;
                 const key = formatDate(new Date(year, month, day));
                 const hasEvent = !!eventsByDate[key];
-                const isToday = day === todayDate;
+                // 2026-08-22 - 예전엔 day === todayDate만 체크해서, 월 이동 후 다른 달에서도
+                // 오늘과 "일"만 같으면(예: 지난달 22일) 오늘로 잘못 표시됐다. 연/월까지 같이 확인.
+                const isToday = day === todayDate && year === now.getFullYear() && month === now.getMonth();
 
                 return (
                   <div key={i} className="flex flex-col items-center">
