@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '../components/Badge';
 import { SectionTitle } from '../components/SectionTitle';
 import { getCurationPlaces, getNearbyCurationPlaces, getPlaceCategoryCounts, getPlaceSubCategoryCounts, getLikedPlaceIds, likePlace, unlikePlace, addPlaceToCourse } from '../lib/api';
+import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY, CURATION_CART_STORAGE_KEY } from '../data/curationData';
 import { DATE_CATEGORIES } from '../data/curationCategories';
@@ -194,6 +195,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
   const [likedItemIds, setLikedItemIds] = useState([]);
   const [likedStayIds, setLikedStayIds] = useState([]);
   const [feedback, setFeedback] = useState('');
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
 
   // 2026-08-22 - 좋아요가 이제 서버(place_likes)에 실제로 저장돼서, 탭을 처음 열 때 저장된
   // 찜 목록을 불러와 두 리스트(데이트/숙박)에 그대로 채운다 - 카테고리가 겹치지 않아 한쪽에
@@ -827,7 +829,8 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
                 return (
                   <article
                     key={place.id}
-                    className="group overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
+                    onClick={() => setSelectedPlaceId(place.id)}
+                    className="group cursor-pointer overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
                     style={{ border: '1.5px solid #f0dce2', boxShadow: '0 5px 18px rgba(89, 58, 70, 0.06)' }}
                   >
                     <div className="relative h-40 overflow-hidden bg-rose-50">
@@ -850,7 +853,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
                       )}
                       <button
                         type="button"
-                        onClick={() => toggleLike(place.id)}
+                        onClick={(e) => { e.stopPropagation(); toggleLike(place.id); }}
                         className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm transition-transform hover:scale-110"
                         style={{ color: liked ? '#e8486b' : '#a9979e' }}
                         aria-label={`${place.name} 찜하기`}
@@ -907,7 +910,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
 
                       <button
                         type="button"
-                        onClick={() => toggleBuilderItem(place)}
+                        onClick={(e) => { e.stopPropagation(); toggleBuilderItem(place); }}
                         className="mt-4 w-full rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
                         style={{
                           background: inBuilder ? '#f3edef' : '#fff0f3',
@@ -1116,6 +1119,10 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged }) 
       >
         ✓ {feedback}
       </div>
+
+      {selectedPlaceId && (
+        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)} />
+      )}
     </div>
   );
 }

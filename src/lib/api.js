@@ -382,6 +382,12 @@ export function getNearbyPlaces(lat, lon, limit = 300, category = '') {
 // 좋아요 - place_likes 테이블에 실제로 저장/삭제된다(2026-08-22, 처음엔 신호만 보내고 저장은
 // 안 했는데 새로고침하면 다 꺼져서 실제 찜 기능으로 못 썼다. 진짜 좋아요로 바꿈). 새로 좋아요를
 // 누른 순간에만 백엔드가 UserStyle 실시간 갱신 엔진도 같이 트리거한다(뺄 땐 안 건드림).
+// 장소 상세 - 홈/큐레이션 카드를 클릭하면 이 API로 상세 정보를 불러온다(2026-08-22). 백엔드가
+// 로그인 유저의 이 호출 자체를 "장소 열람"(약한 신호)으로 UserStyle 실시간 갱신에도 반영한다.
+export function getPlace(placeId) {
+  return request(`/api/places/${placeId}`);
+}
+
 export function getLikedPlaceIds() {
   return request('/api/places/likes');
 }

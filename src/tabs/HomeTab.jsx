@@ -4,6 +4,7 @@ import { Badge } from '../components/Badge';
 import { PERSONA_AXES } from '../data/onboardingData';
 import { useWeather } from '../hooks/useWeather';
 import { getCoupleStatus, getNearbyPlaces, getLikedPlaceIds, likePlace, unlikePlace } from '../lib/api';
+import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { getCurrentLocation } from '../lib/weather';
 import { HOME_CATEGORIES } from '../data/curationCategories';
 
@@ -64,6 +65,10 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
     const call = isAdding ? likePlace(placeId) : unlikePlace(placeId);
     call.then(() => { if (isAdding) onStyleChanged?.(); }).catch(() => {});
   };
+
+  // 2026-08-22 - 카드를 클릭하면 큐레이션 탭으로 넘기기만 하던 걸(사실상 아무 정보도 안 보여줌),
+  // 상세 모달을 바로 띄우도록 바꿨다.
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
 
   // 성향 기반 추천 장소: 유저 성향(personaProfile, 실제 백엔드 데이터)은 그대로 두고, 매칭할 장소만 실제
   // 백엔드에서 접속 좌표 기준으로 가까운 순 300건을 가져온다(거리 계산은 백엔드가 SQL로 처리,
@@ -369,7 +374,7 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
               ? `📍 ${place.address}`
               : (kind === 'axis' ? `${entry.axis.koreanLabel} 성향에 맞는 장소` : '지금 인기 있는 공연이에요');
             return (
-              <div key={`${kind}-${place.id}`} onClick={() => onTabChange('curiation')}
+              <div key={`${kind}-${place.id}`} onClick={() => setSelectedPlaceId(place.id)}
                 className="rounded-3xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform bg-white flex flex-col shadow-sm"
                 style={{ border: '1.5px solid #ffd6e0', minHeight: '230px' }}>
                 <div className="relative overflow-hidden bg-pink-100 flex-shrink-0" style={{ height: '170px' }}>
@@ -434,6 +439,10 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
           </div>
         )}
       </div>
+
+      {selectedPlaceId && (
+        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)} />
+      )}
     </div>
   );
 }
