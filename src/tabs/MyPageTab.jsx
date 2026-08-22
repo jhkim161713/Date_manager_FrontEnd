@@ -539,7 +539,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
             <p className="text-sm text-center py-4 text-stone-400">테스트 계정은 구독 정보를 사용할 수 없어요</p>
           ) : subscription === null ? (
             <p className="text-xs text-stone-400 text-center py-3">불러오는 중...</p>
-          ) : !subscription.hasSubscription ? (
+          ) : subscription.id == null ? (
             <p className="text-sm text-center py-4" style={{ color: '#3d2c35' }}>
               구독 중이 아니에요<br />
               <span className="text-xs text-stone-400">상단의 💳 구독 메뉴에서 가입할 수 있어요</span>

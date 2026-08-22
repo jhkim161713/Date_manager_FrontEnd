@@ -521,7 +521,7 @@ export default function App() {
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
                   💳 <span className="app-profile-secondary-label">
-                    {subscriptionStatus?.hasSubscription && subscriptionStatus?.status === 'ACTIVE' ? '구독중' : '구독하기'}
+                    {subscriptionStatus?.id != null && subscriptionStatus?.status === 'ACTIVE' ? '구독중' : '구독하기'}
                   </span>
                 </button>
                 <div className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5"
