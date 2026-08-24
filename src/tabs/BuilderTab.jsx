@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 
 import { COURSE_GROUP_DATA } from "../data/courseGroupData"
 import { CourseDetail } from "../components/builder/CourseDetail"
-import axios, { Axios } from "axios"
+import axios from "axios"
 import { getToken } from "../lib/api"
 import { BUILDER_STORAGE_KEY } from "../data/curationData"
 
@@ -63,7 +63,7 @@ export function BuilderTab() {
     }
     getCourseGroups();
     
-  }, [])
+  }, [data])
 
   const showGroupItems = (index) => {
     const detail = data[index]
@@ -127,7 +127,7 @@ export function BuilderTab() {
       {builderQueue.length === 0 ? (<div>
         
         <h2> 담은 코스가 없어요 큐레이션 탭에서 코스를 담아보세요!</h2>
-        <img src="https://i.namu.wiki/i/kBUfGXHS-ZotYqGvAqgc3hEH71nX4WO9KSZJtWk3afJnGlCz70Kv2fC4I8GMI5nbYXnJY1Mhj07Ms6vAhQz4kSFRhU74cUkrfJSMvZ7Y2Fp3d_jpeisSqVExP-ICIXc8xCvCFhDhqzpleKOr2n_mIg.webp" style={{width:"50px", height:'50px'}}/>
+      
         </div>
       ) : (
         <>
@@ -190,7 +190,7 @@ export function BuilderTab() {
         </div>
       </div>
 
-      {/* <img style={{width: '100%',height: '450px'}}/> */}
+      
 
       {/* 상세보기 영역 */}
       {showDetail &&

@@ -17,8 +17,7 @@ export function CourseDetail ({props}){
         }))
         setPosition(pathes[0])
         setPaths(pathes)
-        
-    },[])
+    },[showDetail])
    
 
     return (
