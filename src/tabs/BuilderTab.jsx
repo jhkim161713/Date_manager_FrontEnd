@@ -114,20 +114,45 @@ export function BuilderTab() {
     }
   }
 
+  // 코스 상세보기에서 장소 순서를 위/아래로 한 칸 옮긴다.
+  const handleMoveCourseItem = async (groupId, placeId, direction) => {
+    try {
+      const token = getToken();
+      await axios.patch(
+        `${API_BASE_URL}/api/course/groups/${groupId}/items/${placeId}/move`,
+        { direction },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const response = await axios.get(`${API_BASE_URL}/api/course/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData(response.data);
+      setShowDetail(response.data.find((group) => group.id === groupId) ?? null);
+    } catch (error) {
+      console.error("순서 변경 실패:", error);
+      alert("순서 변경 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <div className="space-y-8 p-6 bg-rose-50/40 min-h-screen text-slate-700">
       {/* 메인 타이틀 영역 */}
       <div className="border-b border-rose-100 pb-4">
-        <h2 className="text-2xl font-black text-rose-500 tracking-tight flex items-center gap-2">
-          ✨ 데이트 코스 빌더
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-extrabold text-rose-500">
+          ✨ COURSE BUILDER
+        </span>
+        <h2 className="font-display mt-2 text-3xl font-bold leading-[1.25] text-rose-500 tracking-tight">
+          데이트 코스 빌더
         </h2>
-        <p className="text-xs text-rose-300 font-medium mt-1">나만의 달콤한 하루를 완성해보세요</p>
+        <p className="mt-1 text-xs text-rose-300 font-medium">나만의 달콤한 하루를 완성해보세요</p>
       </div>
-      {builderQueue.length === 0 ? (<div>
-        
+      {builderQueue.length === 0 ? (
+        data.length === 0 && (<div>
+
         <h2> 담은 코스가 없어요 큐레이션 탭에서 코스를 담아보세요!</h2>
-      
-        </div>
+
+        </div>)
       ) : (
         <>
           {builderQueue.map((queue) => (
@@ -194,7 +219,7 @@ export function BuilderTab() {
       {/* 상세보기 영역 */}
       {showDetail &&
         <CourseDetail
-          props={{ showDetail }}
+          props={{ showDetail, onMoveItem: handleMoveCourseItem }}
         />}
 
 

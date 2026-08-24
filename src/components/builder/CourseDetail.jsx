@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 
 export function CourseDetail ({props}){
-    const {showDetail} = props
+    const {showDetail, onMoveItem} = props
     const [position,setPosition] =useState({})
     const [paths,setPaths] = useState([]);
     const [distances,setDistances] = useState([]);
@@ -80,18 +80,46 @@ export function CourseDetail ({props}){
 
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation(); // 부모 div의 클릭 이벤트 전파 방지
-                      window.alert("공사중이에요")
-                    }}
-                    className="px-3 py-1.5 text-xs font-semibold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors shrink-0 cursor-pointer"
-                    
-                  >
-                    자세히 보기
-                  </button>
-                  
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {index > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveItem?.(showDetail.id, place.id, "up");
+                        }}
+                        className="w-7 h-7 flex items-center justify-center text-xs font-bold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
+                        aria-label="위로 이동"
+                      >
+                        ▲
+                      </button>
+                    )}
+                    {index < showDetail.places.length - 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveItem?.(showDetail.id, place.id, "down");
+                        }}
+                        className="w-7 h-7 flex items-center justify-center text-xs font-bold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
+                        aria-label="아래로 이동"
+                      >
+                        ▼
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation(); // 부모 div의 클릭 이벤트 전파 방지
+                        window.alert("공사중이에요")
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
+
+                    >
+                      자세히 보기
+                    </button>
+                  </div>
+
                 </div>
                 
               ))}
