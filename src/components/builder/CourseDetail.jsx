@@ -12,13 +12,12 @@ export function CourseDetail ({props}){
 
     useEffect(()=>{
         const pathes = showDetail.places.map(place=>({
-            lat:place.lat,
-            lng:place.lng
+            lat:place.latitude,
+            lng:place.longitude
         }))
         setPosition(pathes[0])
         setPaths(pathes)
-        
-    },[])
+    },[showDetail])
    
 
     return (
@@ -33,7 +32,7 @@ export function CourseDetail ({props}){
 
           <div className="bg-rose-50/50 p-4 rounded-2xl border border-rose-100/50 space-y-1">
             <p className="text-lg font-bold text-slate-800">{showDetail.title}</p>
-            <p className="text-sm text-rose-400 font-medium">{showDetail.subtitle}</p>
+            
           </div>
 
           {/* 카카오 지도 박스 */}
@@ -67,12 +66,12 @@ export function CourseDetail ({props}){
             <div className="space-y-2.5">
               {showDetail.places.map((place, index) => (
                 <div
-                  key={place.step}
+                  key={place.sequence}
                   className="p-4 rounded-2xl bg-white border border-pink-100/80 hover:border-pink-300 transition-colors flex items-center justify-between shadow-xs"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-7 h-7 rounded-full bg-pink-100 text-pink-500 font-extrabold text-xs flex items-center justify-center shrink-0">
-                      {place.step}
+                      {place.sequence}
                     </span>
                     <div>
                       <h1 className="text-sm font-bold text-slate-800">{place.name}</h1>
@@ -85,7 +84,7 @@ export function CourseDetail ({props}){
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation(); // 부모 div의 클릭 이벤트 전파 방지
-                      
+                      window.alert("공사중이에요")
                     }}
                     className="px-3 py-1.5 text-xs font-semibold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors shrink-0 cursor-pointer"
                     
