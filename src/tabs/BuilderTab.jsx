@@ -5,7 +5,7 @@ import { CourseDetail } from "../components/builder/CourseDetail"
 import axios from "axios"
 import { getToken } from "../lib/api"
 import { BUILDER_STORAGE_KEY } from "../data/curationData"
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export function BuilderTab() {
 
@@ -51,7 +51,7 @@ export function BuilderTab() {
       try{
         const token = getToken();
 
-        const response = await axios.get('http://localhost:8080/api/course/groups',{
+        const response = await axios.get(`${API_BASE_URL}/api/course/groups`,{
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -90,10 +90,9 @@ export function BuilderTab() {
       return;
     }
     try {
-      // 3. 백엔드로 API 요청
       const token = getToken();
       await axios.post(
-        'http://localhost:8080/api/course/group',
+        `${API_BASE_URL}/api/course/groups`,
         {
           title: courseTitle,
           placeIds: builderQueue.map((item) => item.sourceId)
