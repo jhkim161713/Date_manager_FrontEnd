@@ -16,6 +16,12 @@ const GENDER_OPTIONS = [
   { value: 'FEMALE', label: '여성' },
 ];
 
+// 네이버 로그인은 네이버 개발자센터 심사(추가인증)를 통과해 "서비스 중" 상태가 되기 전까지는
+// 앱 등록 시 지정해둔 테스트 계정으로만 로그인이 된다 - 코드 문제가 아니라 심사 승인 여부에
+// 달린 문제일 수 있다. 팀원 확인 결과 정상 동작하지 않는다고 판단되면 이 값만 false로 바꾸면
+// 바로 "준비중입니다" 안내로 전환된다(백엔드 OAuth 설정은 그대로 둔 채 버튼만 막는 방식).
+const NAVER_LOGIN_ENABLED = false;
+
 // 로그인/회원가입을 한 모달 안에서 mode로 전환한다. 페이지 이동(window.location) 없이
 // 화면만 바뀌므로 회원가입 쪽 캐러셀(SignupCarousel)도 그대로 재사용한다.
 export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }) {
@@ -112,6 +118,10 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
   // 로그인이든 회원가입이든 같은 OAuth2 흐름이라 버튼 동작은 동일하다.
   const SOCIAL_LOGIN_URLS = { google: googleLoginUrl, kakao: kakaoLoginUrl, naver: naverLoginUrl };
   const handleSocialLogin = (provider) => {
+    if (provider === 'naver' && !NAVER_LOGIN_ENABLED) {
+      window.alert('네이버 로그인은 현재 준비중입니다');
+      return;
+    }
     setError(null);
     setLoading(provider);
     window.location.href = SOCIAL_LOGIN_URLS[provider]();
