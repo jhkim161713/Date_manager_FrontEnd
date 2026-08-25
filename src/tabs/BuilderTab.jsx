@@ -135,6 +135,22 @@ export function BuilderTab() {
     }
   };
 
+  // 등록한 코스 삭제(2026-08-25 추가) - 게시판 글 삭제(handleDelete)와 같은 패턴.
+  const handleDeleteCourseGroup = async (groupId) => {
+    if (!window.confirm("이 코스를 삭제할까요?")) return;
+    try {
+      const token = getToken();
+      await axios.delete(`${API_BASE_URL}/api/course/groups/${groupId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData((current) => current.filter((group) => group.id !== groupId));
+      setShowDetail(null);
+    } catch (error) {
+      console.error("코스 삭제 실패:", error);
+      alert("코스 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     // 다른 탭들은 전부 배경/패딩 없는 얇은 래퍼(space-y-*)만 쓰는데, 여기만 p-6 + 배경 박스 +
     // min-h-screen이 씌워져 있어서 헤더 상하좌우 여백이 유독 넓어 보였다(2026-08-25 발견) -
@@ -216,7 +232,7 @@ export function BuilderTab() {
       {/* 상세보기 영역 */}
       {showDetail &&
         <CourseDetail
-          props={{ showDetail, onMoveItem: handleMoveCourseItem }}
+          props={{ showDetail, onMoveItem: handleMoveCourseItem, onDeleteGroup: handleDeleteCourseGroup }}
         />}
 
 
