@@ -2,6 +2,7 @@ node_modules
 dist
 .env
 .env.local
+.env.android.local
 TEAM_SECRETS_TO_SHARE.md
 
 # Android / Capacitor

@@ -71,6 +71,11 @@ export function useBuilderCart({ onStyleChanged, onOpenBuilder, showFeedback }) 
         detail: builderQueue,
       }));
       showFeedback(`코스 빌더용으로 ${builderQueue.length}곳을 저장했어요`);
+      // 빌더로 넘겼으면 큐레이션 쪽 담기함은 비워야 한다 - 안 비우면 다시 큐레이션 탭에
+      // 돌아왔을 때 이미 보낸 장소들이 "코스 후보 N곳을 골랐어요"로 계속 남아있어서
+      // 보낸 적 없는 것처럼 보인다(2026-08-25 발견).
+      setBuilderItems([]);
+      setShowCart(false);
       onOpenBuilder?.(builderQueue);
     } catch {
       showFeedback('장소를 저장하지 못했어요. 다시 시도해 주세요');

@@ -54,10 +54,28 @@ export function BoardTab({ user }) {
     try {
       const post = await getBoardPost(postId); // 상세 조회할 때마다 백엔드가 조회수를 1 올려준다
       setSelected(post);
+      // App.jsx의 탭 전환 history 패턴과 동일하게, 상세보기도 history 엔트리를 하나 쌓는다 -
+      // 이게 없으면 뒤로가기를 눌렀을 때 게시판 목록이 아니라 게시판 탭 진입 이전(다른 탭)으로
+      // 바로 튕겨나간다(2026-08-25 발견).
+      window.history.pushState({ tab: 'board', boardPostId: postId }, '', '#board');
     } catch (err) {
       setDetailError(err.message);
     }
   };
+
+  // 상세보기 중 뒤로가기(popstate)를 누르면 목록으로 돌아온다. boardPostId가 없는 상태로
+  // 돌아왔다는 건 방금 쌓은 상세보기 엔트리를 지나쳐 왔다는 뜻이다.
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (!event.state?.boardPostId) {
+        setSelected(null);
+        setEditing(false);
+        setReporting(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -126,7 +144,7 @@ export function BoardTab({ user }) {
     const isMine = user?.id != null && selected.authorId === user.id;
     return (
       <div className="max-w-2xl">
-        <button onClick={() => { setSelected(null); setEditing(false); setReporting(false); }}
+        <button onClick={() => window.history.back()}
           className="text-xs font-bold mb-3" style={{ color: '#a08b94' }}>
           ← 목록으로
         </button>
