@@ -37,7 +37,8 @@ export function MiniCalendar() {
     const end = formatDate(new Date(year, month + 1, 0));
     // 배열이 아닌 값이 오면(서버 재시작 중 빈 응답 등) 그대로 넣지 않는다 - 아래 events.forEach가
     // null/undefined에서 터지는 걸 막기 위한 방어.
-    getCalendars(start, end).then((data) => setEvents(Array.isArray(data) ? data : [])).catch(() => setEvents([]));
+    getCalendars(start, end).then((data) => setEvents(Array.isArray(data) ? data : []))
+      .catch((e) => { console.error('미니 캘린더 일정 조회 실패:', e); setEvents([]); });
   };
   useEffect(fetchGridEvents, [year, month]);
 
@@ -56,7 +57,8 @@ export function MiniCalendar() {
     const start = formatDate(now);
     const rangeEnd = new Date(now);
     rangeEnd.setDate(rangeEnd.getDate() + 60);
-    getCalendars(start, formatDate(rangeEnd)).then((data) => setUpcomingEvents(Array.isArray(data) ? data : [])).catch(() => setUpcomingEvents([]));
+    getCalendars(start, formatDate(rangeEnd)).then((data) => setUpcomingEvents(Array.isArray(data) ? data : []))
+      .catch((e) => { console.error('미니 캘린더 다가오는 일정 조회 실패:', e); setUpcomingEvents([]); });
   };
   useEffect(fetchUpcomingEvents, []);
 
