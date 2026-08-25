@@ -144,6 +144,9 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  // 대화 중 성향값이 실시간으로 갱신됐을 때 잠깐 보여주는 안내(2026-08-25) - 예전엔 게이지만
+  // 조용히 바뀌고 사용자는 왜 바뀌었는지 전혀 알 수 없었다.
+  const [styleUpdateNotice, setStyleUpdateNotice] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [historyList, setHistoryList] = useState([]);
   const [historyPage, setHistoryPage] = useState(1);
@@ -288,6 +291,10 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
       // 백엔드가 메시지 분석(analyzeMessage)을 응답 생성 전에 동기로 끝내기 때문에, 이 시점엔
       // 성향값이 언급됐다면 이미 반영이 끝난 상태다 - 게이지도 같이 새로고침한다(2026-08-22).
       onStyleChanged?.();
+      if (aiMessage.updatedStyleAxes?.length) {
+        setStyleUpdateNotice(`${aiMessage.updatedStyleAxes.join(', ')} 성향이 이 대화를 참고해 업데이트됐어요`);
+        window.setTimeout(() => setStyleUpdateNotice(null), 4000);
+      }
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -317,6 +324,13 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
           </button>
         </div>
       </header>
+
+      {styleUpdateNotice && (
+        <div className="rounded-2xl px-4 py-2.5 text-xs font-bold animate-in fade-in"
+          style={{ background: coach.assistantBubble, color: coach.accentStrong, border: `1px solid ${coach.border}` }}>
+          ✨ {styleUpdateNotice}
+        </div>
+      )}
 
       <div
         className="mx-auto grid w-full max-w-[1440px] overflow-hidden rounded-[28px] p-3 lg:h-[calc(100vh-210px)] lg:min-h-[650px] lg:max-h-[840px] lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.65fr)] lg:gap-3"

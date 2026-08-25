@@ -312,6 +312,12 @@ export function adminUpdateReportStatus(id, { status }) {
   });
 }
 
+// 처리 대기 신고 사유 AI 요약(2026-08-25 추가) - 매번 자동으로 부르면 OpenAI 호출 비용이 계속
+// 나가니, 관리자가 버튼을 눌렀을 때만 요청한다(프론트에서 온디맨드로 호출).
+export function adminSummarizeReports() {
+  return request('/api/admin/reports/summary');
+}
+
 // 장소 목록 조회 - 실제 places/place_styles 테이블 데이터를 그대로 내려받는다(성향점수 검증용).
 // 인증이 필요 없는 공개 API(PlaceController가 permitAll).
 export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
@@ -542,6 +548,17 @@ export function sendAiChatMessage(sessionId, text, { lat, lon } = {}) {
 // 세션의 메시지 이력 전체 조회 (오래된 순)
 export function getAiChatMessages(sessionId) {
   return request(`/api/aichat/sessions/${sessionId}/messages`);
+}
+
+// "AI 코스 추천"(홈탭 배너, 2026-08-25 추가) - 채팅 세션과 무관한 1회성 추천 4곳을 받아온다.
+export function getAiCourseRecommendation() {
+  return request('/api/aichat/course-recommendation');
+}
+
+// "최근 관심사" 인사이트 칩용(2026-08-25 추가) - 대화 이력이 없으면 백엔드가 204를 주는데,
+// request()의 res.json()이 빈 body에서 null을 반환하므로 그대로 null이 넘어온다.
+export function getAiIntentSummary() {
+  return request('/api/aichat/intent-summary');
 }
 
 // 데이트 코스 빌더(2026-08-20) - 백엔드 feature/course-place-integration 브랜치 API를 최소한으로

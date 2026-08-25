@@ -3,7 +3,8 @@ import { QUICK_TABS } from '../data/tabsData';
 import { useWeather } from '../hooks/useWeather';
 import { useLikedPlaces } from '../hooks/useLikedPlaces';
 import { useHomeRecommendations } from '../hooks/useHomeRecommendations';
-import { getCoupleStatus } from '../lib/api';
+import { getCoupleStatus, getAiCourseRecommendation, getAiIntentSummary } from '../lib/api';
+import { BUILDER_STORAGE_KEY } from '../data/curationData';
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { HeroBanner } from '../components/home/HeroBanner';
 import { HomeCategoryChips } from '../components/home/HomeCategoryChips';
@@ -25,6 +26,13 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
     loadCoupleStatus();
   }, []);
 
+  // "최근 관심사" 인사이트 칩(2026-08-25 추가) - AI 챗봇이 메시지마다 분석해서 저장만 해두고
+  // 아무도 안 읽던 의도 태그(AiChatMessageIntent)를 처음으로 화면에 보여준다.
+  const [intentSummary, setIntentSummary] = useState(null);
+  useEffect(() => {
+    getAiIntentSummary().then(setIntentSummary).catch(() => setIntentSummary(null));
+  }, []);
+
   const { weather } = useWeather();
   const { likedItemIds, toggleLike } = useLikedPlaces({ onStyleChanged });
   const handleToggleLike = (e, placeId) => {
@@ -41,11 +49,52 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
     visibleCards, pageCount, currentPage, goPrev, goNext, goToPage,
   } = useHomeRecommendations(personaProfile);
 
+  // "AI 코스 추천"(2026-08-25) - 예전엔 이 버튼이 그냥 빌더 탭으로만 이동시켰는데(이름은 AI인데
+  // 실제로는 AI를 전혀 안 씀), 백엔드가 성향값 기반으로 추린 후보 중 OpenAI가 고른 4곳을 실제로
+  // 받아와서 코스 빌더 큐에 채워 넣은 뒤 빌더 탭으로 이동한다.
+  const [aiRecommending, setAiRecommending] = useState(false);
+  const handleAiCourseRecommend = async () => {
+    if (aiRecommending) return;
+    setAiRecommending(true);
+    try {
+      const recommendation = await getAiCourseRecommendation();
+      if (Array.isArray(recommendation) && recommendation.length > 0) {
+        const builderQueue = recommendation.map((place) => ({
+          id: `ai:${place.id}`,
+          source: 'ai',
+          sourceId: place.id,
+          title: place.name,
+          description: place.reason || place.subCategory || place.category,
+          category: place.category,
+          area: place.address,
+          image: place.imageUrl,
+          match: null,
+        }));
+        localStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringify(builderQueue));
+      }
+    } catch (e) {
+      console.error('AI 코스 추천 실패:', e);
+      alert('AI 추천을 받아오지 못했어요. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setAiRecommending(false);
+      onTabChange('builder');
+    }
+  };
+
   return (
     <div className="h-full flex flex-col gap-4">
 
       {/* ━━━ ① 히어로 배너 ━━━ */}
-      <HeroBanner coupleLinked={coupleLinked} weather={weather} onOpenBuilder={() => onTabChange('builder')} />
+      <HeroBanner coupleLinked={coupleLinked} weather={weather}
+        onOpenBuilder={handleAiCourseRecommend} aiRecommending={aiRecommending} />
+
+      {/* "최근 관심사" 인사이트 칩 - 대화 이력이 있을 때만(count>0) 노출 */}
+      {intentSummary?.count > 0 && (
+        <div className="flex-shrink-0 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold"
+          style={{ background: '#fff1ed', color: '#c4818f', border: '1px solid #f6cdd7' }}>
+          💬 최근 챗봇에서 <span style={{ color: '#e6535c' }}>'{intentSummary.label}'</span>을 가장 많이 물어봤어요
+        </div>
+      )}
 
       {/* ━━━ ② 카테고리 퀵 필터 탭 ━━━ */}
       <div className="flex-shrink-0 flex items-center gap-2">

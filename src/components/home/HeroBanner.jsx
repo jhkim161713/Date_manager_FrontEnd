@@ -1,4 +1,4 @@
-export function HeroBanner({ coupleLinked, weather, onOpenBuilder }) {
+export function HeroBanner({ coupleLinked, weather, onOpenBuilder, aiRecommending }) {
   return (
     <div className="rounded-3xl overflow-hidden relative flex-shrink-0" style={{ minHeight: '148px', background: 'linear-gradient(120deg, #ff6b8a 0%, #c98fd4 60%, #c4a0e8 100%)' }}>
       <img src="https://images.unsplash.com/photo-1622296571436-8d5b1c203416?w=1200&h=400&fit=crop&auto=format"
@@ -28,10 +28,10 @@ export function HeroBanner({ coupleLinked, weather, onOpenBuilder }) {
         </div>
 
         <div className="flex items-center gap-2 mt-4">
-          <button onClick={onOpenBuilder}
-            className="rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105"
+          <button onClick={onOpenBuilder} disabled={aiRecommending}
+            className="rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105 disabled:opacity-70 disabled:hover:scale-100"
             style={{ background: 'white', color: '#ff6b8a', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
-            🧭 AI 코스 추천
+            {aiRecommending ? '✨ AI가 코스를 고르는 중...' : '🧭 AI 코스 추천'}
           </button>
         </div>
       </div>

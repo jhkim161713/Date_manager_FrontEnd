@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { adminListReports, adminUpdateReportStatus } from '@/lib/api';
+import { adminListReports, adminUpdateReportStatus, adminSummarizeReports } from '@/lib/api';
 import { FilterTabButton, formatDate, REPORT_TARGET_LABEL, REPORT_STATUS_LABEL, REPORT_STATUS_OPTIONS } from '@/components/admin/AdminShared';
 
 // 신고 관리 탭. 백엔드가 targetType(USER/POST/COMMENT)+targetId만 내려주고 실제 게시글/댓글
@@ -14,6 +14,24 @@ export function AdminReportDirectory() {
   const [loading, setLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  // AI 신고 요약(2026-08-25 추가) - 신고가 쌓일수록 사유를 하나씩 읽기 번거로워서, 버튼을 누르면
+  // 처리 대기 중인 사유를 OpenAI가 몇 줄로 묶어준다. 자동 호출은 안 하고 요청 시에만.
+  const [aiSummary, setAiSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+
+  const loadSummary = async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const data = await adminSummarizeReports();
+      setAiSummary(data.summary || '요약할 처리 대기 신고가 없어요');
+    } catch (e) {
+      setSummaryError(e.message);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
 
   const loadReports = async (p, status) => {
     setLoading(true);
@@ -81,7 +99,19 @@ export function AdminReportDirectory() {
           <FilterTabButton active={statusFilter === 'REJECTED'} onClick={() => switchStatusFilter('REJECTED')}>반려</FilterTabButton>
           <FilterTabButton active={statusFilter === 'all'} onClick={() => switchStatusFilter('all')}>전체</FilterTabButton>
         </div>
+        <button onClick={loadSummary} disabled={summaryLoading}
+          className="ml-auto rounded-full px-3 py-1.5 text-[11px] font-bold disabled:opacity-60"
+          style={{ background: '#fff1ed', color: '#e6535c', border: '1px solid #f6cdd7' }}>
+          {summaryLoading ? '✨ 요약하는 중...' : '✨ AI 요약 보기'}
+        </button>
       </div>
+
+      {(aiSummary || summaryError) && (
+        <div className="rounded-2xl px-4 py-3 text-xs mb-3 whitespace-pre-line"
+          style={{ background: summaryError ? '#fff0f3' : '#fff1ed', color: summaryError ? '#e8486b' : '#3d2c35', border: '1.5px solid #ffd6e0' }}>
+          {summaryError || aiSummary}
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
           <thead>
