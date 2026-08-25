@@ -544,6 +544,11 @@ export function getAiChatMessages(sessionId) {
   return request(`/api/aichat/sessions/${sessionId}/messages`);
 }
 
+// "AI 코스 추천"(홈탭 배너, 2026-08-25 추가) - 채팅 세션과 무관한 1회성 추천 4곳을 받아온다.
+export function getAiCourseRecommendation() {
+  return request('/api/aichat/course-recommendation');
+}
+
 // 데이트 코스 빌더(2026-08-20) - 백엔드 feature/course-place-integration 브랜치 API를 최소한으로
 // 연결해서, 큐레이션에서 담은 실제 place 데이터가 코스빌더까지 정상적으로 오는지 확인하는 용도.
 export function createCourseGroup(title) {
