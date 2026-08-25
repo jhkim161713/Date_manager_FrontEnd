@@ -18,7 +18,10 @@ export function ListView({ calendars, onDelete }) {
                 {ev.description && <span className="text-[10px] truncate" style={{ color: '#a8909a' }}>{ev.description}</span>}
               </div>
               <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: '#ff6b8a' }}>{ev.targetDate}</span>
-              <button onClick={() => onDelete(ev.id)} className="text-[11px] px-1" style={{ color: '#c9b8c2' }} aria-label="삭제">✕</button>
+              {/* 기념일(가상 항목)이거나 파트너의 커플 일정이면 삭제 불가 - 눌러도 403만 나서 아예 숨긴다(2026-08-25) */}
+              {!ev.anniversary && ev.mine && (
+                <button onClick={() => onDelete(ev.id)} className="text-[11px] px-1" style={{ color: '#c9b8c2' }} aria-label="삭제">✕</button>
+              )}
             </div>
           );
         })}

@@ -4,6 +4,7 @@ import { useWeather } from '../hooks/useWeather';
 import { useLikedPlaces } from '../hooks/useLikedPlaces';
 import { useHomeRecommendations } from '../hooks/useHomeRecommendations';
 import { getCoupleStatus, getAiCourseRecommendation, getAiIntentSummary } from '../lib/api';
+import { getCurrentLocation } from '../lib/weather';
 import { BUILDER_STORAGE_KEY } from '../data/curationData';
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { HeroBanner } from '../components/home/HeroBanner';
@@ -57,7 +58,9 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
     if (aiRecommending) return;
     setAiRecommending(true);
     try {
-      const recommendation = await getAiCourseRecommendation();
+      // 반경 10km 필터용 - 위치 권한이 없으면 getCurrentLocation이 기본 좌표(서울시청)로 대체한다.
+      const { lat, lon } = await getCurrentLocation();
+      const recommendation = await getAiCourseRecommendation({ lat, lon });
       if (Array.isArray(recommendation) && recommendation.length > 0) {
         const builderQueue = recommendation.map((place) => ({
           id: `ai:${place.id}`,
