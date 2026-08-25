@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 // 사용자가 직접 입력한다.
 export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit }) {
   const [titleMsg, setTitleMsg] = useState('');
-  const [coupleEvent, setCoupleEvent] = useState(false);
   const titleRef = useRef();
   const descriptionRef = useRef();
   const targetDateRef = useRef();
@@ -41,7 +40,6 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit }
       title: titleNode.value.trim(),
       description: descriptionNode.value.trim(),
       targetDate: targetDateNode.value,
-      coupleEvent,
     })
       .then(() => onClose())
       .catch((e) => console.log('일정 등록 실패:', e));
@@ -101,18 +99,6 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit }
             style={{ borderColor: '#f0dbe4' }}
           />
         </div>
-
-        <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={coupleEvent}
-            onChange={(e) => setCoupleEvent(e.target.checked)}
-            className="w-4 h-4 accent-[#ff6b8a]"
-          />
-          <span className="text-[11px] font-bold" style={{ color: '#3d2c35' }}>
-            💗 커플 일정으로 등록 <span style={{ color: '#a8909a', fontWeight: 500 }}>(파트너도 볼 수 있어요)</span>
-          </span>
-        </label>
 
         <button
           type="submit"

@@ -18,9 +18,7 @@ export function UpcomingPanel({ upcoming, onDelete }) {
                 <span className="text-[12px] font-semibold truncate" style={{ color: '#3d2c35' }}>{ev.title}</span>
                 <span className="text-[10px]" style={{ color: '#a8909a' }}>{ev.targetDate.slice(5).replace('-', '/')}</span>
               </div>
-              {!ev.anniversary && ev.mine && (
-                <button onClick={() => onDelete(ev.id)} className="text-[10px] mt-0.5" style={{ color: '#c9b8c2' }} aria-label="삭제">✕</button>
-              )}
+              <button onClick={() => onDelete(ev.id)} className="text-[10px] mt-0.5" style={{ color: '#c9b8c2' }} aria-label="삭제">✕</button>
             </div>
           );
         })}

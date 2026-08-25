@@ -32,14 +32,13 @@ export function MiniCalendar() {
     i < firstDay ? null : i - firstDay + 1
   );
 
-  const fetchGridEvents = () => {
+  useEffect(() => {
     const start = formatDate(new Date(year, month, 1));
     const end = formatDate(new Date(year, month + 1, 0));
     // 배열이 아닌 값이 오면(서버 재시작 중 빈 응답 등) 그대로 넣지 않는다 - 아래 events.forEach가
     // null/undefined에서 터지는 걸 막기 위한 방어.
     getCalendars(start, end).then((data) => setEvents(Array.isArray(data) ? data : [])).catch(() => setEvents([]));
-  };
-  useEffect(fetchGridEvents, [year, month]);
+  }, [year, month]);
 
   // 날짜별 일정 존재 여부만 표시(day-dot). 같은 날 여러 개면 첫 번째 것만 대표로 씀.
   const eventsByDate = {};
@@ -52,21 +51,12 @@ export function MiniCalendar() {
   // 보여줘야 해서(2026-08-22, 달을 넘겨도 다음 일정이 계속 보이게), 그리드용 events와는
   // 별도로 오늘부터 60일 범위를 따로 조회한다.
   const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const fetchUpcomingEvents = () => {
+  useEffect(() => {
     const start = formatDate(now);
     const rangeEnd = new Date(now);
     rangeEnd.setDate(rangeEnd.getDate() + 60);
     getCalendars(start, formatDate(rangeEnd)).then((data) => setUpcomingEvents(Array.isArray(data) ? data : [])).catch(() => setUpcomingEvents([]));
-  };
-  useEffect(fetchUpcomingEvents, []);
-
-  // CalendarTab에서 일정을 만들거나 지우면(useCalendarEvents.js) 이 이벤트가 발생한다 - 사이드바에
-  // 한 번만 마운트되는 이 컴포넌트가 그 변경을 알 유일한 방법(2026-08-25).
-  useEffect(() => {
-    const onCalendarChanged = () => { fetchGridEvents(); fetchUpcomingEvents(); };
-    window.addEventListener('dm:calendar-changed', onCalendarChanged);
-    return () => window.removeEventListener('dm:calendar-changed', onCalendarChanged);
-  }, [year, month]);
+  }, []);
 
   const todayKey = formatDate(now);
   const upcoming = upcomingEvents
@@ -138,11 +128,7 @@ export function MiniCalendar() {
               {cells.map((day, i) => {
                 if (!day) return <div key={i}/>;
                 const key = formatDate(new Date(year, month, day));
-                const dayEvents = eventsByDate[key];
-                const hasEvent = !!dayEvents;
-                // 커플 일정(파트너도 보는 일정)이 하나라도 있으면 핑크, 전부 개인 일정이면 검정 —
-                // "지금 쓰던 핑크 동그라미는 커플 일정, 개인 일정은 새 검정 동그라미로" 요청 반영(2026-08-25).
-                const dotColor = hasEvent && dayEvents.some((e) => e.coupleEvent) ? '#ff6b8a' : '#3d2c35';
+                const hasEvent = !!eventsByDate[key];
                 // 2026-08-22 - 예전엔 day === todayDate만 체크해서, 월 이동 후 다른 달에서도
                 // 오늘과 "일"만 같으면(예: 지난달 22일) 오늘로 잘못 표시됐다. 연/월까지 같이 확인.
                 const isToday = day === todayDate && year === now.getFullYear() && month === now.getMonth();
@@ -158,7 +144,7 @@ export function MiniCalendar() {
                       {day}
                     </div>
                     {hasEvent && (
-                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: dotColor }} />
+                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: '#ff6b8a' }} />
                     )}
                   </div>
                 );
@@ -175,7 +161,7 @@ export function MiniCalendar() {
                 const d = new Date(e.targetDate);
                 return (
                   <div key={e.id} className="flex items-center gap-1.5 py-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: e.coupleEvent ? '#ff6b8a' : '#3d2c35' }} />
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#ff6b8a' }} />
                     <span className="text-[11px] font-semibold truncate" style={{ color: '#3d2c35' }}>{e.title}</span>
                     <span className="text-[10px] ml-auto font-semibold flex-shrink-0" style={{ color: '#a08b94' }}>
                       {d.getMonth() + 1}/{d.getDate()}

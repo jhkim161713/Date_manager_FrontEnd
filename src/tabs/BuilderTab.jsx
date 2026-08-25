@@ -109,13 +109,6 @@ export function BuilderTab() {
         }
       );
 
-      // 생성 후 목록을 다시 안 불러와서, 방금 만든 코스가 다른 탭 갔다 와야만 보이던 버그
-      // (2026-08-25 발견) - handleMoveCourseItem 등과 동일하게 여기서도 재조회한다.
-      const response = await axios.get(`${API_BASE_URL}/api/course/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setData(response.data);
-
       alert("코스 생성이 완료되었습니다!");
       setIsGroupMakerOpen(false);
       setCourseTitle("");
