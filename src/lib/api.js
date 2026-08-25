@@ -13,25 +13,25 @@ export const MOCK_USERS = [
 ];
 
 export function getCalendars(start,end){
-  return request(`/calendar?start=${start}&end=${end}`);
+  return request(`/api/calendar?start=${start}&end=${end}`);
 }
 
 export function createCalendar(calendarData){
-  return request(`/calendar`,{
+  return request(`/api/calendar`,{
     method : 'POST',
     body :JSON.stringify(calendarData) 
   })
 }
 
 export function updateCalendar(id, calendarData) {
-  return request(`/calendar/${id}`, {
+  return request(`/api/calendar/${id}`, {
     method: 'PUT',
     body: JSON.stringify(calendarData),
   });
 }
 
 export function deleteCalendar(id){
-  return request(`/calendar/${id}`, {
+  return request(`/api/calendar/${id}`, {
     method: 'DELETE',
   });
 }
