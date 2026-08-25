@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 
-import { COURSE_GROUP_DATA } from "../data/courseGroupData"
 import { CourseDetail } from "../components/builder/CourseDetail"
 import axios from "axios"
 import { getToken } from "../lib/api"
@@ -62,8 +61,8 @@ export function BuilderTab() {
       }
     }
     getCourseGroups();
-    
-  }, [data])
+
+  }, [])
 
   const showGroupItems = (index) => {
     const detail = data[index]

@@ -101,44 +101,6 @@ export function resolveCoachByGender(gender) {
   return normalizeGender(gender) === 'FEMALE' ? COACHES.DOYOON : COACHES.SEOYEON;
 }
 
-function createMockHistory(coach) {
-  const now = Date.now();
-
-  return [
-    {
-      messageId: 'mock-ai-welcome',
-      senderType: 'AI',
-      messageText: `안녕하세요! 저는 ${coach.name}예요.\n연애와 데이트에 대해 무엇이든 편하게 물어보세요.`,
-      createdAt: new Date(now - 4 * 60_000).toISOString(),
-    },
-    {
-      messageId: 'mock-user-question',
-      senderType: 'USER',
-      messageText: '첫 데이트에서 어떤 주제로 대화하면 좋을까요?',
-      createdAt: new Date(now - 3 * 60_000).toISOString(),
-    },
-    {
-      messageId: 'mock-ai-answer',
-      senderType: 'AI',
-      messageText: '상대의 관심사나 일상에 대해 가볍게 물어보는 것이 좋아요. 최근에 본 영화나 좋아하는 음악처럼 편안한 주제로 시작해 보세요.',
-      createdAt: new Date(now - 2 * 60_000).toISOString(),
-    },
-  ];
-}
-
-function createMockReply(text, coach) {
-  if (/첫 데이트|장소|어디/.test(text)) {
-    return '처음에는 대화가 잘 들리는 조용한 카페나 가볍게 걸을 수 있는 장소가 좋아요. 서로에게 집중할 수 있고, 어색하면 자연스럽게 주변 이야기를 꺼낼 수도 있거든요.';
-  }
-  if (/마음|관심|호감/.test(text)) {
-    return '말보다 꾸준한 행동을 살펴보세요. 먼저 연락하는지, 나와 했던 이야기를 기억하는지, 다음 약속을 구체적으로 잡는지가 좋은 단서가 될 수 있어요.';
-  }
-  if (/오래|관계|비결/.test(text)) {
-    return '서로 다른 점을 고치려 하기보다 이해하려는 태도가 중요해요. 서운함은 작을 때 말하고, 고마운 일은 익숙해져도 자주 표현해 보세요.';
-  }
-  return `${coach.name}가 함께 정리해볼게요. 지금 가장 고민되는 상황과 상대방의 반응을 조금만 더 자세히 알려주실래요?`;
-}
-
 function formatTime(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -170,8 +132,7 @@ function CoachAvatar({ coach, size = 40 }) {
 
 export function AiChatTab({ user, personaProfile, onStyleChanged }) {
   const coach = resolveCoachByGender(user?.gender);
-  const isMockUser = typeof user?.id !== 'number';
-  const storageKey = `dm_ai_chat_session_id:${user?.id ?? 'preview'}`;
+  const storageKey = `dm_ai_chat_session_id:${user?.id}`;
   const personaSuggestions = useMemo(
     () => buildPersonaSuggestions(personaProfile?.scores),
     [personaProfile]
@@ -191,7 +152,6 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
   const [historyError, setHistoryError] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
-  const mockReplyTimerRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -200,13 +160,6 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
       setLoadingHistory(true);
       setError(null);
       setMessages([]);
-
-      if (isMockUser) {
-        setSessionId(`mock-${user?.id ?? coach.type}`);
-        setMessages(createMockHistory(coach));
-        setLoadingHistory(false);
-        return;
-      }
 
       // 예전엔 저장된 세션이 없으면 탭을 열자마자 새 세션을 바로 만들어버렸는데, 그러면 메시지를
       // 한 글자도 안 쳐도 빈 세션이 DB에 남아서 "지난 대화 보기" 목록이 빈 제목투성이가 됐다
@@ -237,15 +190,11 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
     return () => {
       cancelled = true;
     };
-  }, [coach.type, isMockUser, storageKey, user?.id]);
+  }, [coach.type, storageKey, user?.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, sending]);
-
-  useEffect(() => () => {
-    if (mockReplyTimerRef.current) window.clearTimeout(mockReplyTimerRef.current);
-  }, []);
 
   // "지난 대화 보기" 목록을 연다 - 로그아웃하면 localStorage의 마지막 세션 포인터를 지우기로 했으니
   // (App.jsx handleLogout 참고), 다시 로그인했을 때 예전 대화로 돌아가려면 이 목록에서 직접 골라야 한다.
@@ -302,7 +251,7 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
   const sendText = async (rawText) => {
     const text = rawText.trim();
     if (!text || sending) return;
-    if (!isMockUser && !sessionId && loadingHistory) return; // 세션 유무를 아직 확인 중이면 잠깐 대기
+    if (!sessionId && loadingHistory) return; // 세션 유무를 아직 확인 중이면 잠깐 대기
 
     setSending(true);
     setError(null);
@@ -310,7 +259,7 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
     // 세션을 아직 안 만든 상태(탭만 열고 첫 메시지를 지금 보내는 경우)면 이 시점에 딱 하나만
     // 만든다 - 예전엔 탭을 열자마자 만들어서 메시지 없는 빈 세션이 쌓였었다(2026-08-22 수정).
     let activeSessionId = sessionId;
-    if (!isMockUser && !activeSessionId) {
+    if (!activeSessionId) {
       try {
         const session = await createAiChatSession(`${coach.name} 데이트 상담`);
         activeSessionId = session.sessionId;
@@ -332,22 +281,6 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
     setMessages((previous) => [...previous, optimisticUser]);
     setInput('');
 
-    if (isMockUser) {
-      mockReplyTimerRef.current = window.setTimeout(() => {
-        setMessages((previous) => [
-          ...previous,
-          {
-            messageId: `mock-ai-${Date.now()}`,
-            senderType: 'AI',
-            messageText: createMockReply(text, coach),
-            createdAt: new Date().toISOString(),
-          },
-        ]);
-        setSending(false);
-      }, 650);
-      return;
-    }
-
     try {
       const { lat, lon } = await getCurrentLocation();
       const aiMessage = await sendAiChatMessage(activeSessionId, text, { lat, lon });
@@ -365,10 +298,8 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
   // 대화 시작 전엔 성향 기반 초기 질문(personaSuggestions), 시작 후엔 방금 받은 AI 응답에 실려온
   // 후속 질문으로 바뀐다(백엔드 requestFollowUpQuestions, 2026-08-22). 옛 대화를 다시 불러왔을 때는
   // 후속 질문을 새로 안 만들어서(getMessages는 항상 null) 목록이 자연히 사라진다.
-  // 목업 미리보기는 실제 백엔드 호출이 없어 후속 질문을 만들 수 없으니, 항상 성향 기반 초기
-  // 질문으로 고정해서 예전처럼 추천 질문 패널이 계속 보이게 한다.
   const lastAiMessage = [...messages].reverse().find((m) => m.senderType === 'AI');
-  const currentSuggestions = isMockUser || messages.length === 0
+  const currentSuggestions = messages.length === 0
     ? personaSuggestions
     : (lastAiMessage?.followUpQuestions?.length ? lastAiMessage.followUpQuestions : null);
 
@@ -379,18 +310,11 @@ export function AiChatTab({ user, personaProfile, onStyleChanged }) {
           🤖 AI 데이트 상담
         </SectionTitle>
         <div className="flex flex-wrap items-center gap-2">
-          {isMockUser && (
-            <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold" style={{ border: `1px dashed ${coach.border}`, color: coach.muted }}>
-              목 데이터 미리보기
-            </span>
-          )}
-          {!isMockUser && (
-            <button type="button" onClick={openHistory}
-              className="rounded-full px-3 py-1.5 text-[11px] font-bold transition-all hover:opacity-80"
-              style={{ border: `1.5px solid ${coach.border}`, color: coach.accentStrong, background: 'white' }}>
-              🕐 지난 대화 보기
-            </button>
-          )}
+          <button type="button" onClick={openHistory}
+            className="rounded-full px-3 py-1.5 text-[11px] font-bold transition-all hover:opacity-80"
+            style={{ border: `1.5px solid ${coach.border}`, color: coach.accentStrong, background: 'white' }}>
+            🕐 지난 대화 보기
+          </button>
         </div>
       </header>
 

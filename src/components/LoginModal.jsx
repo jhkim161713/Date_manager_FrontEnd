@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, signup, tryMockLogin, adminCheck,
+  googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, signup, adminCheck,
   checkEmailAvailable, checkNicknameAvailable, uploadProfilePhoto, findPassword,
 } from '@/lib/api';
 import { SignupCarousel } from '@/components/SignupCarousel';
@@ -143,11 +143,14 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
       setLoading('email');
       try {
         // signup()이 성공하면 내부적으로 토큰을 저장하므로, 그 직후 uploadProfilePhoto가
-        // 방금 만든 계정으로 인증된 상태에서 호출된다. 사진은 선택 사항이라 실패해도
-        // 가입 자체는 이미 끝난 상태이니 조용히 넘어간다(가입을 막지 않음).
+        // 방금 만든 계정으로 인증된 상태에서 호출된다. 사진은 선택 사항이라 실패해도 가입
+        // 자체를 막지는 않지만(가입은 이미 끝난 상태), 실패를 완전히 숨기면 사용자가 사진이
+        // 왜 안 붙었는지 알 길이 없으므로(2026-08-24, S3 권한 문제로 실제로 실패하는 걸 발견) 알려준다.
         await signup({ email, nickname, gender, password });
         if (photoFile) {
-          await uploadProfilePhoto(photoFile).catch(() => {});
+          await uploadProfilePhoto(photoFile).catch(() => {
+            window.alert('프로필 사진 업로드에 실패했어요. 마이페이지에서 다시 시도해 주세요.');
+          });
         }
         onAuthed();
         // 가입 직후 성향 온보딩을 거쳐야 완료로 치는 구조라, 여기서 모달을 바로 닫지 않고
@@ -167,12 +170,6 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
     }
     setLoading('email');
     try {
-      // 백엔드 없이도 동작하는 테스트 계정이면 서버에 요청하지 않고 바로 통과
-      if (tryMockLogin({ email, password })) {
-        onAuthed();
-        onClose();
-        return;
-      }
       await login({ email, password });
       // 관리자 계정으로 로그인한 경우 메인 앱 대신 바로 관리자 페이지로 이동.
       // href 대신 replace를 쓰는 이유: href는 현재 '/'(로그인 전 상태) 페이지를 히스토리에

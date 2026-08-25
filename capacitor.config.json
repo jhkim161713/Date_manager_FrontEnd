@@ -1,5 +1,8 @@
 {
   "appId": "com.datemanager.app",
   "appName": "Date Manager",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http"
+  }
 }

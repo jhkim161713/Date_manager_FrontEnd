@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { Avatar } from '../components/Avatar';
 import {
-  getMe, updateMe, changePassword, uploadProfilePhoto, getMockUser, setMockUser,
+  getMe, updateMe, changePassword, uploadProfilePhoto,
   getMySubscription, cancelSubscription, getCoupleStatus, disconnectCouple, updateMetDate,
   ackAdminReconnect, withdrawMe,
 } from '@/lib/api';
@@ -79,17 +79,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState(null);
 
-  const mockUser = getMockUser();
-
   useEffect(() => {
-    if (mockUser) {
-      // 백엔드 없이 로그인한 테스트 계정 -> 서버 호출 없이 로컬 값만 사용
-      setProfile(mockUser);
-      setNickname(mockUser.nickname ?? '');
-      setGender(mockUser.gender ?? 'UNKNOWN');
-      setLoading(false);
-      return;
-    }
     const loadProfile = async () => {
       try {
         const data = await getMe();
@@ -105,14 +95,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
     loadProfile();
   }, []);
 
-  // 테스트 계정(mockUser)은 실제 백엔드 데이터가 없으므로 구독/커플 조회는 건너뛰되,
-  // coupleStatus를 null로 방치하면 "확인 중.../불러오는 중..." 로딩 상태로 영영 안 풀리므로
-  // 커플이 연결 안 된 상태와 동일한 기본값을 바로 채워준다.
   useEffect(() => {
-    if (mockUser) {
-      setCoupleStatus({ linked: false, partner: null, connectedAt: null, metDate: null });
-      return;
-    }
     const loadSubscription = async () => {
       try {
         setSubscription(await getMySubscription());
@@ -191,10 +174,6 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
 
   const handleWithdraw = async () => {
     setWithdrawError(null);
-    if (mockUser) {
-      setWithdrawError('테스트 계정은 탈퇴할 수 없어요');
-      return;
-    }
     if (!window.confirm('정말 탈퇴하시겠어요?\n탈퇴 후 1년이 지나면 계정 정보가 완전히 삭제돼요.')) return;
     setWithdrawing(true);
     try {
@@ -215,14 +194,6 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
     }
     setSaving(true);
     try {
-      if (mockUser) {
-        const updated = { ...mockUser, nickname, gender };
-        setMockUser(updated);
-        setProfile(updated);
-        setNotice('저장했어요 💾 (테스트 계정이라 이 브라우저에만 저장돼요)');
-        onUpdated?.();
-        return;
-      }
       const updated = await updateMe({ nickname, gender });
       setProfile(updated);
       setNotice('저장했어요 💾');
@@ -239,10 +210,6 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
     e.target.value = ''; // 같은 파일 다시 선택해도 onChange가 또 발생하도록 초기화
     if (!file) return;
     setPhotoError(null);
-    if (mockUser) {
-      setPhotoError('테스트 계정은 프로필 사진을 바꿀 수 없어요');
-      return;
-    }
     setPhotoUploading(true);
     try {
       const updated = await uploadProfilePhoto(file);
@@ -258,10 +225,6 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
   const handlePasswordSave = async () => {
     setPwError(null);
     setPwNotice(null);
-    if (mockUser) {
-      setPwError('테스트 계정은 비밀번호를 변경할 수 없어요');
-      return;
-    }
     if (!newPassword.trim()) {
       setPwError('새 비밀번호를 입력해주세요');
       return;
@@ -543,9 +506,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
         <div className="self-start rounded-3xl p-6"
           style={{ background: 'white', border: '1.5px solid #ffd6e0', boxShadow: '0 2px 12px rgba(255,107,138,0.08)' }}>
           <h3 className="text-sm font-bold mb-4" style={{ color: '#3d2c35' }}>구독 정보 💳</h3>
-          {mockUser ? (
-            <p className="text-sm text-center py-4 text-stone-400">테스트 계정은 구독 정보를 사용할 수 없어요</p>
-          ) : subscription === null ? (
+          {subscription === null ? (
             <p className="text-xs text-stone-400 text-center py-3">불러오는 중...</p>
           ) : subscription.id == null ? (
             <p className="text-sm text-center py-4" style={{ color: '#3d2c35' }}>
