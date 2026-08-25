@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
-import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
+import { Map, MapMarker, Polyline, useKakaoLoader } from "react-kakao-maps-sdk";
 
 export function CourseDetail ({props}){
     const {showDetail, onMoveItem} = props
     const [position,setPosition] =useState({})
     const [paths,setPaths] = useState([]);
     const [distances,setDistances] = useState([]);
-    
-    if (!showDetail) return null
-    
+
+    // index.html의 카카오맵 스크립트가 autoload=false라 kakao.maps.load()를 직접 호출해줘야
+    // 지도가 초기화된다 - 이게 없어서 지도 영역이 계속 빈 박스로만 나왔었다(2026-08-25 발견).
+    const [loading, error] = useKakaoLoader({
+        appkey: import.meta.env.VITE_KAKAO_MAP_KEY,
+        libraries: ['services', 'clusterer'],
+    });
 
     useEffect(()=>{
+        if (!showDetail) return;
         const pathes = showDetail.places.map(place=>({
             lat:place.latitude,
             lng:place.longitude
@@ -18,7 +23,11 @@ export function CourseDetail ({props}){
         setPosition(pathes[0])
         setPaths(pathes)
     },[showDetail])
-   
+
+    if (!showDetail) return null
+    // 카카오맵 스크립트 로딩 중이거나 실패했을 때는 지도 영역만 비워두고 나머지(코스 목록 등)는
+    // 정상 표시한다 - 지도 하나 때문에 상세보기 전체를 막을 필요는 없다.
+    const mapReady = !loading && !error;
 
     return (
         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-pink-100 shadow-xl space-y-6 mt-8 animate-fade-in">
@@ -37,16 +46,16 @@ export function CourseDetail ({props}){
 
           {/* 카카오 지도 박스 */}
           <div className="flex justify-center w-full my-4">
+            {mapReady && (
             <Map
               center={position}
               style={{ width: '100%', height: "420px" }}
               className="rounded-2xl shadow-inner border border-pink-100 overflow-hidden"
               level={4}
-               
-              
             >
-              {paths.map((coords)=>(
+              {paths.map((coords, index)=>(
                 <MapMarker
+                key={`${coords.lat}-${coords.lng}-${index}`}
                 position={coords}
                 />
               ))}
@@ -58,6 +67,7 @@ export function CourseDetail ({props}){
         strokeStyle="solid"
     />
             </Map>
+            )}
           </div>
 
           {/* 코스 내 장소 리스트 */}

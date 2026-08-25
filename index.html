@@ -2,7 +2,10 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=%VITE_KAKAO_MAP_KEY%&libraries=services,clusterer&autoload=false"></script>
+    <!-- 프로토콜 상대 경로("//dapi.kakao.com/...")였는데, 안드로이드 웹뷰는 androidScheme:"http"라서
+         페이지 자체가 http://localhost로 뜨면 이 스크립트도 http로 요청되어 로드가 안 됐다(카카오맵이
+         빈 박스로만 나오던 원인, 2026-08-25 발견). https를 명시해서 웹/안드로이드 둘 다 안전하게 로드. -->
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=%VITE_KAKAO_MAP_KEY%&libraries=services,clusterer&autoload=false"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Date Manager</title>
   </head>
