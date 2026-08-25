@@ -7,6 +7,13 @@ import { getToken } from "../lib/api"
 import { BUILDER_STORAGE_KEY } from "../data/curationData"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+// 커플 공유 조회 이후(2026-08-25), 목록에는 파트너가 만든 코스도 보이지만 수정/삭제는 여전히
+// 만든 사람만 가능해서, "본인이 만든 코스만 삭제할 수 있습니다" 같은 백엔드의 실제 이유를 그대로
+// 보여준다 - 안 그러면 사용자는 왜 안 되는지 모른 채 뭉뚱그린 "오류가 발생했습니다"만 보게 된다.
+function backendErrorMessage(error, fallback) {
+  return error.response?.data?.error || fallback;
+}
+
 export function BuilderTab() {
 
   const [data, setData] = useState([]);
@@ -131,7 +138,28 @@ export function BuilderTab() {
       setShowDetail(response.data.find((group) => group.id === groupId) ?? null);
     } catch (error) {
       console.error("순서 변경 실패:", error);
-      alert("순서 변경 중 오류가 발생했습니다.");
+      alert(backendErrorMessage(error, "순서 변경 중 오류가 발생했습니다."));
+    }
+  };
+
+  // 코스 순서 자동 제안(동선 최적화, 2026-08-25 추가) - handleMoveCourseItem과 같은 패턴으로
+  // 서버가 재배열을 끝내면 그룹 목록을 다시 불러와 상세보기를 갱신한다.
+  const handleOptimizeOrder = async (groupId) => {
+    try {
+      const token = getToken();
+      await axios.post(
+        `${API_BASE_URL}/api/course/groups/${groupId}/optimize-order`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const response = await axios.get(`${API_BASE_URL}/api/course/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData(response.data);
+      setShowDetail(response.data.find((group) => group.id === groupId) ?? null);
+    } catch (error) {
+      console.error("동선 최적화 실패:", error);
+      alert(backendErrorMessage(error, "동선 최적화 중 오류가 발생했습니다."));
     }
   };
 
@@ -147,7 +175,7 @@ export function BuilderTab() {
       setShowDetail(null);
     } catch (error) {
       console.error("코스 삭제 실패:", error);
-      alert("코스 삭제 중 오류가 발생했습니다.");
+      alert(backendErrorMessage(error, "코스 삭제 중 오류가 발생했습니다."));
     }
   };
 
@@ -232,7 +260,12 @@ export function BuilderTab() {
       {/* 상세보기 영역 */}
       {showDetail &&
         <CourseDetail
-          props={{ showDetail, onMoveItem: handleMoveCourseItem, onDeleteGroup: handleDeleteCourseGroup }}
+          props={{
+            showDetail,
+            onMoveItem: handleMoveCourseItem,
+            onDeleteGroup: handleDeleteCourseGroup,
+            onOptimizeOrder: handleOptimizeOrder,
+          }}
         />}
 
 

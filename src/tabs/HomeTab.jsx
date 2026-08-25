@@ -3,7 +3,7 @@ import { QUICK_TABS } from '../data/tabsData';
 import { useWeather } from '../hooks/useWeather';
 import { useLikedPlaces } from '../hooks/useLikedPlaces';
 import { useHomeRecommendations } from '../hooks/useHomeRecommendations';
-import { getCoupleStatus, getAiCourseRecommendation } from '../lib/api';
+import { getCoupleStatus, getAiCourseRecommendation, getAiIntentSummary } from '../lib/api';
 import { BUILDER_STORAGE_KEY } from '../data/curationData';
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { HeroBanner } from '../components/home/HeroBanner';
@@ -24,6 +24,13 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
       }
     };
     loadCoupleStatus();
+  }, []);
+
+  // "최근 관심사" 인사이트 칩(2026-08-25 추가) - AI 챗봇이 메시지마다 분석해서 저장만 해두고
+  // 아무도 안 읽던 의도 태그(AiChatMessageIntent)를 처음으로 화면에 보여준다.
+  const [intentSummary, setIntentSummary] = useState(null);
+  useEffect(() => {
+    getAiIntentSummary().then(setIntentSummary).catch(() => setIntentSummary(null));
   }, []);
 
   const { weather } = useWeather();
@@ -80,6 +87,14 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
       {/* ━━━ ① 히어로 배너 ━━━ */}
       <HeroBanner coupleLinked={coupleLinked} weather={weather}
         onOpenBuilder={handleAiCourseRecommend} aiRecommending={aiRecommending} />
+
+      {/* "최근 관심사" 인사이트 칩 - 대화 이력이 있을 때만(count>0) 노출 */}
+      {intentSummary?.count > 0 && (
+        <div className="flex-shrink-0 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold"
+          style={{ background: '#fff1ed', color: '#c4818f', border: '1px solid #f6cdd7' }}>
+          💬 최근 챗봇에서 <span style={{ color: '#e6535c' }}>'{intentSummary.label}'</span>을 가장 많이 물어봤어요
+        </div>
+      )}
 
       {/* ━━━ ② 카테고리 퀵 필터 탭 ━━━ */}
       <div className="flex-shrink-0 flex items-center gap-2">

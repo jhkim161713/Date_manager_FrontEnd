@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Map, MapMarker, Polyline, useKakaoLoader } from "react-kakao-maps-sdk";
 
 export function CourseDetail ({props}){
-    const {showDetail, onMoveItem, onDeleteGroup} = props
+    const {showDetail, onMoveItem, onDeleteGroup, onOptimizeOrder} = props
     const [position,setPosition] =useState({})
     const [paths,setPaths] = useState([]);
     const [distances,setDistances] = useState([]);
@@ -37,14 +37,27 @@ export function CourseDetail ({props}){
 
               데이트코스 상세보기
             </h1>
-            {/* 등록된 코스 삭제 버튼(2026-08-25 추가) - 게시판 글 삭제 버튼과 같은 톤 */}
-            <button
-              type="button"
-              onClick={() => onDeleteGroup?.(showDetail.id)}
-              className="rounded-xl px-3 py-1.5 text-xs font-bold text-rose-500 border border-pink-200 hover:bg-rose-50 transition-colors"
-            >
-              🗑 삭제
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 코스 순서 자동 제안(동선 최적화, 2026-08-25 추가) - AI가 아니라 거리 계산
+                  알고리즘이지만, 위치에서는 코스 만들기 이후 다듬는 흐름상 삭제 버튼 옆에 둔다. */}
+              {showDetail.places?.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => onOptimizeOrder?.(showDetail.id)}
+                  className="rounded-xl px-3 py-1.5 text-xs font-bold text-pink-500 border border-pink-200 hover:bg-pink-50 transition-colors"
+                >
+                  🚗 동선 최적화
+                </button>
+              )}
+              {/* 등록된 코스 삭제 버튼(2026-08-25 추가) - 게시판 글 삭제 버튼과 같은 톤 */}
+              <button
+                type="button"
+                onClick={() => onDeleteGroup?.(showDetail.id)}
+                className="rounded-xl px-3 py-1.5 text-xs font-bold text-rose-500 border border-pink-200 hover:bg-rose-50 transition-colors"
+              >
+                🗑 삭제
+              </button>
+            </div>
           </div>
 
           <div className="bg-rose-50/50 p-4 rounded-2xl border border-rose-100/50 space-y-1">
