@@ -240,7 +240,28 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
     if (!file) return;
     setPhotoError(null);
     if (mockUser) {
-      setPhotoError('테스트 계정은 프로필 사진을 바꿀 수 없어요');
+      // 테스트 계정은 실제 백엔드 유저가 없어서 S3 업로드(uploadProfilePhoto)를 탈 수 없다 -
+      // 닉네임/성별 저장과 동일하게 이 브라우저에만 남는 방식으로, 파일을 base64 data URL로
+      // 바꿔서 profileImageUrl에 그대로 넣는다. localStorage 용량 때문에 실제 백엔드(5MB)보다
+      // 훨씬 작은 1MB로 제한한다(5MB 이미지는 base64로 커지면 localStorage 전체 한도를 넘길 수 있음).
+      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setPhotoError('jpg, png, webp, gif 파일만 가능해요');
+        return;
+      }
+      if (file.size > 1 * 1024 * 1024) {
+        setPhotoError('테스트 계정은 1MB 이하 이미지만 가능해요');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const updated = { ...mockUser, profileImageUrl: reader.result };
+        setMockUser(updated);
+        setProfile(updated);
+        onUpdated?.();
+      };
+      reader.onerror = () => setPhotoError('이미지를 읽는 데 실패했어요');
+      reader.readAsDataURL(file);
       return;
     }
     setPhotoUploading(true);
