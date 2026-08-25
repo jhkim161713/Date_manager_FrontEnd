@@ -272,6 +272,7 @@ export function BuilderTab() {
             onMoveItem: handleMoveCourseItem,
             onDeleteGroup: handleDeleteCourseGroup,
             onOptimizeOrder: handleOptimizeOrder,
+            onCollapse: () => setShowDetail(null),
           }}
         />}
 
