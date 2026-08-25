@@ -6,6 +6,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme">
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
@@ -32,4 +33,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 홈탭 "내 주변" 추천, 날씨, 큐레이션 위치 필터가 navigator.geolocation을 쓰는데,
+         이 권한이 없으면 웹뷰의 onGeolocationPermissionsShowPrompt가 항상 거부로 끝나서
+         위치 기반 기능이 전부 폴백(기본 좌표)으로만 동작한다(2026-08-24 실기기 테스트로 발견). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 </manifest>

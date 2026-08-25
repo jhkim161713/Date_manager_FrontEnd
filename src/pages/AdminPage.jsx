@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { adminCheck, clearMockUser, clearToken, getMockUser } from '@/lib/api';
+import { adminCheck, clearToken } from '@/lib/api';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUserDirectory } from '@/pages/admin/AdminUserDirectory';
 import { AdminCoupleDirectory } from '@/pages/admin/AdminCoupleDirectory';
@@ -30,11 +30,6 @@ export function AdminPage() {
   const [nav, setNav] = useState('dashboard');
 
   useEffect(() => {
-    if (getMockUser()) {
-      setStatus('denied');
-      setError('테스트 계정은 관리자 페이지를 사용할 수 없어요');
-      return;
-    }
     (async () => {
       try {
         const { isAdmin } = await adminCheck();
@@ -57,7 +52,6 @@ export function AdminPage() {
   // 화면만 로그인된 것처럼 보이는 반대 방향의 혼동이 생길 수 있다.
   const handleLogout = () => {
     clearToken();
-    clearMockUser();
     window.location.replace('/');
   };
 

@@ -1,8 +1,9 @@
 import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
-import { getMe, getToken, setToken, clearToken, getMockUser, clearMockUser, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle, getMySubscription } from '@/lib/api';
+import { getMe, getToken, setToken, clearToken, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle, getMySubscription } from '@/lib/api';
 import { CURATION_CART_STORAGE_KEY } from './data/curationData';
 import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
 import { avatarSrc } from './components/Avatar';
@@ -21,6 +22,10 @@ import { Avatar } from './components/Avatar';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { AiChatTab, resolveCoachByGender } from './tabs/AiChatTab';
 import { BoardTab } from './tabs/BoardTab';
+
+// 6대 성향 게이지가 안드로이드 웹뷰 폭에서는 너무 빽빽하게 눌려 보여서(2026-08-25),
+// 안드로이드 앱에서만 상단바에서 숨긴다. 웹/데스크톱에는 그대로 보인다.
+const IS_ANDROID_APP = Capacitor.getPlatform() === 'android';
 
 // 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
 const MOBILE_NAV_TABS = [
@@ -139,11 +144,6 @@ export default function App() {
   };
 
   const loadUser = useCallback(async () => {
-    const mockUser = getMockUser();
-    if (mockUser) {
-      setUser(mockUser);
-      return mockUser;
-    }
     if (!getToken()) {
       setUser(null);
       return null;
@@ -153,8 +153,7 @@ export default function App() {
       setUser(data);
       // 로그인 세션이 살아있는 동안(새로고침 포함) personaProfile이 비어있지 않도록, 저장된
       // 성향값이 있으면 여기서 채운다(2026-08-20) - 그전까진 온보딩 화면을 그 자리에서 완료할
-      // 때만 메모리에 잠깐 채워지고 새로고침하면 사라졌었다. 목업 로그인은 실제 백엔드 세션이
-      // 아니라서(project-date-manager-mock-login-pattern 참고) 대상에서 제외.
+      // 때만 메모리에 잠깐 채워지고 새로고침하면 사라졌었다.
       getMyStyle().then((style) => { if (style) setPersonaProfile(style); }).catch(() => {});
       refreshSubscriptionStatus();
       return data;
@@ -168,18 +167,15 @@ export default function App() {
   // 좋아요/코스담기/장소열람/AI챗 언급으로 백엔드 성향값이 실시간으로 바뀌어도, personaProfile은
   // 로그인 시 한 번만 불러온 값이라 화면(상단 성향 게이지 등)엔 반영이 안 됐다(2026-08-22, 실제
   // 테스트로 확인됨 - 백엔드는 정상 갱신되는데 화면만 그대로였음). 이 신호를 트리거하는 액션이
-  // 끝난 뒤 호출해서 다시 불러오게 한다. 목업 로그인은 실제 스타일 데이터가 없어 건너뛴다.
+  // 끝난 뒤 호출해서 다시 불러오게 한다.
   const refreshPersonaProfile = useCallback(() => {
-    if (getMockUser()) return;
     getMyStyle().then((style) => { if (style) setPersonaProfile(style); }).catch(() => {});
   }, []);
 
   // 상단 "구독" 칩 문구를 실제 구독 상태에 맞게 보여주기 위한 상태(2026-08-22) - 예전엔 항상
-  // "구독"이라고만 떠서 이미 구독 중인지 아닌지 버튼만 봐선 알 수 없었다. 목업 로그인은 구독
-  // 기능 자체를 안 써서(SubscriptionModal도 mockUser면 안내만 보여줌) 건너뛴다.
+  // "구독"이라고만 떠서 이미 구독 중인지 아닌지 버튼만 봐선 알 수 없었다.
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const refreshSubscriptionStatus = useCallback(() => {
-    if (getMockUser()) return;
     getMySubscription().then(setSubscriptionStatus).catch(() => setSubscriptionStatus(null));
   }, []);
 
@@ -237,9 +233,8 @@ export default function App() {
       setAuthChecked(true);
 
       // 로그인 직후 - 내가 없는 사이 파트너가 초대를 수락했거나 만난 날짜를 입력했으면
-      // 안 읽은 알림을 받아와 배너로 보여준다. 목업 로그인은 실제 백엔드 유저가 아니라
-      // 이 API를 호출할 이유가 없으므로 건너뛴다.
-      if (loadedUser && !getMockUser()) {
+      // 안 읽은 알림을 받아와 배너로 보여준다.
+      if (loadedUser) {
         fetchPartnerNotifications();
       }
     })();
@@ -251,7 +246,7 @@ export default function App() {
   // 마다 재조회해서, 새로고침 없이도 안 읽은 알림을 받아볼 수 있게 한다.
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && getToken() && !getMockUser()) {
+      if (document.visibilityState === 'visible' && getToken()) {
         fetchPartnerNotifications();
       }
     };
@@ -272,7 +267,6 @@ export default function App() {
 
   const handleLogout = () => {
     clearToken();
-    clearMockUser();
     // 큐레이션 담기함(2026-08-20)은 계정 구분 없이 브라우저에 남는 임시 상태라, 로그아웃 시점에는
     // 지워서 다음 사람(같은 브라우저로 다른 계정 로그인)에게 이전 사용자의 담기함이 새지 않게 한다.
     localStorage.removeItem(CURATION_CART_STORAGE_KEY);
@@ -421,7 +415,7 @@ export default function App() {
           {/* ── 6대 성향 게이지 (PERSONA_AXES 동적 바인딩) ── */}
           {/* 비로그인 상태에서는 의미 없는 중립값(50점)만 보여서 내용은 숨기지만, 이 div의
               flex:1이 로그인 버튼을 오른쪽으로 밀어내는 역할도 하고 있어 div 자체는 남겨둔다. */}
-          {!user ? (
+          {!user || IS_ANDROID_APP ? (
             <div className="app-persona-row" />
           ) : (
           <div className="app-persona-row">
@@ -680,7 +674,7 @@ export default function App() {
       {/* 소셜 로그인으로 막 가입해서 성별이 아직 없는 경우, 닉네임 확인 + 성별 확정을 먼저 받음.
           이 모달은 최초 가입자한테만 뜨므로(성별이 이미 있으면 안 뜸), 완료 시점이 곧 "방금 소셜로
           가입 완료"인 시점이라 여기서 바로 이어서 성향 온보딩을 띄운다. */}
-      {authChecked && user && user.gender === 'UNKNOWN' && !getMockUser() && (
+      {authChecked && user && user.gender === 'UNKNOWN' && (
         <ProfileConfirmModal user={user} onDone={(updated) => { setUser(updated); setShowPostSignupOnboarding(true); }} />
       )}
 
