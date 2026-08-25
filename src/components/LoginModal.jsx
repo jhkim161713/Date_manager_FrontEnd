@@ -32,6 +32,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
   const [nickname, setNickname] = useState('');
   const [gender, setGender] = useState(null);
   const [photoFile, setPhotoFile] = useState(null); // 회원가입 시 선택적 업로드 - 안 골라도 가입 가능
+  const [photoSizeError, setPhotoSizeError] = useState(null);
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(initialError ?? null);
   const [findPasswordSent, setFindPasswordSent] = useState(false); // 비밀번호 찾기 메일 발송 완료 여부
@@ -60,6 +61,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
     setEmailCheck(null);
     setGender(null);
     setPhotoFile(null);
+    setPhotoSizeError(null);
     setPasswordConfirm('');
     setFindPasswordSent(false);
   };
@@ -390,8 +392,20 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
                   <span>🖼️</span>
                   <span className="truncate">{photoFile ? photoFile.name : '사진 선택하기 (안 골라도 가입 가능)'}</span>
                   <input type="file" accept="image/*" className="hidden"
-                    onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} />
+                    onChange={e => {
+                      const file = e.target.files?.[0] ?? null;
+                      // 백엔드 제한(application.yaml의 multipart max-file-size)과 동일한 5MB 기준으로
+                      // 미리 걸러서, 가입 제출 후 업로드가 조용히 실패하는 걸 선택 즉시 알려준다.
+                      if (file && file.size > 5 * 1024 * 1024) {
+                        setPhotoSizeError('파일 크기는 5MB를 넘을 수 없어요');
+                        setPhotoFile(null);
+                        return;
+                      }
+                      setPhotoSizeError(null);
+                      setPhotoFile(file);
+                    }} />
                 </label>
+                {photoSizeError && <p className="text-xs mt-1.5 px-1" style={{ color: '#e8486b' }}>{photoSizeError}</p>}
               </div>
             )}
 

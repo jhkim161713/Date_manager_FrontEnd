@@ -210,6 +210,12 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
     e.target.value = ''; // 같은 파일 다시 선택해도 onChange가 또 발생하도록 초기화
     if (!file) return;
     setPhotoError(null);
+    // 백엔드 제한(application.yaml의 multipart max-file-size)과 동일한 5MB 기준으로 미리 걸러서,
+    // 큰 파일을 실제로 업로드 시도했다가 413을 받고서야 아는 게 아니라 선택 즉시 바로 알려준다.
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('파일 크기는 5MB를 넘을 수 없어요');
+      return;
+    }
     setPhotoUploading(true);
     try {
       const updated = await uploadProfilePhoto(file);
