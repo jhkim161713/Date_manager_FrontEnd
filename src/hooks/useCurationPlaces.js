@@ -65,6 +65,10 @@ export function useCurationPlaces() {
   // 메모리 참고) 유저가 그 순간 직접 조정하는 임시 대안으로 만든 것.
   const [energyTarget, setEnergyTarget] = useState(null);
 
+  // 공연 랭킹(KOPIS 박스오피스)순 정렬(2026-08-27) - "내 주변만 보기"(useNearby)는 별도 API라
+  // 아직 랭킹 정렬을 지원하지 않으므로, 지역을 하나라도 고른 상태에서만 의미가 있다.
+  const [sortByRank, setSortByRank] = useState(false);
+
   // 날씨 기반 실내/실외 자동 필터용 좌표(2026-08-20) - useNearby와 별개로 항상 한 번 조회해둔다.
   // useNearby는 지역을 안 골랐을 때만 켜지는데, 날씨 필터는 지역을 골랐어도 동작해야 하기 때문(비가
   // 오면 그 지역 안에서도 실외 장소는 걸러야 하니까). 위치 권한이 없으면 조용히 실패하고 날씨
@@ -136,7 +140,7 @@ export function useCurationPlaces() {
   }, [region, subRegion, dateCategory]);
 
   // 필터가 바뀌면 이전 필터 기준 페이지 번호가 더 이상 안 맞을 수 있어서 1페이지로 되돌린다(2026-08-19).
-  useEffect(() => { setDatePage(1); }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword]);
+  useEffect(() => { setDatePage(1); }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword, sortByRank]);
   useEffect(() => { setStayPage(1); }, [stayCategory, useNearby, effectiveRegion, debouncedKeyword]);
 
   useEffect(() => {
@@ -166,7 +170,7 @@ export function useCurationPlaces() {
           setDateTotalPages(Math.max(1, Math.ceil(pool.length / PAGE_SIZE)));
           places = pool.slice((datePage - 1) * PAGE_SIZE, datePage * PAGE_SIZE);
         } else {
-          const page = await getCurationPlaces({ category: categoryParam, subCategory: subCategoryParam, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, page: datePage, size: PAGE_SIZE });
+          const page = await getCurationPlaces({ category: categoryParam, subCategory: subCategoryParam, region, district: subRegion, keyword: debouncedKeyword, energyTarget, lat: weatherLat, lon: weatherLon, sortByRank, page: datePage, size: PAGE_SIZE });
           setDateTotalPages(Math.max(1, page.totalPages ?? 1));
           places = page.content;
         }
@@ -182,7 +186,7 @@ export function useCurationPlaces() {
     };
     loadDatePlaces();
     return () => { cancelled = true; };
-  }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon]);
+  }, [dateCategory, dateSubCategory, useNearby, effectiveRegion, debouncedKeyword, datePage, energyTarget, weatherLat, weatherLon, sortByRank]);
 
   useEffect(() => {
     let cancelled = false;
@@ -234,6 +238,7 @@ export function useCurationPlaces() {
     categoryCounts, staySubCounts,
     nearbyError,
     energyTarget, setEnergyTarget,
+    sortByRank, setSortByRank, useNearby,
     STAY_TOP_CATEGORY,
   };
 }

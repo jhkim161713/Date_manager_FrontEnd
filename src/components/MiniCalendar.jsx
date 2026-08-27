@@ -14,7 +14,7 @@ function formatDate(d) {
 // /calendar API(CalendarTab.jsx와 동일)에서 이번 달 일정을 가져와 보여준다. 카테고리별
 // 색깔 점/이모지는 실제 데이터에 카테고리 필드가 없어서(원래 기획의 "프리미엄 매거진" 자동
 // 이식 개념 - 최종 프로젝트 스코프) 뺐고, 지금은 일정 유무만 단색 점으로 표시한다.
-export function MiniCalendar() {
+export function MiniCalendar({ loggedIn }) {
   const [open, setOpen] = useState(true);
   const [events, setEvents] = useState([]);
   // 달력 그리드가 보고 있는 달(월 이동 가능) - 2026-08-22 추가. "오늘"과 분리해서, 사용자가
@@ -33,6 +33,10 @@ export function MiniCalendar() {
   );
 
   const fetchGridEvents = () => {
+    // 로그인 완료 전(App.jsx 사이드바가 authChecked보다 먼저 마운트됨) 호출하면 401이 나서, 아예
+    // 요청을 안 보내고 빈 상태로 둔다 - loggedIn이 true로 바뀌는 순간 아래 effect가 다시 실행된다
+    // (2026-08-27 발견 - 로그인해도 미니 캘린더가 로그인 전 빈 상태 그대로 멈춰있던 원인).
+    if (!loggedIn) { setEvents([]); return; }
     const start = formatDate(new Date(year, month, 1));
     const end = formatDate(new Date(year, month + 1, 0));
     // 배열이 아닌 값이 오면(서버 재시작 중 빈 응답 등) 그대로 넣지 않는다 - 아래 events.forEach가
@@ -40,7 +44,7 @@ export function MiniCalendar() {
     getCalendars(start, end).then((data) => setEvents(Array.isArray(data) ? data : []))
       .catch((e) => { console.error('미니 캘린더 일정 조회 실패:', e); setEvents([]); });
   };
-  useEffect(fetchGridEvents, [year, month]);
+  useEffect(fetchGridEvents, [year, month, loggedIn]);
 
   // 날짜별 일정 존재 여부만 표시(day-dot). 같은 날 여러 개면 첫 번째 것만 대표로 씀.
   const eventsByDate = {};
@@ -54,13 +58,14 @@ export function MiniCalendar() {
   // 별도로 오늘부터 60일 범위를 따로 조회한다.
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const fetchUpcomingEvents = () => {
+    if (!loggedIn) { setUpcomingEvents([]); return; }
     const start = formatDate(now);
     const rangeEnd = new Date(now);
     rangeEnd.setDate(rangeEnd.getDate() + 60);
     getCalendars(start, formatDate(rangeEnd)).then((data) => setUpcomingEvents(Array.isArray(data) ? data : []))
       .catch((e) => { console.error('미니 캘린더 다가오는 일정 조회 실패:', e); setUpcomingEvents([]); });
   };
-  useEffect(fetchUpcomingEvents, []);
+  useEffect(fetchUpcomingEvents, [loggedIn]);
 
   // CalendarTab에서 일정을 만들거나 지우면(useCalendarEvents.js) 이 이벤트가 발생한다 - 사이드바에
   // 한 번만 마운트되는 이 컴포넌트가 그 변경을 알 유일한 방법(2026-08-25).

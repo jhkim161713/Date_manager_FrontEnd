@@ -91,11 +91,17 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
       <HeroBanner coupleLinked={coupleLinked} weather={weather}
         onOpenBuilder={handleAiCourseRecommend} aiRecommending={aiRecommending} />
 
-      {/* "최근 관심사" 인사이트 칩 - 대화 이력이 있을 때만(count>0) 노출 */}
+      {/* "최근 관심사" 인사이트 칩 - 대화 이력이 있을 때만(count>0) 노출.
+          insight(AI가 생성한 자연어 한 줄)가 있으면 그걸 쓰고, AI 호출이 실패했으면(insight=null)
+          기존처럼 태그명을 그대로 채운 템플릿 문구로 대체한다. */}
       {intentSummary?.count > 0 && (
         <div className="flex-shrink-0 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold"
           style={{ background: '#fff1ed', color: '#c4818f', border: '1px solid #f6cdd7' }}>
-          💬 최근 챗봇에서 <span style={{ color: '#e6535c' }}>'{intentSummary.label}'</span>을 가장 많이 물어봤어요
+          {intentSummary.insight ? (
+            <>💬 {intentSummary.insight}</>
+          ) : (
+            <>💬 최근 챗봇에서 <span style={{ color: '#e6535c' }}>'{intentSummary.label}'</span>을 가장 많이 물어봤어요</>
+          )}
         </div>
       )}
 

@@ -375,7 +375,7 @@ export default function App() {
         </div>
 
         {/* Mini Calendar */}
-        <MiniCalendar />
+        <MiniCalendar loggedIn={authChecked && !!user} />
 
         {/* Divider */}
         <div className="mx-3 mb-2" style={{ borderTop: '1.5px solid #ffd6e0' }} />

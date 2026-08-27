@@ -183,6 +183,25 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
                   </button>
                 )}
               </div>
+
+              {/* 공연 랭킹(KOPIS 박스오피스)순 정렬 토글(2026-08-27) - "내 주변만 보기"는 별도 API라
+                  아직 랭킹 정렬을 못 받아서, 지역을 하나라도 골랐을 때만 켤 수 있다. */}
+              <button
+                type="button"
+                disabled={curation.useNearby}
+                onClick={() => curation.setSortByRank((v) => !v)}
+                title={curation.useNearby ? '지역을 먼저 선택하면 랭킹순 정렬을 쓸 수 있어요' : undefined}
+                className="rounded-full px-3 py-1.5 text-[10px] font-extrabold transition-all"
+                style={{
+                  background: curation.sortByRank ? 'linear-gradient(135deg, #df9235, #e8b45f)' : '#fff6e7',
+                  color: curation.sortByRank ? 'white' : '#c98a3d',
+                  border: '1px solid #f3ddb8',
+                  opacity: curation.useNearby ? 0.45 : 1,
+                  cursor: curation.useNearby ? 'not-allowed' : 'pointer',
+                }}
+              >
+                🔥 예매율 랭킹순{curation.sortByRank ? ' ✓' : ''}
+              </button>
             </div>
 
             {curation.dateLoading && (

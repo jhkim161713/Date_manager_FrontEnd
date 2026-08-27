@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getPlace } from '../lib/api';
+import { getPlace, getVenuePerformances } from '../lib/api';
 import { PERSONA_AXES } from '../data/onboardingData';
 
 // 홈/큐레이션 카드를 클릭하면 뜨는 장소 상세 모달(2026-08-22). 그동안 GET /api/places/{id}를
@@ -22,16 +22,34 @@ function formatDate(value) {
 export function PlaceDetailModal({ placeId, onClose }) {
   const [place, setPlace] = useState(null);
   const [error, setError] = useState(null);
+  // "이 공연장의 다른 공연"을 누르면 모달을 닫지 않고 그 자리에서 갈아끼울 수 있도록, 실제로 보여줄
+  // 장소 id를 prop과 분리된 로컬 상태로 둔다(2026-08-27). prop이 바뀌면(다른 카드를 새로 클릭) 이
+  // 상태도 그걸 따라간다.
+  const [activePlaceId, setActivePlaceId] = useState(placeId);
+  const [venuePerformances, setVenuePerformances] = useState([]);
+  useEffect(() => { setActivePlaceId(placeId); }, [placeId]);
 
   useEffect(() => {
     let cancelled = false;
     setPlace(null);
     setError(null);
-    getPlace(placeId)
+    setVenuePerformances([]);
+    getPlace(activePlaceId)
       .then((data) => { if (!cancelled) setPlace(data); })
       .catch((e) => { if (!cancelled) setError(e.message || '장소 정보를 불러오지 못했어요'); });
     return () => { cancelled = true; };
-  }, [placeId]);
+  }, [activePlaceId]);
+
+  // 장소를 불러온 뒤 공연장 ID가 있으면("성남아트센터" 같은 장소 자체가 아니라 거기서 하는 다른
+  // 공연들, 2026-08-27) 같은 공연장의 다른 공연들을 이어서 불러온다.
+  useEffect(() => {
+    if (!place?.venueId) return;
+    let cancelled = false;
+    getVenuePerformances(place.id)
+      .then((data) => { if (!cancelled) setVenuePerformances(Array.isArray(data) ? data : []); })
+      .catch(() => { if (!cancelled) setVenuePerformances([]); });
+    return () => { cancelled = true; };
+  }, [place?.id, place?.venueId]);
 
   const hasPerformanceInfo = place && (place.startDate || place.runtimeText || place.priceInfo || place.showTimeInfo);
   const axisEntries = place
@@ -94,6 +112,35 @@ export function PlaceDetailModal({ placeId, onClose }) {
                       예매하러 가기 →
                     </a>
                   )}
+                </div>
+              )}
+
+              {/* "성남아트센터"라는 장소 자체가 아니라 거기서 하는 다른 공연들(2026-08-27) - 장소는
+                  그 콘텐츠가 열리는 좌표일 뿐이라는 제품 방향 참고. */}
+              {venuePerformances.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-bold text-stone-400 mb-2">
+                    🎭 {place.venueName || '이 공연장'}의 다른 공연
+                  </p>
+                  <div className="space-y-1.5">
+                    {venuePerformances.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setActivePlaceId(p.id)}
+                        className="w-full flex items-center gap-2 rounded-xl p-2.5 text-left transition-colors hover:bg-rose-50"
+                        style={{ border: '1.5px solid #f0dce2' }}
+                      >
+                        <span className="text-lg flex-shrink-0">{p.emoji || '🎭'}</span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-xs font-bold truncate" style={{ color: '#3d2c35' }}>{p.name}</span>
+                          {p.boxOfficeRank != null && (
+                            <span className="text-[10px] font-bold" style={{ color: '#df9235' }}>🔥 예매율 {p.boxOfficeRank}위</span>
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

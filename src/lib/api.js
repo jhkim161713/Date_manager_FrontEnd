@@ -333,7 +333,7 @@ export function getPlaces({ category = '', page = 1, size = 20 } = {}) {
 // 찾아버린다(2026-08-19) - 반드시 region과 같이 보내야 한다.
 // energyTarget(2026-08-20): 에너지 게이지(0~100) - 있으면 scoreEnergy가 가까운 순으로 정렬됨.
 // lat/lon(2026-08-20): 있으면 그 위치 날씨를 확인해서 비 오면 실외 제외, 폭염/한파면 실내 우선 정렬.
-export function getCurationPlaces({ category = '', subCategory = '', region = '', district = '', keyword = '', energyTarget = null, lat = null, lon = null, page = 1, size = 20 } = {}) {
+export function getCurationPlaces({ category = '', subCategory = '', region = '', district = '', keyword = '', energyTarget = null, lat = null, lon = null, sortByRank = false, page = 1, size = 20 } = {}) {
   const params = new URLSearchParams({ page, size });
   if (category) params.set('category', category);
   if (subCategory) params.set('subCategory', subCategory);
@@ -345,7 +345,15 @@ export function getCurationPlaces({ category = '', subCategory = '', region = ''
     params.set('lat', lat);
     params.set('lon', lon);
   }
+  // 공연 랭킹(KOPIS 박스오피스) 순으로 정렬 - 순위 없는 곳은 서버가 알아서 맨 뒤로 보낸다(2026-08-27).
+  if (sortByRank) params.set('sortByRank', 'true');
   return request(`/api/places/curation?${params.toString()}`);
+}
+
+// 공연장 상세에서 "이 공연장의 다른 공연" 섹션용(2026-08-27) - venueId가 없는 장소(KOPIS 공연이
+// 아니거나 옛날에 동기화된 데이터)는 빈 배열이 온다.
+export function getVenuePerformances(placeId) {
+  return request(`/api/places/${placeId}/venue-performances`);
 }
 
 // 큐레이션 탭 "내 주변만 보기" 토글용 - 좌표 기준 가까운 순 + 카테고리 필터를 동시에 적용한다.
