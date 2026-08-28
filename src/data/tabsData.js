@@ -5,6 +5,7 @@ export const TABS = [
   { id: 'builder',      label: '데이트 코스 빌더', emoji: '🛣️' },
   { id: 'calendar',     label: '데이트 캘린더',   emoji: '📅' },
   { id: 'aichat',       label: 'AI 데이트 상담', emoji: '🤖' },
+  { id: 'financialPlanner', label: '스마트 자금 플래너', emoji: '💰' },
   { id: 'board',        label: '게시판',         emoji: '📋' },
 ];
 
@@ -20,5 +21,6 @@ export const QUICK_TABS = [
   { tab: 'builder', label: '데이트 코스 빌더', emoji: '🛣️', color: '#c4a0e8' },
   { tab: 'calendar', label: '데이트 캘린더', emoji: '📅', color: '#3b82c4' },
   { tab: 'aichat', label: 'AI 데이트 상담', emoji: '🤖', color: '#df9235' },
+  { tab: 'financialPlanner', label: '스마트 자금 플래너', emoji: '💰', color: '#2e9b8c' },
   { tab: 'board', label: '게시판', emoji: '📋', color: '#9870bd' },
 ];
