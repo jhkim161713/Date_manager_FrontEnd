@@ -117,9 +117,16 @@ export function useCurationPlaces() {
       return;
     }
     let cancelled = false;
+    // 세부칩 카탈로그(/api/places/categories)는 시더에 저장된 parent_category 이름을 그대로 쓰므로
+    // 칩 id(dateCategory)와 항상 일치하지만, 개수 집계(/api/places/category-counts/sub)는 실제
+    // Place.category 원본값을 봐야 한다 - "전시" 칩의 실제 데이터는 category="문화시설"로,
+    // "박물관·미술관"은 "박물관/미술관"(슬래시)으로, "공연"은 장르명 여러 개로 저장돼 있어 칩 id를
+    // 그대로 넘기면 하나도 안 걸린다(2026-08-28, 사용자가 큐레이션 탭에서 칩 숫자만 0으로 뜨는 걸
+    // 발견함 - loadDatePlaces의 categoryParam과 동일한 방식으로 맞춘다).
+    const rawCategoryParam = (DATE_CATEGORIES.find((item) => item.id === dateCategory)?.categories ?? [dateCategory]).join(',');
     Promise.all([
       getPlaceSubCategoryCatalog(dateCategory).catch(() => []),
-      getPlaceSubCategoryCounts(dateCategory, region, subRegion).catch(() => ({})),
+      getPlaceSubCategoryCounts(rawCategoryParam, region, subRegion).catch(() => ({})),
     ]).then(([catalog, counts]) => {
       if (cancelled) return;
       setDateSubCatalog(catalog);
@@ -133,8 +140,9 @@ export function useCurationPlaces() {
   useEffect(() => {
     if (dateCategory === 'all') return;
     // 서버 응답이 객체가 아니면(재시작 중 빈 응답 등) 그대로 넣지 않는다 - dateSubCounts[key] 접근이
-    // null에서 터지는 걸 막기 위함.
-    getPlaceSubCategoryCounts(dateCategory, region, subRegion)
+    // null에서 터지는 걸 막기 위함. rawCategoryParam은 위 카탈로그 로딩 effect와 같은 이유로 필요.
+    const rawCategoryParam = (DATE_CATEGORIES.find((item) => item.id === dateCategory)?.categories ?? [dateCategory]).join(',');
+    getPlaceSubCategoryCounts(rawCategoryParam, region, subRegion)
       .then((counts) => setDateSubCounts(counts && typeof counts === 'object' ? counts : {}))
       .catch(() => setDateSubCounts({}));
   }, [region, subRegion, dateCategory]);

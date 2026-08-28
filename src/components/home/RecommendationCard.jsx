@@ -27,7 +27,10 @@ export function RecommendationCard({ entry, liked, onSelect, onToggleLike }) {
         )}
         <div className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold text-white"
           style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
-          📍 {place.category}
+          {/* 세부분류 이모지로 표시(2026-08-28) - 예전엔 📍를 대분류 이름 앞에 고정으로 붙였는데,
+              위치 표시가 아니라 카테고리 배지라 실제 분류(볼링장/보드게임카페 등)와 안 맞는 아이콘이
+              항상 떠서 세부분류 이모지(없으면 📍)로 바꿈. */}
+          {place.emoji || '📍'} {place.category}
         </div>
         <button
           type="button"

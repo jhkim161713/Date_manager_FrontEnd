@@ -40,16 +40,19 @@ export function PlaceDetailModal({ placeId, onClose }) {
     return () => { cancelled = true; };
   }, [activePlaceId]);
 
-  // 장소를 불러온 뒤 공연장 ID가 있으면("성남아트센터" 같은 장소 자체가 아니라 거기서 하는 다른
-  // 공연들, 2026-08-27) 같은 공연장의 다른 공연들을 이어서 불러온다.
+  // 장소를 불러온 뒤 공연장 ID나 이름이 있으면("성남아트센터" 같은 장소 자체가 아니라 거기서 하는
+  // 다른 공연들, 2026-08-27) 같은 공연장의 다른 공연들을 이어서 불러온다. venueId 없이 venueName만
+  // 있는 경우도 많아서(2026-08-28 실측 - venue_name 있는 장소 중 91%가 venue_id는 없음, KOPIS
+  // 시설상세조회로 mt10id를 못 딴 경우) venueId만 조건으로 두면 대부분 이 기능이 안 떴다 - 백엔드
+  // (getVenuePerformances)는 이미 venueId 없으면 venueName으로 대체 조회하므로 프론트 조건도 맞춘다.
   useEffect(() => {
-    if (!place?.venueId) return;
+    if (!place?.venueId && !place?.venueName) return;
     let cancelled = false;
     getVenuePerformances(place.id)
       .then((data) => { if (!cancelled) setVenuePerformances(Array.isArray(data) ? data : []); })
       .catch(() => { if (!cancelled) setVenuePerformances([]); });
     return () => { cancelled = true; };
-  }, [place?.id, place?.venueId]);
+  }, [place?.id, place?.venueId, place?.venueName]);
 
   const hasPerformanceInfo = place && (place.startDate || place.runtimeText || place.priceInfo || place.showTimeInfo);
   const axisEntries = place
@@ -86,7 +89,8 @@ export function PlaceDetailModal({ placeId, onClose }) {
               )}
               <span className="absolute left-4 bottom-4 rounded-full px-3 py-1 text-xs font-bold text-white"
                 style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
-                📍 {place.category}
+                {/* 세부분류 이모지로 표시(2026-08-28) - RecommendationCard.jsx와 동일 이유로 수정. */}
+                {place.emoji || '📍'} {place.category}
               </span>
             </div>
 
@@ -119,6 +123,13 @@ export function PlaceDetailModal({ placeId, onClose }) {
                   그 콘텐츠가 열리는 좌표일 뿐이라는 제품 방향 참고. */}
               {venuePerformances.length > 0 && (
                 <div className="mt-4">
+                  {place.venueImageUrl && (
+                    <img
+                      src={place.venueImageUrl}
+                      alt={place.venueName || '공연장'}
+                      className="w-full h-28 object-cover rounded-xl mb-2"
+                    />
+                  )}
                   <p className="text-xs font-bold text-stone-400 mb-2">
                     🎭 {place.venueName || '이 공연장'}의 다른 공연
                   </p>
