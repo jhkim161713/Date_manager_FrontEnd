@@ -19,7 +19,14 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
 }
 
-export function PlaceDetailModal({ placeId, onClose }) {
+// PlaceAmenity.amenityTag(TourApiDetailSyncServiceImpl 참고) -> 사람이 읽는 라벨/아이콘.
+const AMENITY_LABELS = {
+  CARD_PAYMENT: { icon: '💳', label: '카드결제 가능', color: '#3d9b86', bg: '#eaf8f4' },
+  PET: { icon: '🐾', label: '반려동물 동반 가능', color: '#c98a3d', bg: '#fff8ee' },
+  BABY_CARRIAGE: { icon: '👶', label: '유아차 이용 가능', color: '#806bb4', bg: '#f1edff' },
+};
+
+export function PlaceDetailModal({ placeId, onClose, onToggleBuilder, inBuilder, onAddToCalendar }) {
   const [place, setPlace] = useState(null);
   const [error, setError] = useState(null);
   // "이 공연장의 다른 공연"을 누르면 모달을 닫지 않고 그 자리에서 갈아끼울 수 있도록, 실제로 보여줄
@@ -100,6 +107,34 @@ export function PlaceDetailModal({ placeId, onClose }) {
                 <p className="text-xs mt-1.5" style={{ color: '#a08b94' }}>🗺️ {place.address}</p>
               )}
 
+              {/* 현실 체킹(2026-08-31) - TourAPI 상세조회로 채워지는 영업시간/휴무일/주차/편의태그.
+                  DatePlaceCard.jsx의 현실 체킹 태그와 같은 데이터 소스, 상세 모달엔 처음 노출. */}
+              {(place.useTime || place.restDate || place.parkingInfo || place.amenityTags?.length > 0) && (
+                <div className="mt-2 space-y-1">
+                  {(place.useTime || place.restDate) && (
+                    <p className="text-xs" style={{ color: '#6d5662' }}>
+                      🕒 {place.useTime}{place.useTime && place.restDate ? ' · ' : ''}{place.restDate}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {place.parkingInfo && (
+                      <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ color: '#806bb4', background: '#f1edff' }}>
+                        🅿 {place.parkingInfo}
+                      </span>
+                    )}
+                    {place.amenityTags?.map((tag) => {
+                      const info = AMENITY_LABELS[tag];
+                      if (!info) return null;
+                      return (
+                        <span key={tag} className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ color: info.color, background: info.bg }}>
+                          {info.icon} {info.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {hasPerformanceInfo && (
                 <div className="mt-4 rounded-2xl p-4 space-y-1" style={{ background: '#fff8f4', border: '1.5px solid #ffd6e0' }}>
                   {place.startDate && (
@@ -168,6 +203,31 @@ export function PlaceDetailModal({ placeId, onClose }) {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* 코스빌더/캘린더 담기(2026-08-31) - DatePlaceCard.jsx와 동일한 스타일·문구.
+                  이 모달을 여는 화면(CurationTab 등)이 핸들러를 안 넘기면 조용히 숨긴다. */}
+              {(onToggleBuilder || onAddToCalendar) && (
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {onToggleBuilder && (
+                    <button type="button" onClick={() => onToggleBuilder(place)}
+                      className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+                      style={{
+                        background: inBuilder ? '#f3edef' : '#fff0f3',
+                        color: inBuilder ? '#846f78' : '#e8486b',
+                        border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
+                      }}>
+                      {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
+                    </button>
+                  )}
+                  {onAddToCalendar && (
+                    <button type="button" onClick={() => onAddToCalendar(place)}
+                      className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+                      style={{ background: '#fff8ee', color: '#c98a3d', border: '1px solid #f3ddb8' }}>
+                      📅 캘린더에 담기
+                    </button>
+                  )}
                 </div>
               )}
             </div>

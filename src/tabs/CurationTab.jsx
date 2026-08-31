@@ -312,7 +312,10 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
       </div>
 
       {selectedPlaceId && (
-        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)} />
+        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)}
+          onToggleBuilder={toggleBuilderItem}
+          inBuilder={builderItems.some((item) => item.id === selectedPlaceId)}
+          onAddToCalendar={addToCalendar} />
       )}
     </div>
   );
