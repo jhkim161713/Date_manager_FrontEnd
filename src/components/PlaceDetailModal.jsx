@@ -109,12 +109,15 @@ export function PlaceDetailModal({ placeId, onClose, onToggleBuilder, inBuilder,
 
               {/* 현실 체킹(2026-08-31) - TourAPI 상세조회로 채워지는 영업시간/휴무일/주차/편의태그.
                   DatePlaceCard.jsx의 현실 체킹 태그와 같은 데이터 소스, 상세 모달엔 처음 노출. */}
-              {(place.useTime || place.restDate || place.parkingInfo || place.amenityTags?.length > 0) && (
+              {(place.useTime || place.restDate || place.menuInfo || place.parkingInfo || place.amenityTags?.length > 0) && (
                 <div className="mt-2 space-y-1">
                   {(place.useTime || place.restDate) && (
                     <p className="text-xs" style={{ color: '#6d5662' }}>
                       🕒 {place.useTime}{place.useTime && place.restDate ? ' · ' : ''}{place.restDate}
                     </p>
+                  )}
+                  {place.menuInfo && (
+                    <p className="text-xs" style={{ color: '#6d5662' }}>🍽️ 대표메뉴 · {place.menuInfo}</p>
                   )}
                   <div className="flex flex-wrap items-center gap-1.5">
                     {place.parkingInfo && (
