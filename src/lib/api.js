@@ -559,13 +559,8 @@ export function getAiChatMessages(sessionId) {
 }
 
 // "AI 코스 추천"(홈탭 배너, 2026-08-25 추가) - 채팅 세션과 무관한 1회성 추천 4곳을 받아온다.
-// lat/lon을 주면 백엔드가 그 반경 10km 이내로만 추천한다(2026-08-25 - "지역이 너무 넓다" 피드백).
-export function getAiCourseRecommendation({ lat, lon } = {}) {
-  const params = new URLSearchParams();
-  if (lat != null) params.set('lat', lat);
-  if (lon != null) params.set('lon', lon);
-  const query = params.toString();
-  return request(`/api/aichat/course-recommendation${query ? `?${query}` : ''}`);
+export function getAiCourseRecommendation() {
+  return request('/api/aichat/course-recommendation');
 }
 
 // "최근 관심사" 인사이트 칩용(2026-08-25 추가) - 대화 이력이 없으면 백엔드가 204를 주는데,

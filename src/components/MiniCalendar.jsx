@@ -145,11 +145,7 @@ export function MiniCalendar({ loggedIn }) {
               {cells.map((day, i) => {
                 if (!day) return <div key={i}/>;
                 const key = formatDate(new Date(year, month, day));
-                const dayEvents = eventsByDate[key];
-                const hasEvent = !!dayEvents;
-                // 커플 일정(파트너도 보는 일정)이 하나라도 있으면 핑크, 전부 개인 일정이면 검정 —
-                // "지금 쓰던 핑크 동그라미는 커플 일정, 개인 일정은 새 검정 동그라미로" 요청 반영(2026-08-25).
-                const dotColor = hasEvent && dayEvents.some((e) => e.coupleEvent) ? '#ff6b8a' : '#3d2c35';
+                const hasEvent = !!eventsByDate[key];
                 // 2026-08-22 - 예전엔 day === todayDate만 체크해서, 월 이동 후 다른 달에서도
                 // 오늘과 "일"만 같으면(예: 지난달 22일) 오늘로 잘못 표시됐다. 연/월까지 같이 확인.
                 const isToday = day === todayDate && year === now.getFullYear() && month === now.getMonth();
@@ -165,7 +161,7 @@ export function MiniCalendar({ loggedIn }) {
                       {day}
                     </div>
                     {hasEvent && (
-                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: dotColor }} />
+                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: '#ff6b8a' }} />
                     )}
                   </div>
                 );
@@ -182,7 +178,7 @@ export function MiniCalendar({ loggedIn }) {
                 const d = new Date(e.targetDate);
                 return (
                   <div key={e.id} className="flex items-center gap-1.5 py-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: e.coupleEvent ? '#ff6b8a' : '#3d2c35' }} />
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#ff6b8a' }} />
                     <span className="text-[11px] font-semibold truncate" style={{ color: '#3d2c35' }}>{e.title}</span>
                     <span className="text-[10px] ml-auto font-semibold flex-shrink-0" style={{ color: '#a08b94' }}>
                       {d.getMonth() + 1}/{d.getDate()}

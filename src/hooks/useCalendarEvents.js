@@ -43,20 +43,14 @@ export function useCalendarEvents(viewDate) {
       .slice(0, 5);
   }, [calendars]);
 
-  // 사이드바의 MiniCalendar는 이 훅과 완전히 분리된 컴포넌트라, 여기서 일정을 만들거나 지워도
-  // MiniCalendar가 그 사실을 알 방법이 없어서 새로고침 전까진 계속 옛날 상태로 보였다
-  // (2026-08-25 발견 - "미니 캘린더에 일정이 안 떠"). 전역 상태 라이브러리가 없어서, 가장 가벼운
-  // 방법으로 커스텀 window 이벤트를 쏴서 MiniCalendar가 자기 데이터를 다시 받아오게 한다.
-  const notifyCalendarChanged = () => window.dispatchEvent(new Event('dm:calendar-changed'));
-
-  const createEvent = ({ title, description, targetDate, coupleEvent }) => (
-    createCalendar({ title, description, targetDate, courseGroupId: null, coupleEvent: !!coupleEvent })
-      .then(() => { fetchCalendars(viewDate); notifyCalendarChanged(); })
+  const createEvent = ({ title, description, targetDate }) => (
+    createCalendar({ title, description, targetDate, courseGroupId: null })
+      .then(() => fetchCalendars(viewDate))
   );
 
   const deleteEvent = (id) => (
     deleteCalendar(id)
-      .then(() => { fetchCalendars(viewDate); notifyCalendarChanged(); })
+      .then(() => fetchCalendars(viewDate))
       .catch((e) => console.log('일정 삭제 실패:', e))
   );
 

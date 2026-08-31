@@ -22,6 +22,7 @@ import { Avatar } from './components/Avatar';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { AiChatTab, resolveCoachByGender } from './tabs/AiChatTab';
 import { BoardTab } from './tabs/BoardTab';
+import { FinancialPlanner } from './tabs/financialPlanner';
 
 // 6대 성향 게이지가 안드로이드 웹뷰 폭에서는 너무 빽빽하게 눌려 보여서(2026-08-25),
 // 안드로이드 앱에서만 상단바에서 숨긴다. 웹/데스크톱에는 그대로 보인다.
@@ -594,6 +595,7 @@ export default function App() {
                   <CalendarTab prefill={calendarPrefill} onPrefillConsumed={() => setCalendarPrefill(null)} />
                 )}
                 {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
+                {tab === 'financialPlanner' && <FinancialPlanner />}
                 {tab === 'board' && <BoardTab user={user} />}
                 {tab === 'mypage' && (
                   <MyPageTab onUpdated={loadUser} onTabChange={changeTab}
@@ -607,7 +609,7 @@ export default function App() {
         {/* 상시 챗봇 버튼(2026-08-22, 기획안 "메인 화면 챗봇 버튼: 상시 배치" 대응 - 홈탭 전용에서
             전체 탭 공통으로 확장) - 이미 AI 상담 탭에 있을 땐 의미가 없어서 숨긴다. 화면을 가릴 수
             있다는 피드백이 있어 접기(×) 기능도 뒀고, 그 상태는 새로고침해도 유지된다. */}
-        {user && tab !== 'aichat' && (
+        {user && tab !== 'aichat' && tab !== 'financialPlanner' && (
           chatBubbleMinimized ? (
             <button type="button"
               onClick={() => { setChatBubbleMinimized(false); localStorage.removeItem('dm_chat_bubble_minimized'); }}

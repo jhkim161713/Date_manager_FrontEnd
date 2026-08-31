@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Map, MapMarker, Polyline, useKakaoLoader } from "react-kakao-maps-sdk";
 
 export function CourseDetail ({props}){
-    const {showDetail, onMoveItem, onDeleteGroup, onOptimizeOrder, onCollapse} = props
+    const {showDetail, onMoveItem, onDeleteGroup, onOptimizeOrder} = props
     const [position,setPosition] =useState({})
     const [paths,setPaths] = useState([]);
     const [distances,setDistances] = useState([]);
@@ -56,15 +56,6 @@ export function CourseDetail ({props}){
                 className="rounded-xl px-3 py-1.5 text-xs font-bold text-rose-500 border border-pink-200 hover:bg-rose-50 transition-colors"
               >
                 🗑 삭제
-              </button>
-              {/* 상세보기를 닫는 방법이 코스 삭제밖에 없었다(2026-08-25 지적) - 지도/코스 목록을
-                  접는 버튼 추가. */}
-              <button
-                type="button"
-                onClick={() => onCollapse?.()}
-                className="rounded-xl px-3 py-1.5 text-xs font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors"
-              >
-                ▲ 접기
               </button>
             </div>
           </div>
