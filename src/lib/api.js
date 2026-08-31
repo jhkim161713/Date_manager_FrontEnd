@@ -563,6 +563,11 @@ export function getAiCourseRecommendation() {
   return request('/api/aichat/course-recommendation');
 }
 
+// 장소 상세 "AI 코치의 한마디"(2026-08-31 추가) - 로그인 안 했으면 호출부에서 아예 안 부른다.
+export function getPlaceCoachExplanation(placeId) {
+  return request(`/api/aichat/place-coach/${placeId}`);
+}
+
 // "최근 관심사" 인사이트 칩용(2026-08-25 추가) - 대화 이력이 없으면 백엔드가 204를 주는데,
 // request()의 res.json()이 빈 body에서 null을 반환하므로 그대로 null이 넘어온다.
 export function getAiIntentSummary() {
