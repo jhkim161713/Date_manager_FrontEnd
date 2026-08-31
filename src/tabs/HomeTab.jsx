@@ -10,7 +10,7 @@ import { HeroBanner } from '../components/home/HeroBanner';
 import { HomeCategoryChips } from '../components/home/HomeCategoryChips';
 import { RecommendationCard } from '../components/home/RecommendationCard';
 
-export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
+export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
   // 배너 문구를 실제 커플 연결 상태에 따라 다르게 보여준다 - 예전엔 목업 커플타입과 가짜 코스
   // 개수를 썼는데, 실제 데이터 기반으로 교체(2026-08-13).
   const [coupleLinked, setCoupleLinked] = useState(false);
@@ -181,7 +181,7 @@ export function HomeTab({ onTabChange, personaProfile, onStyleChanged }) {
       </div>
 
       {selectedPlaceId && (
-        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)} />
+        <PlaceDetailModal user={user} placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)} />
       )}
     </div>
   );

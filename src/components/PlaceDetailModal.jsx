@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getPlace, getPlaceCoachExplanation, getVenuePerformances } from '../lib/api';
 import { PERSONA_AXES } from '../data/onboardingData';
+import { resolveCoachByGender } from '../tabs/AiChatTab';
 
 // 홈/큐레이션 카드를 클릭하면 뜨는 장소 상세 모달(2026-08-22). 그동안 GET /api/places/{id}를
 // 실제로 호출하는 곳이 프론트에 하나도 없어서(백엔드는 "장소 열람" 성향값 갱신 트리거까지
@@ -26,7 +27,9 @@ const AMENITY_LABELS = {
   BABY_CARRIAGE: { icon: '👶', label: '유아차 이용 가능', color: '#806bb4', bg: '#f1edff' },
 };
 
-export function PlaceDetailModal({ placeId, onClose, onToggleBuilder, inBuilder, onAddToCalendar }) {
+export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBuilder, onAddToCalendar }) {
+  // AiChatTab/App.jsx 상시 챗봇 버튼과 동일한 성별 기준 코치 배정(2026-08-31).
+  const coachPersona = resolveCoachByGender(user?.gender);
   const [place, setPlace] = useState(null);
   const [error, setError] = useState(null);
   // "이 공연장의 다른 공연"을 누르면 모달을 닫지 않고 그 자리에서 갈아끼울 수 있도록, 실제로 보여줄
@@ -36,7 +39,7 @@ export function PlaceDetailModal({ placeId, onClose, onToggleBuilder, inBuilder,
   const [venuePerformances, setVenuePerformances] = useState([]);
   // "AI 코치의 한마디"(2026-08-31) - 비로그인이면 백엔드가 401을 주는데, 그 경우 그냥 패널을
   // 숨긴다(로그인을 요구하는 별도 안내는 과함 - 상세 정보 자체는 비로그인도 볼 수 있어야 해서).
-  const [coach, setCoach] = useState(null);
+  const [coachReply, setCoachReply] = useState(null);
   const [coachLoading, setCoachLoading] = useState(false);
   useEffect(() => { setActivePlaceId(placeId); }, [placeId]);
 
@@ -45,14 +48,14 @@ export function PlaceDetailModal({ placeId, onClose, onToggleBuilder, inBuilder,
     setPlace(null);
     setError(null);
     setVenuePerformances([]);
-    setCoach(null);
+    setCoachReply(null);
     getPlace(activePlaceId)
       .then((data) => { if (!cancelled) setPlace(data); })
       .catch((e) => { if (!cancelled) setError(e.message || '장소 정보를 불러오지 못했어요'); });
     setCoachLoading(true);
     getPlaceCoachExplanation(activePlaceId)
-      .then((data) => { if (!cancelled) setCoach(data); })
-      .catch(() => { if (!cancelled) setCoach(null); })
+      .then((data) => { if (!cancelled) setCoachReply(data); })
+      .catch(() => { if (!cancelled) setCoachReply(null); })
       .finally(() => { if (!cancelled) setCoachLoading(false); });
     return () => { cancelled = true; };
   }, [activePlaceId]);
@@ -251,48 +254,45 @@ export function PlaceDetailModal({ placeId, onClose, onToggleBuilder, inBuilder,
 
       {/* "AI 코치의 한마디"(2026-08-31) - 로그인해서 성향값이 있을 때만 뜬다(비로그인이면 백엔드가
           401을 줘서 coach가 계속 null). 데스크톱은 오른쪽에, 좁은 화면은 카드 아래로 쌓인다. */}
-      {place && (coachLoading || coach) && (
-        <div className="rounded-3xl w-full md:max-w-sm flex flex-col p-5 gap-4"
+      {place && (coachLoading || coachReply) && (
+        <div className="rounded-3xl w-full md:max-w-sm overflow-hidden flex flex-col"
           style={{ background: '#fffdfc', border: '1px solid #f3d2cb', boxShadow: '0 20px 60px rgba(145,91,103,0.16)' }}>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
-              style={{ background: 'linear-gradient(135deg, #f36f67 0%, #a789ea 100%)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="1.8" />
-                <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </div>
-            <p className="font-display font-bold text-sm" style={{ color: '#3d2c35' }}>AI 코치의 한마디</p>
+          <div className="relative" style={{ height: '220px', background: '#fffdfc' }}>
+            <img src={coachPersona.image} alt={coachPersona.name} className="w-full h-full object-contain object-bottom" />
           </div>
 
-          {coachLoading ? (
-            <p className="text-xs text-stone-400">우리 성향 기준으로 짚어보는 중...</p>
-          ) : (
-            <>
-              <div className="rounded-2xl p-4" style={{ background: '#fff1ed', border: '1.5px solid #f3d2cb' }}>
-                <p className="text-xs leading-relaxed" style={{ color: '#4a3a40' }}>{coach.message}</p>
-              </div>
-              {coach.topAxes?.length > 0 && (
-                <div className="space-y-2">
-                  {coach.topAxes.map((axisId) => {
-                    const axis = PERSONA_AXES.find((a) => a.id === axisId);
-                    if (!axis || place[AXIS_TO_PLACE_SCORE[axisId]] == null) return null;
-                    const score = place[AXIS_TO_PLACE_SCORE[axisId]];
-                    return (
-                      <div key={axisId} className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold flex-shrink-0" style={{ color: axis.color, width: '64px' }}>
-                          {axis.koreanLabel}
-                        </span>
-                        <div className="flex-1 h-1.5 rounded-full" style={{ background: '#f0dce2' }}>
-                          <div className="h-full rounded-full" style={{ width: `${score}%`, background: axis.color }} />
-                        </div>
-                      </div>
-                    );
-                  })}
+          <div className="flex flex-col p-5 gap-4">
+            <p className="font-display font-bold text-sm mt-1" style={{ color: '#3d2c35' }}>{coachPersona.name}의 한마디</p>
+
+            {coachLoading ? (
+              <p className="text-xs text-stone-400">우리 성향 기준으로 짚어보는 중...</p>
+            ) : (
+              <>
+                <div className="rounded-2xl p-4" style={{ background: coachPersona.assistantBubble, border: `1.5px solid ${coachPersona.border}` }}>
+                  <p className="text-xs leading-relaxed" style={{ color: coachPersona.text }}>{coachReply.message}</p>
                 </div>
-              )}
-            </>
-          )}
+                {coachReply.topAxes?.length > 0 && (
+                  <div className="space-y-2">
+                    {coachReply.topAxes.map((axisId) => {
+                      const axis = PERSONA_AXES.find((a) => a.id === axisId);
+                      if (!axis || place[AXIS_TO_PLACE_SCORE[axisId]] == null) return null;
+                      const score = place[AXIS_TO_PLACE_SCORE[axisId]];
+                      return (
+                        <div key={axisId} className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold flex-shrink-0" style={{ color: axis.color, width: '64px' }}>
+                            {axis.koreanLabel}
+                          </span>
+                          <div className="flex-1 h-1.5 rounded-full" style={{ background: '#f0dce2' }}>
+                            <div className="h-full rounded-full" style={{ width: `${score}%`, background: axis.color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
       </div>

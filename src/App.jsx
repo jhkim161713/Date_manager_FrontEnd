@@ -584,10 +584,10 @@ export default function App() {
               </div>
             ) : (
               <>
-                {tab === 'home' && <HomeTab onTabChange={changeTab} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
+                {tab === 'home' && <HomeTab user={user} onTabChange={changeTab} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'curiation' && (
-                  <CuriationTab personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile}
+                  <CuriationTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile}
                     onAddToCalendar={(item) => { setCalendarPrefill(item); changeTab('calendar'); }} />
                 )}
                 {tab === 'builder' && <BuilderTab />}

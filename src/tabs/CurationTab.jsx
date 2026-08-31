@@ -17,7 +17,7 @@ import { useLikedPlaces } from '../hooks/useLikedPlaces';
 
 // 카드 하나를 그릴 때 필요한 필드로 백엔드 CurationPlaceDto를 그대로 쓴다. matchScore는 온보딩 저장
 // 파이프라인이 없어서(2026-08-14 기준) 항상 null - 그래서 매칭% 배지/정렬은 값이 있을 때만 켠다.
-export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, onAddToCalendar }) {
+export function CuriationTab({ user, onOpenBuilder, personaProfile, onStyleChanged, onAddToCalendar }) {
   const curation = useCurationPlaces();
   const [expandedStayId, setExpandedStayId] = useState(null);
   const [feedback, setFeedback] = useState('');
@@ -312,7 +312,7 @@ export function CuriationTab({ onOpenBuilder, personaProfile, onStyleChanged, on
       </div>
 
       {selectedPlaceId && (
-        <PlaceDetailModal placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)}
+        <PlaceDetailModal user={user} placeId={selectedPlaceId} onClose={() => setSelectedPlaceId(null)}
           onToggleBuilder={toggleBuilderItem}
           inBuilder={builderItems.some((item) => item.id === selectedPlaceId)}
           onAddToCalendar={addToCalendar} />
