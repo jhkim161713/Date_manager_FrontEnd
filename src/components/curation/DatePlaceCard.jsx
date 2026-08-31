@@ -24,6 +24,11 @@ export function DatePlaceCard({ place, personaProfile, liked, inBuilder, onSelec
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        {place.imagePlaceholder && (
+          <span className="absolute bottom-3 left-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white" style={{ backdropFilter: 'blur(6px)' }}>
+            실사진 준비중
+          </span>
+        )}
         {place.matchScore != null && (
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold" style={{ color: '#e8486b', backdropFilter: 'blur(6px)' }}>
             ♥ {place.matchScore}% 매칭

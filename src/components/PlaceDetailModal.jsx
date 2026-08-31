@@ -139,6 +139,12 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
                 {/* 세부분류 이모지로 표시(2026-08-28) - RecommendationCard.jsx와 동일 이유로 수정. */}
                 {place.emoji || '📍'} {place.category}
               </span>
+              {place.imagePlaceholder && (
+                <span className="absolute right-4 bottom-4 rounded-full px-3 py-1 text-xs font-bold text-white"
+                  style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
+                  실사진 준비중
+                </span>
+              )}
             </div>
 
             <div className="p-6">
