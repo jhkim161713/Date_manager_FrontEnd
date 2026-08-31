@@ -31,6 +31,26 @@ export function deleteCalendar(id){
 
 
 
+// AI 스마트 자금 플래너(2026-08-31) - 목표 생성/수정은 같은 엔드포인트가 upsert로 처리한다
+// (진행 중인 목표는 owner당 1개뿐 - 재입력하면 기존 목표가 새 내용으로 바뀌고 진행률은 유지됨).
+export function createOrUpdateFundGoal(text) {
+  return request('/api/v1/planner/goal', {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+}
+
+export function getFundPlannerDashboard() {
+  return request('/api/v1/planner/dashboard');
+}
+
+export function updateFundGoalProgress(goalId, currentAmount) {
+  return request(`/api/v1/planner/goal/${goalId}/progress`, {
+    method: 'PATCH',
+    body: JSON.stringify({ currentAmount }),
+  });
+}
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
