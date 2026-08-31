@@ -147,9 +147,10 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
                 <p className="text-xs mt-1.5" style={{ color: '#a08b94' }}>🗺️ {place.address}</p>
               )}
 
-              {/* 현실 체킹(2026-08-31) - TourAPI 상세조회로 채워지는 영업시간/휴무일/주차/편의태그.
-                  DatePlaceCard.jsx의 현실 체킹 태그와 같은 데이터 소스, 상세 모달엔 처음 노출. */}
-              {(place.useTime || place.restDate || place.menuInfo || place.parkingInfo || place.amenityTags?.length > 0) && (
+              {/* 현실 체킹(2026-08-31) - TourAPI 상세조회로 채워지는 영업시간/휴무일/전화번호/대표메뉴/
+                  포장가능/주차/편의태그. DatePlaceCard.jsx의 현실 체킹 태그와 같은 데이터 소스,
+                  상세 모달엔 처음 노출. 최대한 채워서(2026-08-31, 사용자 요청) 카드가 덜 휑하게 함. */}
+              {(place.useTime || place.restDate || place.menuInfo || place.phone || place.packingInfo || place.parkingInfo || place.amenityTags?.length > 0) && (
                 <div className="mt-2 space-y-1">
                   {(place.useTime || place.restDate) && (
                     <p className="text-xs" style={{ color: '#6d5662' }}>
@@ -159,10 +160,18 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
                   {place.menuInfo && (
                     <p className="text-xs" style={{ color: '#6d5662' }}>🍽️ 대표메뉴 · {place.menuInfo}</p>
                   )}
+                  {place.phone && (
+                    <p className="text-xs" style={{ color: '#6d5662' }}>☎️ {place.phone}</p>
+                  )}
                   <div className="flex flex-wrap items-center gap-1.5">
                     {place.parkingInfo && (
                       <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ color: '#806bb4', background: '#f1edff' }}>
                         🅿 {place.parkingInfo}
+                      </span>
+                    )}
+                    {place.packingInfo === '가능' && (
+                      <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ color: '#3d9b86', background: '#eaf8f4' }}>
+                        🥡 포장 가능
                       </span>
                     )}
                     {place.amenityTags?.map((tag) => {
