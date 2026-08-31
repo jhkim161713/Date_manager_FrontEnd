@@ -80,15 +80,41 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
         .filter((axis) => AXIS_TO_PLACE_SCORE[axis.id] && place[AXIS_TO_PLACE_SCORE[axis.id]] != null && place[AXIS_TO_PLACE_SCORE[axis.id]] !== 50)
         .map((axis) => ({ axis, score: place[AXIS_TO_PLACE_SCORE[axis.id]] }))
     : [];
+  const showCoachPanel = place && (coachLoading || coachReply);
+
+  // 코스빌더/캘린더 담기(2026-08-31, 시안 확정) - AI 코치 패널이 뜨면 그 패널 하단에, 코치 패널이
+  // 안 뜨면(비로그인 등) 왼쪽 카드 하단에 - 어느 쪽이든 기능 자체는 항상 노출되게 한다.
+  const actionButtons = (onToggleBuilder || onAddToCalendar) && (
+    <div className="grid grid-cols-2 gap-2">
+      {onToggleBuilder && (
+        <button type="button" onClick={() => onToggleBuilder(place)}
+          className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+          style={{
+            background: inBuilder ? '#f3edef' : '#fff0f3',
+            color: inBuilder ? '#846f78' : '#e8486b',
+            border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
+          }}>
+          {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
+        </button>
+      )}
+      {onAddToCalendar && (
+        <button type="button" onClick={() => onAddToCalendar(place)}
+          className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
+          style={{ background: '#fff8ee', color: '#c98a3d', border: '1px solid #f3ddb8' }}>
+          📅 캘린더에 담기
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
       style={{ background: 'rgba(61,44,53,0.55)', backdropFilter: 'blur(4px)' }}>
-      <div className="flex flex-col md:flex-row items-stretch gap-3 w-full max-w-3xl max-h-[85vh]"
-        onClick={(e) => e.stopPropagation()}>
-      <div className="rounded-3xl w-full md:max-w-md relative overflow-hidden overflow-y-auto"
+      <div className="flex flex-col md:flex-row items-stretch w-full max-w-3xl max-h-[85vh] rounded-3xl relative overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
         style={{ background: 'white', boxShadow: '0 20px 60px rgba(255,107,138,0.18)' }}>
+      <div className="w-full md:max-w-md relative overflow-y-auto">
         <button onClick={onClose}
           className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
           style={{ background: 'rgba(0,0,0,0.35)', color: 'white' }}>✕</button>
@@ -223,45 +249,25 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
                 </div>
               )}
 
-              {/* 코스빌더/캘린더 담기(2026-08-31) - DatePlaceCard.jsx와 동일한 스타일·문구.
-                  이 모달을 여는 화면(CurationTab 등)이 핸들러를 안 넘기면 조용히 숨긴다. */}
-              {(onToggleBuilder || onAddToCalendar) && (
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {onToggleBuilder && (
-                    <button type="button" onClick={() => onToggleBuilder(place)}
-                      className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
-                      style={{
-                        background: inBuilder ? '#f3edef' : '#fff0f3',
-                        color: inBuilder ? '#846f78' : '#e8486b',
-                        border: `1px solid ${inBuilder ? '#e8dde1' : '#f6cdd7'}`,
-                      }}>
-                      {inBuilder ? '✓ 코스 후보에 담김' : '+ 코스 빌더에 담기'}
-                    </button>
-                  )}
-                  {onAddToCalendar && (
-                    <button type="button" onClick={() => onAddToCalendar(place)}
-                      className="rounded-xl py-2.5 text-[11px] font-extrabold transition-all"
-                      style={{ background: '#fff8ee', color: '#c98a3d', border: '1px solid #f3ddb8' }}>
-                      📅 캘린더에 담기
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* 코스빌더/캘린더 담기 - AI 코치 패널이 뜨면 거기로 넘어가고, 안 뜨면(비로그인 등)
+                  여기 남는다(기능이 사라지면 안 되니). */}
+              {!showCoachPanel && <div className="mt-4">{actionButtons}</div>}
             </div>
           </>
         )}
       </div>
 
       {/* "AI 코치의 한마디"(2026-08-31) - 로그인해서 성향값이 있을 때만 뜬다(비로그인이면 백엔드가
-          401을 줘서 coach가 계속 null). 데스크톱은 오른쪽에, 좁은 화면은 카드 아래로 쌓인다. */}
-      {place && (coachLoading || coachReply) && (
-        <div className="rounded-3xl w-full md:max-w-sm overflow-hidden flex flex-col"
-          style={{ background: '#fffdfc', border: '1px solid #f3d2cb', boxShadow: '0 20px 60px rgba(145,91,103,0.16)' }}>
+          401을 줘서 coachReply가 계속 null). 왼쪽 카드와 한 카드로 붙이고 세로 구분선만 둔다(시안
+          확정). 데스크톱은 오른쪽에, 좁은 화면은 카드 아래로 쌓인다. */}
+      {showCoachPanel && (
+        <div className="w-full md:max-w-sm flex flex-col border-t md:border-t-0 md:border-l"
+          style={{ background: '#fffdfc', borderColor: '#f6e6ea' }}>
           <div className="relative" style={{ height: '220px', background: '#fffdfc' }}>
             <img src={coachPersona.image} alt={coachPersona.name} className="w-full h-full object-contain object-bottom" />
           </div>
 
-          <div className="flex flex-col p-5 gap-4">
+          <div className="flex flex-col p-5 gap-4 flex-1">
             <p className="font-display font-bold text-sm mt-1" style={{ color: '#3d2c35' }}>{coachPersona.name}의 한마디</p>
 
             {coachLoading ? (
@@ -292,6 +298,7 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
                 )}
               </>
             )}
+            <div className="mt-auto">{actionButtons}</div>
           </div>
         </div>
       )}
