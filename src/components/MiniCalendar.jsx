@@ -13,7 +13,8 @@ function formatDate(d) {
 // 보여줘서, 오늘이 언제든 상관없이 항상 같은 지난 날짜가 "다가오는 일정"에 떴다. 이제 실제
 // /calendar API(CalendarTab.jsx와 동일)에서 이번 달 일정을 가져와 보여준다. 카테고리별
 // 색깔 점/이모지는 실제 데이터에 카테고리 필드가 없어서(원래 기획의 "프리미엄 매거진" 자동
-// 이식 개념 - 최종 프로젝트 스코프) 뺐고, 지금은 일정 유무만 단색 점으로 표시한다.
+// 이식 개념 - 최종 프로젝트 스코프) 안 넣었고, 대신 커플 일정(핑크)/개인 일정(검정)으로만
+// 점 색을 구분한다(2026-09-01 재구현 - 한 번 되돌려졌다가 백엔드까지 갖춰서 다시 붙임).
 export function MiniCalendar({ loggedIn }) {
   const [open, setOpen] = useState(true);
   const [events, setEvents] = useState([]);
@@ -145,7 +146,11 @@ export function MiniCalendar({ loggedIn }) {
               {cells.map((day, i) => {
                 if (!day) return <div key={i}/>;
                 const key = formatDate(new Date(year, month, day));
-                const hasEvent = !!eventsByDate[key];
+                const dayEvents = eventsByDate[key];
+                const hasEvent = !!dayEvents;
+                // 커플 일정(파트너도 보는 일정)이 하나라도 있으면 핑크, 전부 개인 일정이면 검정
+                // (2026-09-01 재구현 - 예전에 되돌려졌던 걸 백엔드까지 갖춰서 다시 붙임).
+                const dotColor = hasEvent && dayEvents.some((e) => e.coupleEvent) ? '#ff6b8a' : '#3d2c35';
                 // 2026-08-22 - 예전엔 day === todayDate만 체크해서, 월 이동 후 다른 달에서도
                 // 오늘과 "일"만 같으면(예: 지난달 22일) 오늘로 잘못 표시됐다. 연/월까지 같이 확인.
                 const isToday = day === todayDate && year === now.getFullYear() && month === now.getMonth();
@@ -161,7 +166,7 @@ export function MiniCalendar({ loggedIn }) {
                       {day}
                     </div>
                     {hasEvent && (
-                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: '#ff6b8a' }} />
+                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: dotColor }} />
                     )}
                   </div>
                 );
@@ -178,7 +183,7 @@ export function MiniCalendar({ loggedIn }) {
                 const d = new Date(e.targetDate);
                 return (
                   <div key={e.id} className="flex items-center gap-1.5 py-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#ff6b8a' }} />
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: e.coupleEvent ? '#ff6b8a' : '#3d2c35' }} />
                     <span className="text-[11px] font-semibold truncate" style={{ color: '#3d2c35' }}>{e.title}</span>
                     <span className="text-[10px] ml-auto font-semibold flex-shrink-0" style={{ color: '#a08b94' }}>
                       {d.getMonth() + 1}/{d.getDate()}

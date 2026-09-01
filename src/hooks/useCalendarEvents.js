@@ -43,14 +43,19 @@ export function useCalendarEvents(viewDate) {
       .slice(0, 5);
   }, [calendars]);
 
-  const createEvent = ({ title, description, targetDate }) => (
-    createCalendar({ title, description, targetDate, courseGroupId: null })
-      .then(() => fetchCalendars(viewDate))
+  // 사이드바 MiniCalendar는 이 훅과 별개 컴포넌트라 상태를 공유하지 않는다 - 생성/삭제가 끝나면
+  // 이 커스텀 이벤트로 알려줘야 MiniCalendar도 같이 갱신된다(2026-09-01, 머지 과정에서 빠졌던
+  // dispatch를 복원). MiniCalendar.jsx가 이 이벤트를 구독한다.
+  const notifyCalendarChanged = () => window.dispatchEvent(new CustomEvent('dm:calendar-changed'));
+
+  const createEvent = ({ title, description, targetDate, coupleEvent }) => (
+    createCalendar({ title, description, targetDate, courseGroupId: null, coupleEvent: !!coupleEvent })
+      .then(() => { fetchCalendars(viewDate); notifyCalendarChanged(); })
   );
 
   const deleteEvent = (id) => (
     deleteCalendar(id)
-      .then(() => fetchCalendars(viewDate))
+      .then(() => { fetchCalendars(viewDate); notifyCalendarChanged(); })
       .catch((e) => console.log('일정 삭제 실패:', e))
   );
 

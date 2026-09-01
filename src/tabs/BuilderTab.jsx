@@ -14,11 +14,11 @@ function backendErrorMessage(error, fallback) {
   return error.response?.data?.error || fallback;
 }
 
-export function BuilderTab() {
+export function BuilderTab({ autoOpenNaming, onAutoOpenConsumed }) {
 
   const [data, setData] = useState([]);
   const [showDetail, setShowDetail] = useState(null);
-  
+
   const [builderQueue, setBuilderQueue] = useState([]);
   const [isGroupMakerOpen, setIsGroupMakerOpen] = useState(false);
   const [courseTitle, setCourseTitle] = useState('');
@@ -29,6 +29,15 @@ export function BuilderTab() {
 
     if (savedData) {
       setBuilderQueue(JSON.parse(savedData));
+    }
+
+    // 큐레이션에서 "빌더로 보내기"를 눌러 이 탭으로 막 넘어온 경우, 담긴 장소를 보여주기만
+    // 하지 말고 이름짓기 모달을 바로 띄운다(2026-09-01) - CalendarTab의 prefill 패턴과 동일하게
+    // App.jsx가 한 번만 true로 넘겨주고, 여기서 쓰자마자 onAutoOpenConsumed로 다시 꺼준다.
+    if (autoOpenNaming && savedData) {
+      setCourseTitle('');
+      setIsGroupMakerOpen(true);
+      onAutoOpenConsumed?.();
     }
 
 
@@ -108,6 +117,11 @@ export function BuilderTab() {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
+
+      const response = await axios.get(`${API_BASE_URL}/api/course/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData(response.data);
 
       alert("코스 생성이 완료되었습니다!");
       setIsGroupMakerOpen(false);

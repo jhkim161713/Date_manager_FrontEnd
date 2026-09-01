@@ -70,6 +70,10 @@ export default function App() {
   // 매번 바뀌어야 CalendarTab의 useEffect가 매번 새로 반응하므로, 같은 장소를 연속으로 눌러도
   // 항상 새 객체를 만들어 넘긴다(호출부 참고).
   const [calendarPrefill, setCalendarPrefill] = useState(null);
+  // 큐레이션 탭 "빌더로 보내기" -> 빌더 탭으로 바로 이동해서 이름짓기 모달을 자동으로 띄우기
+  // 위한 1회성 신호(2026-09-01). calendarPrefill과 같은 패턴 - BuilderTab이 마운트 시 한 번
+  // 소비하고 onAutoOpenConsumed로 다시 꺼준다.
+  const [builderAutoOpen, setBuilderAutoOpen] = useState(false);
   // 이메일 가입 직후, 또는 소셜 가입 후 ProfileConfirmModal(성별 확정)이 끝난 직후에 띄우는
   // 필수 성향 온보딩 오버레이. 둘 다 "방금 처음 가입한 사람"만 거치는 지점이라 이 하나의
   // 플래그로 두 경로를 합쳐서 처리한다.
@@ -588,9 +592,12 @@ export default function App() {
                 {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'curiation' && (
                   <CuriationTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile}
-                    onAddToCalendar={(item) => { setCalendarPrefill(item); changeTab('calendar'); }} />
+                    onAddToCalendar={(item) => { setCalendarPrefill(item); changeTab('calendar'); }}
+                    onOpenBuilder={() => { setBuilderAutoOpen(true); changeTab('builder'); }} />
                 )}
-                {tab === 'builder' && <BuilderTab />}
+                {tab === 'builder' && (
+                  <BuilderTab autoOpenNaming={builderAutoOpen} onAutoOpenConsumed={() => setBuilderAutoOpen(false)} />
+                )}
                 {tab === 'calendar' && (
                   <CalendarTab prefill={calendarPrefill} onPrefillConsumed={() => setCalendarPrefill(null)} />
                 )}

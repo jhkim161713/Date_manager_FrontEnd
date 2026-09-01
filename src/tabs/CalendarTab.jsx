@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { MonthView } from '../components/calendar/MonthView';
 import { WeekView } from '../components/calendar/WeekView';
@@ -7,11 +7,19 @@ import { UpcomingPanel } from '../components/calendar/UpcomingPanel';
 import { EventFormModal } from '../components/calendar/EventFormModal';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { getWeekDates } from '../lib/calendarDisplay';
+import { getCoupleStatus } from '../lib/api';
 
 export function CalendarTab({ prefill, onPrefillConsumed }) {
   const [viewDate, setViewDate] = useState(new Date());
   const [view, setView] = useState('월간');
   const [showForm, setShowForm] = useState(Boolean(prefill));
+
+  // "커플 일정으로 등록" 체크박스 잠금용(2026-09-01 재구현) - HomeTab과 동일한 패턴으로 연결
+  // 여부를 가져와 EventFormModal에 넘긴다.
+  const [coupleLinked, setCoupleLinked] = useState(false);
+  useEffect(() => {
+    getCoupleStatus().then((status) => setCoupleLinked(!!status.linked)).catch(() => setCoupleLinked(false));
+  }, []);
 
   const { calendars, eventsByDate, upcoming, createEvent, deleteEvent } = useCalendarEvents(viewDate);
 
@@ -116,6 +124,7 @@ export function CalendarTab({ prefill, onPrefillConsumed }) {
             onPrefillConsumed={onPrefillConsumed}
             onClose={() => setShowForm(false)}
             onSubmit={createEvent}
+            coupleLinked={coupleLinked}
           />
         )}
       </div>
