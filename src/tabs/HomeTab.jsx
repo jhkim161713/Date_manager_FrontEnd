@@ -4,6 +4,8 @@ import { useWeather } from '../hooks/useWeather';
 import { useLikedPlaces } from '../hooks/useLikedPlaces';
 import { useHomeRecommendations } from '../hooks/useHomeRecommendations';
 import { getCoupleStatus, getAiCourseRecommendation, getAiIntentSummary } from '../lib/api';
+import { getCurrentLocation } from '../lib/weather';
+import { AI_COURSE_AREAS } from '../data/aiCourseAreas';
 import { BUILDER_STORAGE_KEY } from '../data/curationData';
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { HeroBanner } from '../components/home/HeroBanner';
@@ -24,7 +26,15 @@ export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
       }
     };
     loadCoupleStatus();
-  }, []);
+    // 초대를 보낸 사람은 파트너가 수락해도 이 탭이 이미 마운트돼있으면 반영이 안 됐다(2026-09-01) -
+    // App.jsx/CoupleTab이 연결 상태가 바뀔 때 쏘는 이벤트를 구독해서 다시 조회한다.
+    window.addEventListener('dm:couple-status-changed', loadCoupleStatus);
+    return () => window.removeEventListener('dm:couple-status-changed', loadCoupleStatus);
+    // user?.id 의존성 추가(2026-09-01) - 로그인 모달의 onAuthed()가 loadUser()를 await 없이 호출해서,
+    // user가 실제로 채워지는 시점과 이 탭이 리렌더되는 시점이 어긋날 수 있다. 로그인 모달로 로그인한
+    // 직후(페이지 새로고침 없이) 이미 연결된 커플 상태가 바로 안 뜨는 문제 대응 - user가 바뀔 때마다
+    // 다시 조회해서, 마운트 타이밍과 무관하게 항상 최신 로그인 유저 기준으로 재조회되게 한다.
+  }, [user?.id]);
 
   // "최근 관심사" 인사이트 칩(2026-08-25 추가) - AI 챗봇이 메시지마다 분석해서 저장만 해두고
   // 아무도 안 읽던 의도 태그(AiChatMessageIntent)를 처음으로 화면에 보여준다.
@@ -44,20 +54,33 @@ export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
   // 상세 모달을 바로 띄우도록 바꿨다.
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
 
+  // 추천 기준 동네 칩(2026-09-01) - 기본은 '내 위치'(GPS/실패시 서울 종로 대체). 프리셋 동네를
+  // 고르면 그 좌표를 기준으로 아래 "오늘의 추천" 섹션과 "AI 코스 추천"이 둘 다 그 동네 기준으로 바뀐다.
+  const [aiCourseAreaKey, setAiCourseAreaKey] = useState(AI_COURSE_AREAS[0].key);
+  const [homeLocation, setHomeLocation] = useState(null);
+  useEffect(() => {
+    const selectedArea = AI_COURSE_AREAS.find((area) => area.key === aiCourseAreaKey) ?? AI_COURSE_AREAS[0];
+    if (selectedArea.useCurrentLocation) {
+      getCurrentLocation().then(setHomeLocation);
+    } else {
+      setHomeLocation({ lat: selectedArea.lat, lon: selectedArea.lon });
+    }
+  }, [aiCourseAreaKey]);
+
   const {
     homeCategory, setHomeCategory, refresh,
     visibleCards, pageCount, currentPage, goPrev, goNext, goToPage,
-  } = useHomeRecommendations(personaProfile);
+  } = useHomeRecommendations(personaProfile, homeLocation);
 
   // "AI 코스 추천"(2026-08-25) - 예전엔 이 버튼이 그냥 빌더 탭으로만 이동시켰는데(이름은 AI인데
   // 실제로는 AI를 전혀 안 씀), 백엔드가 성향값 기반으로 추린 후보 중 OpenAI가 고른 4곳을 실제로
   // 받아와서 코스 빌더 큐에 채워 넣은 뒤 빌더 탭으로 이동한다.
   const [aiRecommending, setAiRecommending] = useState(false);
   const handleAiCourseRecommend = async () => {
-    if (aiRecommending) return;
+    if (aiRecommending || !homeLocation) return;
     setAiRecommending(true);
     try {
-      const recommendation = await getAiCourseRecommendation();
+      const recommendation = await getAiCourseRecommendation(homeLocation.lat, homeLocation.lon);
       if (Array.isArray(recommendation) && recommendation.length > 0) {
         const builderQueue = recommendation.map((place) => ({
           id: `ai:${place.id}`,
@@ -86,7 +109,8 @@ export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
 
       {/* ━━━ ① 히어로 배너 ━━━ */}
       <HeroBanner coupleLinked={coupleLinked} weather={weather}
-        onOpenBuilder={handleAiCourseRecommend} aiRecommending={aiRecommending} />
+        onOpenBuilder={handleAiCourseRecommend} aiRecommending={aiRecommending}
+        areas={AI_COURSE_AREAS} selectedAreaKey={aiCourseAreaKey} onSelectArea={setAiCourseAreaKey} />
 
       {/* "최근 관심사" 인사이트 칩 - 대화 이력이 있을 때만(count>0) 노출.
           insight(AI가 생성한 자연어 한 줄)가 있으면 그걸 쓰고, AI 호출이 실패했으면(insight=null)

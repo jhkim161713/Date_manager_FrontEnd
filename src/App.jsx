@@ -72,6 +72,10 @@ export default function App() {
   // 매번 바뀌어야 CalendarTab의 useEffect가 매번 새로 반응하므로, 같은 장소를 연속으로 눌러도
   // 항상 새 객체를 만들어 넘긴다(호출부 참고).
   const [calendarPrefill, setCalendarPrefill] = useState(null);
+  // 큐레이션 탭 "빌더로 보내기" -> 빌더 탭으로 바로 이동해서 이름짓기 모달을 자동으로 띄우기
+  // 위한 1회성 신호(2026-09-01). calendarPrefill과 같은 패턴 - BuilderTab이 마운트 시 한 번
+  // 소비하고 onAutoOpenConsumed로 다시 꺼준다.
+  const [builderAutoOpen, setBuilderAutoOpen] = useState(false);
   // 이메일 가입 직후, 또는 소셜 가입 후 ProfileConfirmModal(성별 확정)이 끝난 직후에 띄우는
   // 필수 성향 온보딩 오버레이. 둘 다 "방금 처음 가입한 사람"만 거치는 지점이라 이 하나의
   // 플래그로 두 경로를 합쳐서 처리한다.
@@ -143,6 +147,9 @@ export default function App() {
       const coupleStatus = await getCoupleStatus().catch(() => null);
       setCelebrationPartner(coupleStatus?.partner || null);
       setShowMatchCelebration(true);
+      // 초대를 보낸 사람(A) 쪽은 파트너가 수락한 사실을 이렇게 수동적으로 알게 되는 입장이라,
+      // 홈탭/캘린더탭이 각자 들고 있는 coupleLinked도 같이 갱신되도록 알려준다(2026-09-01).
+      window.dispatchEvent(new CustomEvent('dm:couple-status-changed'));
     }
   };
 
@@ -605,11 +612,14 @@ export default function App() {
                 {tab === 'couple' && <CoupleTab user={user} onTabChange={changeTab} personaProfile={personaProfile} />}
                 {tab === 'curiation' && (
                   <CuriationTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile}
-                    onAddToCalendar={(item) => { setCalendarPrefill(item); changeTab('calendar'); }} />
+                    onAddToCalendar={(item) => { setCalendarPrefill(item); changeTab('calendar'); }}
+                    onOpenBuilder={() => { setBuilderAutoOpen(true); changeTab('builder'); }} />
                 )}
-                {tab === 'builder' && <BuilderTab />}
+                {tab === 'builder' && (
+                  <BuilderTab autoOpenNaming={builderAutoOpen} onAutoOpenConsumed={() => setBuilderAutoOpen(false)} />
+                )}
                 {tab === 'calendar' && (
-                  <CalendarTab prefill={calendarPrefill} onPrefillConsumed={() => setCalendarPrefill(null)} />
+                  <CalendarTab user={user} prefill={calendarPrefill} onPrefillConsumed={() => setCalendarPrefill(null)} />
                 )}
                 {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'financialPlanner' && <FinancialPlanner />}
@@ -626,7 +636,7 @@ export default function App() {
         {/* 상시 챗봇 버튼(2026-08-22, 기획안 "메인 화면 챗봇 버튼: 상시 배치" 대응 - 홈탭 전용에서
             전체 탭 공통으로 확장) - 이미 AI 상담 탭에 있을 땐 의미가 없어서 숨긴다. 화면을 가릴 수
             있다는 피드백이 있어 접기(×) 기능도 뒀고, 그 상태는 새로고침해도 유지된다. */}
-        {user && tab !== 'aichat' && tab !== 'financialPlanner' && (
+        {user && tab !== 'aichat' && tab !== 'financialPlanner' && tab !== 'calendar' && (
           chatBubbleMinimized ? (
             <button type="button"
               onClick={() => { setChatBubbleMinimized(false); localStorage.removeItem('dm_chat_bubble_minimized'); }}

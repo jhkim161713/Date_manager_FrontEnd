@@ -91,8 +91,9 @@
   position: absolute;
   top: 50%;
   z-index: 6;
-  width: clamp(80px, 19vw, 108px);
-  height: clamp(80px, 19vw, 108px);
+  /* 사진/이름이 작아 보인다는 피드백으로 확대(2026-09-01) */
+  width: clamp(100px, 24vw, 136px);
+  height: clamp(100px, 24vw, 136px);
   opacity: 0;
 }
 
@@ -124,7 +125,7 @@
   margin-top: 8px;
   white-space: nowrap;
   font-family: 'Hi Melody', 'Gaegu', 'Nanum Pen Script', 'Malgun Gothic', sans-serif;
-  font-size: clamp(0.78rem, 2.4vw, 0.92rem);
+  font-size: clamp(0.95rem, 2.9vw, 1.15rem);
   font-weight: 400;
   color: #7a4a56;
   background: rgba(255, 255, 255, 0.88);
@@ -315,8 +316,8 @@
   }
 
   .cmc-avatar {
-    width: clamp(68px, 16vw, 96px);
-    height: clamp(68px, 16vw, 96px);
+    width: clamp(84px, 20vw, 118px);
+    height: clamp(84px, 20vw, 118px);
   }
 
   .cmc-avatar--left {

@@ -471,13 +471,13 @@ export function FinancialPlanner() {
   return (
     <div className="space-y-4">
       <SectionTitle sub="말로 세운 목표를 환율·금리 정보와 함께 한눈에 관리해요">
-        💰 AI 스마트 자금 플래너
+        💰 스마트 자금 플래너
       </SectionTitle>
 
-      <div className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-2 text-xs font-bold text-[#6f5962]"
-        style={{ background: '#fffdfc', borderColor: '#efdee3' }} aria-live="polite">
-        <span className="flex items-center gap-2">
-          <span aria-hidden="true" className="flex-none">✨</span><span>{notice || defaultNotice}</span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex min-w-0 flex-1 items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs font-bold text-[#6f5962]"
+          style={{ borderColor: '#efdee3' }} aria-live="polite">
+          <span aria-hidden="true" className="flex-none">✨</span><span className="truncate">{notice || defaultNotice}</span>
         </span>
         {goal && (
           <div className="flex flex-none items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-[11px] font-bold text-[#8e7981]"

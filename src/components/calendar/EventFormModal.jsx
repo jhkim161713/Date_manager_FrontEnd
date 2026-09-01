@@ -3,8 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 // 새 일정 등록 모달. 큐레이션 탭 "캘린더에 담기"로 넘어온 값(2026-08-22)이 있으면 제목/날짜를
 // 미리 채워둔다 - 날짜는 공연류처럼 실제 날짜를 아는 경우만 채우고, 그 외엔 빈 값으로 둬서
 // 사용자가 직접 입력한다.
-export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit }) {
+export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit, coupleLinked }) {
   const [titleMsg, setTitleMsg] = useState('');
+  // 커플 일정 등록 여부(2026-09-01 재구현) - 커플 연결 안 된 사람은 체크해도 서버가 무시해서
+  // 혼란만 주므로, 아예 체크박스를 잠가둔다(coupleLinked prop, CalendarTab에서 넘겨줌).
+  const [coupleEvent, setCoupleEvent] = useState(false);
   const titleRef = useRef();
   const descriptionRef = useRef();
   const targetDateRef = useRef();
@@ -40,6 +43,7 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit }
       title: titleNode.value.trim(),
       description: descriptionNode.value.trim(),
       targetDate: targetDateNode.value,
+      coupleEvent: coupleLinked && coupleEvent,
     })
       .then(() => onClose())
       .catch((e) => console.log('일정 등록 실패:', e));
@@ -99,6 +103,25 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit }
             style={{ borderColor: '#f0dbe4' }}
           />
         </div>
+
+        <label
+          className="flex items-center gap-2 mb-4 select-none"
+          style={{ cursor: coupleLinked ? 'pointer' : 'not-allowed', opacity: coupleLinked ? 1 : 0.5 }}
+        >
+          <input
+            type="checkbox"
+            checked={coupleLinked && coupleEvent}
+            disabled={!coupleLinked}
+            onChange={(e) => setCoupleEvent(e.target.checked)}
+            className="w-4 h-4 accent-[#ff6b8a]"
+          />
+          <span className="text-[11px] font-bold" style={{ color: '#3d2c35' }}>
+            💗 커플 일정으로 등록{' '}
+            <span style={{ color: '#a8909a', fontWeight: 500 }}>
+              {coupleLinked ? '(파트너도 볼 수 있어요)' : '(커플 연결 후 이용 가능해요)'}
+            </span>
+          </span>
+        </label>
 
         <button
           type="submit"

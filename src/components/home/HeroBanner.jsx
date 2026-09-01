@@ -1,4 +1,4 @@
-export function HeroBanner({ coupleLinked, weather, onOpenBuilder, aiRecommending }) {
+export function HeroBanner({ coupleLinked, weather, onOpenBuilder, aiRecommending, areas, selectedAreaKey, onSelectArea }) {
   return (
     <div className="rounded-3xl overflow-hidden relative flex-shrink-0" style={{ minHeight: '148px', background: 'linear-gradient(120deg, #ff6b8a 0%, #c98fd4 60%, #c4a0e8 100%)' }}>
       <img src="https://images.unsplash.com/photo-1622296571436-8d5b1c203416?w=1200&h=400&fit=crop&auto=format"
@@ -27,7 +27,21 @@ export function HeroBanner({ coupleLinked, weather, onOpenBuilder, aiRecommendin
           </p>
         </div>
 
-        <div className="flex items-center gap-2 mt-4">
+        {/* 추천 기준 동네 칩(2026-09-01) - GPS만 믿고 엉뚱한 동네 기준으로 추천되는 걸 막기 위해
+            직접 기준 위치를 고를 수 있게 함. 가로 스크롤로 넘치는 칩도 다 보이게 처리. */}
+        <div className="flex items-center gap-1.5 mt-3 overflow-x-auto">
+          {areas?.map((area) => (
+            <button key={area.key} onClick={() => onSelectArea(area.key)}
+              className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
+              style={selectedAreaKey === area.key
+                ? { background: 'white', color: '#ff6b8a' }
+                : { background: 'rgba(255,255,255,0.22)', color: 'white' }}>
+              {area.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 mt-2">
           <button onClick={onOpenBuilder} disabled={aiRecommending}
             className="rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105 disabled:opacity-70 disabled:hover:scale-100"
             style={{ background: 'white', color: '#ff6b8a', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>

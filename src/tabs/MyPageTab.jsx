@@ -372,10 +372,11 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
                   </button>
                 </div>
               )}
+              {/* 사진/이름 확대(2026-09-01) - CoupleTab의 ConnectionCard와 동일하게 96px로 키움. */}
               <div className="flex items-center justify-center gap-3 mb-5">
                 <div className="text-center">
-                  <Avatar profileImageUrl={profile.profileImageUrl} gender={profile.gender} size={64} className="mx-auto" />
-                  <p className="mt-2 text-xs font-bold" style={{ color: '#3d2c35' }}>나</p>
+                  <Avatar profileImageUrl={profile.profileImageUrl} gender={profile.gender} size={96} className="mx-auto" />
+                  <p className="mt-2 text-sm font-bold" style={{ color: '#3d2c35' }}>나</p>
                 </div>
                 <div className="flex min-w-16 flex-1 items-center" aria-hidden="true">
                   <span className="h-px flex-1 border-t-2 border-dashed" style={{ borderColor: '#f2bdca' }} />
@@ -383,8 +384,8 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
                   <span className="h-px flex-1 border-t-2 border-dashed" style={{ borderColor: '#f2bdca' }} />
                 </div>
                 <div className="text-center">
-                  <Avatar profileImageUrl={coupleStatus.partner?.profileImageUrl} gender={coupleStatus.partner?.gender} size={64} className="mx-auto" />
-                  <p className="mt-2 text-xs font-bold" style={{ color: '#3d2c35' }}>{coupleStatus.partner?.nickname || '내 사람'}</p>
+                  <Avatar profileImageUrl={coupleStatus.partner?.profileImageUrl} gender={coupleStatus.partner?.gender} size={96} className="mx-auto" />
+                  <p className="mt-2 text-sm font-bold" style={{ color: '#3d2c35' }}>{coupleStatus.partner?.nickname || '내 사람'}</p>
                 </div>
               </div>
 

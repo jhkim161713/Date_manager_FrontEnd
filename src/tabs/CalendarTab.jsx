@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { MonthView } from '../components/calendar/MonthView';
 import { WeekView } from '../components/calendar/WeekView';
@@ -7,11 +7,27 @@ import { UpcomingPanel } from '../components/calendar/UpcomingPanel';
 import { EventFormModal } from '../components/calendar/EventFormModal';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { getWeekDates } from '../lib/calendarDisplay';
+import { getCoupleStatus } from '../lib/api';
 
-export function CalendarTab({ prefill, onPrefillConsumed }) {
+export function CalendarTab({ user, prefill, onPrefillConsumed }) {
   const [viewDate, setViewDate] = useState(new Date());
   const [view, setView] = useState('월간');
   const [showForm, setShowForm] = useState(Boolean(prefill));
+
+  // "커플 일정으로 등록" 체크박스 잠금용(2026-09-01 재구현) - HomeTab과 동일한 패턴으로 연결
+  // 여부를 가져와 EventFormModal에 넘긴다.
+  const [coupleLinked, setCoupleLinked] = useState(false);
+  useEffect(() => {
+    const loadCoupleStatus = () => {
+      getCoupleStatus().then((status) => setCoupleLinked(!!status.linked)).catch(() => setCoupleLinked(false));
+    };
+    loadCoupleStatus();
+    // 초대를 보낸 사람은 파트너가 수락해도 이 탭이 이미 마운트돼있으면 반영이 안 됐다(2026-09-01) -
+    // App.jsx/CoupleTab이 연결 상태가 바뀔 때 쏘는 이벤트를 구독해서 다시 조회한다.
+    window.addEventListener('dm:couple-status-changed', loadCoupleStatus);
+    return () => window.removeEventListener('dm:couple-status-changed', loadCoupleStatus);
+    // user?.id 의존성(2026-09-01) - HomeTab과 같은 이유(로그인 모달 직후 마운트 타이밍 어긋남 대응).
+  }, [user?.id]);
 
   const { calendars, eventsByDate, upcoming, createEvent, deleteEvent } = useCalendarEvents(viewDate);
 
@@ -116,6 +132,7 @@ export function CalendarTab({ prefill, onPrefillConsumed }) {
             onPrefillConsumed={onPrefillConsumed}
             onClose={() => setShowForm(false)}
             onSubmit={createEvent}
+            coupleLinked={coupleLinked}
           />
         )}
       </div>
