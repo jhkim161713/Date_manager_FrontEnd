@@ -146,6 +146,9 @@ export default function App() {
       const coupleStatus = await getCoupleStatus().catch(() => null);
       setCelebrationPartner(coupleStatus?.partner || null);
       setShowMatchCelebration(true);
+      // 초대를 보낸 사람(A) 쪽은 파트너가 수락한 사실을 이렇게 수동적으로 알게 되는 입장이라,
+      // 홈탭/캘린더탭이 각자 들고 있는 coupleLinked도 같이 갱신되도록 알려준다(2026-09-01).
+      window.dispatchEvent(new CustomEvent('dm:couple-status-changed'));
     }
   };
 
