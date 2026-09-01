@@ -93,10 +93,33 @@ export function BuilderTab({ autoOpenNaming, onAutoOpenConsumed }) {
       alert("먼저 장소를 담아주세요.");
       return;
     }
-    setCourseTitle(""); 
+    setCourseTitle("");
     setIsGroupMakerOpen(true);
 
   }
+
+  // 담은 장소 목록(builderQueue)은 큐레이션 탭과 localStorage로 공유되는 상태라, state만 바꾸고
+  // localStorage를 안 맞추면 새로고침했을 때 지운 항목이 다시 살아난다 - 항상 같이 갱신한다(2026-09-01).
+  const updateBuilderQueue = (nextQueue) => {
+    setBuilderQueue(nextQueue);
+    if (nextQueue.length === 0) {
+      localStorage.removeItem(BUILDER_STORAGE_KEY);
+    } else {
+      localStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringify(nextQueue));
+    }
+  };
+
+  // 담은 장소 목록에서 하나만 빼고 싶을 때(2026-09-01 추가) - "코스 만들기" 전에 실수로 담은
+  // 장소를 다시 큐레이션 탭에 안 갔다 와도 뺄 수 있게.
+  const handleRemoveQueueItem = (sourceId) => {
+    updateBuilderQueue(builderQueue.filter((item) => item.sourceId !== sourceId));
+  };
+
+  // 담은 장소를 전부 취소하고 싶을 때(2026-09-01 추가).
+  const handleCancelQueue = () => {
+    if (!window.confirm("담은 장소를 모두 비울까요?")) return;
+    updateBuilderQueue([]);
+  };
 
   const handleCreateCourseGroup = async (e) => {
     e.preventDefault();
@@ -126,8 +149,7 @@ export function BuilderTab({ autoOpenNaming, onAutoOpenConsumed }) {
       alert("코스 생성이 완료되었습니다!");
       setIsGroupMakerOpen(false);
       setCourseTitle("");
-      setBuilderQueue([]);
-      localStorage.removeItem(BUILDER_STORAGE_KEY);
+      updateBuilderQueue([]);
 
     } catch (error) {
       console.error("생성 실패:", error);
@@ -225,22 +247,41 @@ export function BuilderTab({ autoOpenNaming, onAutoOpenConsumed }) {
                 </span>
               </div>
 
-              {/* 우측: 주소 */}
-              <span className="shrink-0 text-xs text-rose-400 font-normal truncate max-w-[180px] sm:max-w-[240px]">
-                {queue.area}
-              </span>
+              {/* 우측: 주소 + 개별 삭제 */}
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="text-xs text-rose-400 font-normal truncate max-w-[180px] sm:max-w-[240px]">
+                  {queue.area}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveQueueItem(queue.sourceId)}
+                  aria-label="목록에서 빼기"
+                  className="shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           ))}
 
-          {/* 목록 아래에 버튼 하나 - 아래 "코스보기" 버튼과 같은 핑크 그라디언트 스타일로
-              통일(2026-08-25, 사용자가 실제로 보는 건 모달이 아니라 이 버튼이었음) */}
-          <button
-            type="button"
-            className="mt-4 w-full py-2.5 rounded-2xl text-sm font-bold text-white transition-all bg-gradient-to-r from-pink-300 via-rose-300 to-pink-400 hover:opacity-95 shadow-sm shadow-pink-200 active:scale-[0.98]"
-            onClick={handleOpenGroupMaker}
-          >
-            코스 만들기
-          </button>
+          {/* 목록 아래 버튼 2개 - "코스 만들기"는 아래 "코스보기" 버튼과 같은 핑크 그라디언트로
+              통일(2026-08-25), "취소"는 담은 목록을 전부 비우고 싶을 때 쓴다(2026-09-01 추가). */}
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              className="flex-[2] py-2.5 rounded-2xl text-sm font-bold text-white transition-all bg-gradient-to-r from-pink-300 via-rose-300 to-pink-400 hover:opacity-95 shadow-sm shadow-pink-200 active:scale-[0.98]"
+              onClick={handleOpenGroupMaker}
+            >
+              코스 만들기
+            </button>
+            <button
+              type="button"
+              className="flex-1 py-2.5 rounded-2xl text-sm font-bold text-slate-500 border border-rose-100 hover:bg-rose-50 transition"
+              onClick={handleCancelQueue}
+            >
+              취소
+            </button>
+          </div>
         </>
       )}
       {/* 코스 그룹 섹션 */}
