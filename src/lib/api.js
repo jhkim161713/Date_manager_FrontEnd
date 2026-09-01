@@ -199,6 +199,23 @@ export async function getMyStyle() {
   };
 }
 
+// 커플 화면 "성향 궁합"의 파트너 점수(2026-09-01 추가) - 연결된 파트너가 없거나 파트너가
+// 온보딩을 저장한 적 없으면 null(getMyStyle과 동일한 응답 규칙).
+export async function getPartnerStyle() {
+  const data = await request('/api/me/styles/partner');
+  if (!data) return null;
+  return {
+    scores: {
+      energetic: data.energy,
+      immersion: data.immersion,
+      vibe: data.vibe,
+      aesthetic: data.aesthetic,
+      pacing: data.pacing,
+      depth: data.depth,
+    },
+  };
+}
+
 // 날씨는 백엔드가 기상청 API를 대신 호출해서 가공한 결과만 내려줌 (인증키는 프론트에 노출 안 됨)
 export function getWeather(lat, lon) {
   return request(`/api/weather?lat=${lat}&lon=${lon}`);

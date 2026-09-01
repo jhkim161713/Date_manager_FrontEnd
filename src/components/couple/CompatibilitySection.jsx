@@ -1,11 +1,18 @@
+import { useEffect, useState } from 'react';
 import { PERSONA_AXES } from '../../data/onboardingData';
+import { getPartnerStyle } from '../../lib/api';
 
 // 성향 궁합 그래프의 점 색상. Avatar 컴포넌트와 같은 규칙(FEMALE만 핑크, 나머지는 블루)을 따른다.
 const genderColor = (gender) => (gender === 'FEMALE' ? '#e8486b' : '#4a90d9');
 
-// 연결된 커플에게만 보이는 "성향 궁합" 섹션. 파트너 실제 점수는 UserStyle API가 아직 없어서
-// 항상 중립값(50)으로 표시된다 - CoupleTab.jsx에서 그대로 옮김.
+// 연결된 커플에게만 보이는 "성향 궁합" 섹션. 파트너 실제 점수는 예전엔 UserStyle 파트너 조회 API가
+// 없어서 항상 중립값(50)으로 표시됐는데(2026-09-01, 실제 API 생겨서 교체 - 아직 파트너가 온보딩을
+// 안 했으면 이때도 중립값 50으로 대체 표시).
 export function CompatibilitySection({ user, partner, personaProfile }) {
+  const [partnerScores, setPartnerScores] = useState(null);
+  useEffect(() => {
+    getPartnerStyle().then((style) => setPartnerScores(style?.scores ?? null)).catch(() => setPartnerScores(null));
+  }, []);
   return (
     <section className="rounded-[26px] bg-white p-5 md:p-6" style={{ border: '1.5px solid #f3dde3', boxShadow: '0 6px 20px rgba(127, 76, 92, 0.05)' }}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -27,9 +34,8 @@ export function CompatibilitySection({ user, partner, personaProfile }) {
       <div className="mt-5 space-y-4">
         {PERSONA_AXES.map(({ id, koreanLabel, lowLabel, highLabel }) => {
           const myScore = personaProfile?.scores?.[id] ?? 50;
-          // 파트너 실제 점수는 UserStyle API가 아직 없어서 못 가져옴 - 백엔드 준비되면
-          // getPersonaScoreComparison() 같은 함수로 이 값을 실제 조회값으로 교체할 것.
-          const partnerScore = 50;
+          // 파트너가 아직 온보딩을 안 했으면(getPartnerStyle이 null 반환) 중립값(50)으로 대체.
+          const partnerScore = partnerScores?.[id] ?? 50;
 
           return (
             <div key={id}>
@@ -54,9 +60,11 @@ export function CompatibilitySection({ user, partner, personaProfile }) {
         })}
       </div>
 
-      <p className="mt-4 text-[10px]" style={{ color: '#b09da5' }}>
-        파트너의 성향 점수는 아직 실제 연동 전이라 중립값(50)으로 표시돼요.
-      </p>
+      {partnerScores === null && (
+        <p className="mt-4 text-[10px]" style={{ color: '#b09da5' }}>
+          파트너가 아직 성향 온보딩을 완료하지 않아 중립값(50)으로 표시돼요.
+        </p>
+      )}
     </section>
   );
 }
