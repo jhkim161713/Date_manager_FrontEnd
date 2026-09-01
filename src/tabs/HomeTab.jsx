@@ -26,6 +26,10 @@ export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
       }
     };
     loadCoupleStatus();
+    // 초대를 보낸 사람은 파트너가 수락해도 이 탭이 이미 마운트돼있으면 반영이 안 됐다(2026-09-01) -
+    // App.jsx/CoupleTab이 연결 상태가 바뀔 때 쏘는 이벤트를 구독해서 다시 조회한다.
+    window.addEventListener('dm:couple-status-changed', loadCoupleStatus);
+    return () => window.removeEventListener('dm:couple-status-changed', loadCoupleStatus);
   }, []);
 
   // "최근 관심사" 인사이트 칩(2026-08-25 추가) - AI 챗봇이 메시지마다 분석해서 저장만 해두고

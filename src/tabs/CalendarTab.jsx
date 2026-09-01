@@ -18,7 +18,14 @@ export function CalendarTab({ prefill, onPrefillConsumed }) {
   // 여부를 가져와 EventFormModal에 넘긴다.
   const [coupleLinked, setCoupleLinked] = useState(false);
   useEffect(() => {
-    getCoupleStatus().then((status) => setCoupleLinked(!!status.linked)).catch(() => setCoupleLinked(false));
+    const loadCoupleStatus = () => {
+      getCoupleStatus().then((status) => setCoupleLinked(!!status.linked)).catch(() => setCoupleLinked(false));
+    };
+    loadCoupleStatus();
+    // 초대를 보낸 사람은 파트너가 수락해도 이 탭이 이미 마운트돼있으면 반영이 안 됐다(2026-09-01) -
+    // App.jsx/CoupleTab이 연결 상태가 바뀔 때 쏘는 이벤트를 구독해서 다시 조회한다.
+    window.addEventListener('dm:couple-status-changed', loadCoupleStatus);
+    return () => window.removeEventListener('dm:couple-status-changed', loadCoupleStatus);
   }, []);
 
   const { calendars, eventsByDate, upcoming, createEvent, deleteEvent } = useCalendarEvents(viewDate);

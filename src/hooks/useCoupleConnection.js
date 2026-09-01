@@ -20,6 +20,13 @@ function nextMilestone(daysTogether) {
   return upcoming ?? Math.ceil((daysTogether + 1) / 1000) * 1000;
 }
 
+// 커플 연결 상태가 바뀌면(수락/해제) 이 이벤트를 쏜다 - 홈탭/캘린더탭은 각자 마운트 시 한 번만
+// coupleLinked를 조회하고 끝이라, 다른 탭이 열려있는 동안 연결 상태가 바뀌어도 반영이 안 됐다
+// (2026-09-01, dm:calendar-changed와 같은 패턴). App.jsx도 파트너가 수락한 걸 알아챈 시점에
+// 같이 쏜다(수락한 사람 본인 화면은 아래 loadStatus로 바로 갱신되지만, 초대를 보낸 사람 쪽은
+// 그 사실을 수동적으로 알게 되는 입장이라 갱신 트리거가 없었음).
+export const notifyCoupleStatusChanged = () => window.dispatchEvent(new CustomEvent('dm:couple-status-changed'));
+
 // CoupleTab의 상태(연결 여부/파트너/만난 날짜) + 초대/수락/해제/만난날짜 저장 로직을 전부 감싼 훅
 // (2026-08-24 분리). 원래 CoupleTab.jsx 하나에 다 있던 로직이라, 탭 컴포넌트는 이 훅이 돌려주는
 // 값만 그대로 렌더링에 쓰면 된다.
@@ -153,6 +160,7 @@ export function useCoupleConnection() {
       showFeedback('내 파트너 연결이 완료됐어요 💕');
       setAcceptToken('');
       await loadStatus();
+      notifyCoupleStatusChanged();
       setShowMatchCelebration(true);
     } catch (error) {
       showFeedback(error.message || '초대를 수락하지 못했어요');
@@ -170,6 +178,7 @@ export function useCoupleConnection() {
       await disconnectCouple();
       showFeedback('연결을 해제했어요');
       await loadStatus();
+      notifyCoupleStatusChanged();
     } catch (error) {
       showFeedback(error.message || '연결 해제에 실패했어요');
     }
