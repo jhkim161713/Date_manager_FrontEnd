@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { PERSONA_AXES } from '../data/onboardingData';
 import { HOME_CATEGORIES } from '../data/curationCategories';
 import { getNearbyPlaces } from '../lib/api';
-import { getCurrentLocation } from '../lib/weather';
 
 // 공연류 카테고리는 place.address에 공연장(시설) 주소가 이미 들어있어서(KOPIS 동기화 시
 // facility.adres()로 채움, 백엔드 변경 불필요) 카드에 "공연장소"로 표시한다(2026-08-13).
@@ -35,7 +34,10 @@ const MAX_PER_CATEGORY = 2 * MAX_PAGES;
 // 홈탭 "오늘의 추천 문화생활" 섹션 전체(성향 매칭 + 인기 공연 + 카테고리 필터 + 페이징)를 감싼 훅
 // (2026-08-24 분리). 원래 HomeTab.jsx 하나에 다 있던 데이터 페칭 + 추천 알고리즘을 그대로 옮겼고,
 // 탭 컴포넌트는 이 훅이 돌려주는 visibleCards/페이지 상태만 그대로 렌더링에 쓰면 된다.
-export function useHomeRecommendations(personaProfile) {
+// location은 호출부(HomeTab)가 동네 칩으로 고른 기준 좌표({lat, lon}) - 아직 안 정해졌으면(null)
+// 최초 렌더 시 GPS 조회가 끝날 때까지 기다렸다가 요청한다(2026-09-01, 동네 칩 도입으로 위치를
+// 이 훅 안에서 직접 구하던 것에서 호출부가 넘겨주는 방식으로 바꿈 - AI 코스 추천과 같은 기준 공유).
+export function useHomeRecommendations(personaProfile, location) {
   // 성향 기반 추천 장소: 유저 성향(personaProfile, 실제 백엔드 데이터)은 그대로 두고, 매칭할 장소만 실제
   // 백엔드에서 접속 좌표 기준으로 가까운 순 300건을 가져온다(거리 계산은 백엔드가 SQL로 처리,
   // 82,128건 전체가 아니라 이미 지역이 좁혀진 상태로 내려와서 대전·안동처럼 먼 곳이 안 섞임).
@@ -44,11 +46,12 @@ export function useHomeRecommendations(personaProfile) {
   // 'all'이면 카테고리 필터 없이 예전처럼 전체를 받아온다.
   const [homeCategory, setHomeCategory] = useState('all');
   useEffect(() => {
+    if (!location) return;
     const loadNearbyPlaces = async () => {
       const selected = HOME_CATEGORIES.find((item) => item.id === homeCategory);
       const categoryParam = selected ? selected.categories.join(',') : '';
       try {
-        const { lat, lon } = await getCurrentLocation();
+        const { lat, lon } = location;
         const places = await getNearbyPlaces(lat, lon, 300, categoryParam);
         // 숙박은 6대 성향 매칭과 안 맞아서 "전체" 기본 노출에서는 뺀다(2026-08-18) - 다만 칩에서
         // 숙박을 직접 선택했을 땐 당연히 보여야 하므로, 그때는 거르지 않는다.
@@ -66,16 +69,17 @@ export function useHomeRecommendations(personaProfile) {
       }
     };
     loadNearbyPlaces();
-  }, [homeCategory]);
+  }, [homeCategory, location]);
 
   // "즉흥·계획(pacing)" 자리용 공연 후보 풀 - homeCategory 칩 선택과 무관하게 항상 공연류만 따로
   // 가져온다(2026-08-19). pacing 축은 장소 성향 점수 자체가 없어서 원래 빈 카드로 남아있던 자리인데,
   // 공연 데이터가 place_categories에 제대로 연결되면서(같은 날 백엔드 수정) 실제 추천이 가능해짐.
   const [performancePool, setPerformancePool] = useState([]);
   useEffect(() => {
+    if (!location) return;
     const loadPerformances = async () => {
       try {
-        const { lat, lon } = await getCurrentLocation();
+        const { lat, lon } = location;
         const categoryParam = [...PERFORMANCE_CATEGORIES].join(',');
         const places = await getNearbyPlaces(lat, lon, 2000, categoryParam);
         setPerformancePool(places);
@@ -84,7 +88,7 @@ export function useHomeRecommendations(personaProfile) {
       }
     };
     loadPerformances();
-  }, []);
+  }, [location]);
 
   // 올리브영처럼 지점이 많은 체인점이 이름만 다르고 사실상 같은 브랜드라 후보를 도배하는 문제
   // 완화용 - 같은 이름(브랜드)은 대표로 1곳만 후보에 남긴다. nearbyPlacePool이 이미 가까운
