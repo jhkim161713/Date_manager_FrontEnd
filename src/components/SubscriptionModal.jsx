@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import { getMySubscription, issueBillingKey, retryChargeSubscription, cancelSubscription } from '@/lib/api';
 
@@ -72,10 +73,17 @@ export function SubscriptionModal({ user, onClose, pendingBillingAuth }) {
       const customerKey = `user-${user.id}`;
       const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
       const payment = tossPayments.payment({ customerKey });
+      // 안드로이드 앱(웹뷰)에서는 카드사 인증 페이지가 외부 Chrome(별도 앱)으로 튀어나가는데,
+      // window.location.origin(http://localhost, 웹뷰 내부 전용 주소)은 그 외부 Chrome이 돌아올 수
+      // 없는 주소라 결제 후 앱으로 복귀가 안 됐다. 구글/카카오 로그인과 같은 datemanager:// 딥링크로
+      // 돌려보내면 AndroidManifest.xml의 intent-filter + App.jsx의 appUrlOpen 리스너가 받아서
+      // 처리한다(2026-09-01 - "구독(카드 등록) 결제 후 앱으로 안 돌아옴" 미해결 항목 해결).
+      const isNative = Capacitor.isNativePlatform();
+      const returnBase = isNative ? 'datemanager://oauth/callback' : window.location.origin + window.location.pathname;
       await payment.requestBillingAuth({
         method: 'CARD',
-        successUrl: window.location.origin + window.location.pathname,
-        failUrl: window.location.origin + window.location.pathname + '?billingError=1',
+        successUrl: returnBase,
+        failUrl: returnBase + '?billingError=1',
         customerEmail: user.email,
         customerName: user.nickname,
       });

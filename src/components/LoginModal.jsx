@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import {
   googleLoginUrl, kakaoLoginUrl, naverLoginUrl, login, signup, adminCheck,
   checkEmailAvailable, checkNicknameAvailable, uploadProfilePhoto, findPassword,
@@ -117,14 +119,23 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
   // /oauth/callback?token=... 으로 리다이렉트되는 흐름은 전부 백엔드가 처리한다 (App.jsx에서 token을 받음).
   // 로그인이든 회원가입이든 같은 OAuth2 흐름이라 버튼 동작은 동일하다.
   const SOCIAL_LOGIN_URLS = { google: googleLoginUrl, kakao: kakaoLoginUrl, naver: naverLoginUrl };
-  const handleSocialLogin = (provider) => {
+  // 안드로이드 앱(웹뷰)에서는 소셜로그인을 같은 웹뷰 안에서 진행하지 않고 외부 브라우저(Custom Tabs)로
+  // 연다 - 구글은 임베디드 웹뷰 안에서의 로그인을 막거나 불안정하게 처리하는 경우가 많다. platform=android
+  // 쿼리파라미터는 백엔드(PlatformAwareAuthorizationRequestRepository)가 세션에 저장해뒀다가, 로그인
+  // 완료 후 웹 주소 대신 앱의 datemanager:// 딥링크로 돌려보낼지 판단하는 데 쓴다(2026-09-01).
+  const handleSocialLogin = async (provider) => {
     if (provider === 'naver' && !NAVER_LOGIN_ENABLED) {
       window.alert('네이버 로그인은 현재 준비중입니다');
       return;
     }
     setError(null);
     setLoading(provider);
-    window.location.href = SOCIAL_LOGIN_URLS[provider]();
+    const url = SOCIAL_LOGIN_URLS[provider]();
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: `${url}?platform=android` });
+    } else {
+      window.location.href = url;
+    }
   };
 
   const handleSubmit = async () => {

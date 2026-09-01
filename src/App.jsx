@@ -1,6 +1,8 @@
 import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle, getMySubscription } from '@/lib/api';
@@ -199,6 +201,21 @@ export default function App() {
       sessionStorage.setItem('dm_admin_return', '1');
       window.history.replaceState({}, '', window.location.pathname);
     }
+  }, []);
+
+  // 안드로이드 앱에서 소셜로그인이 외부 브라우저(Custom Tabs)로 끝나면, 백엔드가
+  // datemanager://oauth/callback?token=... 로 리다이렉트하고 AndroidManifest.xml의 intent-filter가
+  // 그걸 받아 이 appUrlOpen 이벤트로 앱에 전달한다. 딥링크의 쿼리스트링을 그대로 앱 루트 주소에 옮겨
+  // 다시 로드하면, 바로 아래 useEffect의 기존 token/error 처리 로직을 그대로 재사용할 수 있다
+  // (2026-09-01 - "구글/카카오 소셜로그인 딥링크" 미해결 항목 해결).
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listenerPromise = CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+      Browser.close().catch(() => {});
+      const deepLink = new URL(url);
+      window.location.href = '/' + deepLink.search;
+    });
+    return () => { listenerPromise.then((handle) => handle.remove()); };
   }, []);
 
   useEffect(() => {
