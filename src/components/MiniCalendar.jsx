@@ -70,11 +70,18 @@ export function MiniCalendar({ loggedIn }) {
 
   // CalendarTab에서 일정을 만들거나 지우면(useCalendarEvents.js) 이 이벤트가 발생한다 - 사이드바에
   // 한 번만 마운트되는 이 컴포넌트가 그 변경을 알 유일한 방법(2026-08-25).
+  // 의존성 배열에 loggedIn이 빠져 있으면, 이 컴포넌트가 로그인 완료 전(loggedIn=false)에 먼저
+  // 마운트되는 특성상(위 fetchGridEvents 주석 참고) 이 effect가 그 시점에 딱 한 번만 등록되고
+  // 리스너 안의 fetchGridEvents/fetchUpcomingEvents가 그때의 "loggedIn=false" 클로저를 영원히
+  // 참조하게 된다. 그러면 로그인 후 새 일정을 등록해도 리스너가 부른 함수는 여전히 옛날 값 기준으로
+  // "로그인 안 됨"이라 판단해 아무것도 안 가져오고 조용히 리턴한다 - 새로고침(컴포넌트 재마운트)
+  // 해야만 정상화되던 원인이었다(2026-09-01 발견). loggedIn을 의존성에 추가해 로그인 완료 시점에
+  // 리스너를 최신 클로저로 다시 등록한다.
   useEffect(() => {
     const onCalendarChanged = () => { fetchGridEvents(); fetchUpcomingEvents(); };
     window.addEventListener('dm:calendar-changed', onCalendarChanged);
     return () => window.removeEventListener('dm:calendar-changed', onCalendarChanged);
-  }, [year, month]);
+  }, [year, month, loggedIn]);
 
   const todayKey = formatDate(now);
   const upcoming = upcomingEvents
