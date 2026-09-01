@@ -24,10 +24,13 @@ export function ConnectionCard({
             {status.loading ? '확인 중...' : status.linked ? '연결됨' : '미연결'}
           </span>
         </div>
+        {/* 나/파트너 아바타 - 96px로 확대 + 이름 글씨도 키움(2026-09-01, "사진이랑 이름이 작고
+            흐릿해 보인다"는 피드백) - object-cover는 그대로라 원본 비율은 유지되고, 렌더링 크기가
+            커진 만큼 같은 원본 사진이 더 선명하게 보인다. */}
         <div className="flex items-center justify-center gap-3">
           <div className="text-center">
-            <Avatar profileImageUrl={user?.profileImageUrl} gender={user?.gender} size={64} className="mx-auto" />
-            <p className="mt-2 text-xs font-extrabold" style={{ color: '#5c4651' }}>나</p>
+            <Avatar profileImageUrl={user?.profileImageUrl} gender={user?.gender} size={96} className="mx-auto" />
+            <p className="mt-2 text-sm font-extrabold" style={{ color: '#5c4651' }}>나</p>
           </div>
           <div className="flex min-w-20 flex-1 items-center" aria-hidden="true">
             <span className="h-px flex-1 border-t-2 border-dashed" style={{ borderColor: '#f2bdca' }} />
@@ -37,11 +40,11 @@ export function ConnectionCard({
           <div className="text-center">
             {status.linked ? (
               <Avatar profileImageUrl={status.partner?.profileImageUrl} gender={status.partner?.gender}
-                size={64} className="mx-auto" />
+                size={96} className="mx-auto" />
             ) : (
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed text-2xl opacity-50" style={{ background: '#fbf8f6', borderColor: '#dfd2d7', color: '#b9a7ae' }}>+</div>
+              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed text-2xl opacity-50" style={{ background: '#fbf8f6', borderColor: '#dfd2d7', color: '#b9a7ae' }}>+</div>
             )}
-            <p className="mt-2 text-xs font-extrabold" style={{ color: status.linked ? '#5c4651' : '#a28d97' }}>
+            <p className="mt-2 text-sm font-extrabold" style={{ color: status.linked ? '#5c4651' : '#a28d97' }}>
               {status.linked ? (status.partner?.nickname || '내 파트너') : '내 파트너'}
             </p>
           </div>
