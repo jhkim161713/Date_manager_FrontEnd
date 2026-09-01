@@ -30,7 +30,11 @@ export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
     // App.jsx/CoupleTab이 연결 상태가 바뀔 때 쏘는 이벤트를 구독해서 다시 조회한다.
     window.addEventListener('dm:couple-status-changed', loadCoupleStatus);
     return () => window.removeEventListener('dm:couple-status-changed', loadCoupleStatus);
-  }, []);
+    // user?.id 의존성 추가(2026-09-01) - 로그인 모달의 onAuthed()가 loadUser()를 await 없이 호출해서,
+    // user가 실제로 채워지는 시점과 이 탭이 리렌더되는 시점이 어긋날 수 있다. 로그인 모달로 로그인한
+    // 직후(페이지 새로고침 없이) 이미 연결된 커플 상태가 바로 안 뜨는 문제 대응 - user가 바뀔 때마다
+    // 다시 조회해서, 마운트 타이밍과 무관하게 항상 최신 로그인 유저 기준으로 재조회되게 한다.
+  }, [user?.id]);
 
   // "최근 관심사" 인사이트 칩(2026-08-25 추가) - AI 챗봇이 메시지마다 분석해서 저장만 해두고
   // 아무도 안 읽던 의도 태그(AiChatMessageIntent)를 처음으로 화면에 보여준다.

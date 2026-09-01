@@ -9,7 +9,7 @@ import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { getWeekDates } from '../lib/calendarDisplay';
 import { getCoupleStatus } from '../lib/api';
 
-export function CalendarTab({ prefill, onPrefillConsumed }) {
+export function CalendarTab({ user, prefill, onPrefillConsumed }) {
   const [viewDate, setViewDate] = useState(new Date());
   const [view, setView] = useState('월간');
   const [showForm, setShowForm] = useState(Boolean(prefill));
@@ -26,7 +26,8 @@ export function CalendarTab({ prefill, onPrefillConsumed }) {
     // App.jsx/CoupleTab이 연결 상태가 바뀔 때 쏘는 이벤트를 구독해서 다시 조회한다.
     window.addEventListener('dm:couple-status-changed', loadCoupleStatus);
     return () => window.removeEventListener('dm:couple-status-changed', loadCoupleStatus);
-  }, []);
+    // user?.id 의존성(2026-09-01) - HomeTab과 같은 이유(로그인 모달 직후 마운트 타이밍 어긋남 대응).
+  }, [user?.id]);
 
   const { calendars, eventsByDate, upcoming, createEvent, deleteEvent } = useCalendarEvents(viewDate);
 
