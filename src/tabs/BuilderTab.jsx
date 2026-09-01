@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-import { COURSE_GROUP_DATA } from "../data/courseGroupData"
+
 import { CourseDetail } from "../components/builder/CourseDetail"
 import axios from "axios"
 import { getToken } from "../lib/api"
@@ -11,7 +11,7 @@ export function BuilderTab() {
 
   const [data, setData] = useState([]);
   const [showDetail, setShowDetail] = useState(null);
-  
+
   const [builderQueue, setBuilderQueue] = useState([]);
   const [isGroupMakerOpen, setIsGroupMakerOpen] = useState(false);
   const [courseTitle, setCourseTitle] = useState('');
@@ -63,7 +63,13 @@ export function BuilderTab() {
     }
     getCourseGroups();
     
-  }, [data])
+  }, [builderQueue])
+
+
+
+
+
+
 
   const showGroupItems = (index) => {
     const detail = data[index]
@@ -114,6 +120,7 @@ export function BuilderTab() {
     }
   }
 
+  
   return (
     <div className="space-y-8 p-6 bg-rose-50/40 min-h-screen text-slate-700">
       {/* 메인 타이틀 영역 */}

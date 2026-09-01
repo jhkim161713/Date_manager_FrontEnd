@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
+import { PlaceDetail } from "./PlaceDetail";
+import { PlaceDetailModal } from "../PlaceDetailModal";
 
 export function CourseDetail ({props}){
     const {showDetail} = props
     const [position,setPosition] =useState({})
     const [paths,setPaths] = useState([]);
-    const [distances,setDistances] = useState([]);
-    
-    if (!showDetail) return null
-    
-
-    useEffect(()=>{
+    const [itemDetailsOpen,setItemDetailsOpen] = useState(false);
+    const [placeDetail,setPlaceDetail] = useState(null)
+        useEffect(()=>{
         const pathes = showDetail.places.map(place=>({
             lat:place.latitude,
             lng:place.longitude
@@ -18,7 +17,17 @@ export function CourseDetail ({props}){
         setPosition(pathes[0])
         setPaths(pathes)
     },[showDetail])
+     const showPlaceDetail = (place) =>{
+      
+      setPlaceDetail(place)
+      setItemDetailsOpen(true)
+   }
+   if (!showDetail) return null
    
+   
+   console.log*('리렌더링')
+
+  
 
     return (
         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-pink-100 shadow-xl space-y-6 mt-8 animate-fade-in">
@@ -64,7 +73,7 @@ export function CourseDetail ({props}){
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider pl-1">Course Schedule</h3>
             <div className="space-y-2.5">
-              {showDetail.places.map((place, index) => (
+              {showDetail.places.map((place) => (
                 <div
                   key={place.sequence}
                   className="p-4 rounded-2xl bg-white border border-pink-100/80 hover:border-pink-300 transition-colors flex items-center justify-between shadow-xs"
@@ -84,17 +93,21 @@ export function CourseDetail ({props}){
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation(); // 부모 div의 클릭 이벤트 전파 방지
-                      window.alert("공사중이에요")
+                      showPlaceDetail(place)
                     }}
                     className="px-3 py-1.5 text-xs font-semibold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors shrink-0 cursor-pointer"
                     
                   >
                     자세히 보기
                   </button>
-                  
+                 
                 </div>
-                
+
               ))}
+               {itemDetailsOpen && <PlaceDetail
+                  props={{setItemDetailsOpen,placeDetail}}
+                  
+                  />}
             </div>
           </div>
         </div>
