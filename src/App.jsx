@@ -628,7 +628,7 @@ export default function App() {
                   <BuilderTab autoOpenNaming={builderAutoOpen} onAutoOpenConsumed={() => setBuilderAutoOpen(false)} />
                 )}
                 {tab === 'calendar' && (
-                  <CalendarTab prefill={calendarPrefill} onPrefillConsumed={() => setCalendarPrefill(null)} />
+                  <CalendarTab user={user} prefill={calendarPrefill} onPrefillConsumed={() => setCalendarPrefill(null)} />
                 )}
                 {tab === 'aichat' && <AiChatTab user={user} personaProfile={personaProfile} onStyleChanged={refreshPersonaProfile} />}
                 {tab === 'financialPlanner' && <FinancialPlanner />}
