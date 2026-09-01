@@ -19,6 +19,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- 소셜로그인 딥링크(2026-09-01) - 백엔드가 datemanager://oauth/callback?token=...으로
+                 리다이렉트하면 이 인텐트 필터가 그 URL을 받아 이 앱(MainActivity)을 다시 연다.
+                 App.jsx의 appUrlOpen 리스너(Capacitor App 플러그인)가 그 URL을 읽어 토큰을 저장한다. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="datemanager" android:host="oauth" />
+            </intent-filter>
         </activity>
 
         <provider

@@ -1,6 +1,7 @@
 import { TABS } from './data/tabsData';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import './App.css';
 import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle, getMySubscription } from '@/lib/api';
@@ -244,6 +245,31 @@ export default function App() {
       }
     })();
   }, [loadUser]);
+
+  // 안드로이드 소셜로그인 딥링크 수신(2026-09-01) - 구글/카카오 로그인이 시스템 브라우저에서
+  // 끝나면 백엔드가 datemanager://oauth/callback?token=...으로 리다이렉트하고, 안드로이드가
+  // AndroidManifest.xml의 인텐트 필터를 보고 이 앱을 다시 연다. 그때 Capacitor가 이 이벤트를
+  // 쏴준다. 웹뷰의 window.location은 안 바뀐 상태라 위쪽 token 읽기 로직(라인 208)이 저절로
+  // 실행되지 않으므로, token을 쿼리스트링에 실어 같은 페이지로 다시 이동시켜서(전체 새로고침)
+  // 그 로직을 그대로 재사용한다 - 로직을 중복 구현하지 않기 위함.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listenerPromise = CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+      try {
+        const parsed = new URL(url);
+        const token = parsed.searchParams.get('token');
+        const error = parsed.searchParams.get('error');
+        if (token) {
+          window.location.href = `${window.location.pathname}?token=${encodeURIComponent(token)}`;
+        } else if (error) {
+          window.location.href = `${window.location.pathname}?error=${encodeURIComponent(error)}`;
+        }
+      } catch (e) {
+        console.error('딥링크 처리 실패:', e);
+      }
+    });
+    return () => { listenerPromise.then((listener) => listener.remove()); };
+  }, []);
 
   // 로그인 직후 1회 조회만으로는, 이미 앱을 켜둔 채로 기다리고 있는 사용자(예: A가 초대
   // 링크를 만들어놓고 그 탭을 계속 보고 있는 상태에서 B가 수락)에게는 새로고침 전까지
