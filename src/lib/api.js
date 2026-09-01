@@ -1,4 +1,5 @@
 import Calendar from "react-calendar";
+import { Capacitor } from '@capacitor/core';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'dm_token';
@@ -99,16 +100,24 @@ export async function uploadProfilePhoto(file) {
   return data;
 }
 
+// 안드로이드 앱에서는 구글 정책상 소셜로그인이 웹뷰가 아니라 시스템 브라우저에서 열려서, 로그인이
+// 끝나도 토큰이 앱으로 돌아올 방법이 없다(2026-09-01). 백엔드의 /oauth2/mobile-start/{id}를 거치면
+// 세션에 "모바일에서 시작됨" 표시를 남겨서, 콜백 시점에 딥링크(datemanager://oauth/callback)로
+// 리다이렉트되게 만든다 - App.jsx의 appUrlOpen 리스너가 그 딥링크를 받아 토큰을 저장한다.
+function oauthStartPath(provider) {
+  return Capacitor.isNativePlatform() ? `/oauth2/mobile-start/${provider}` : `/oauth2/authorization/${provider}`;
+}
+
 export function googleLoginUrl() {
-  return `${API_BASE_URL}/oauth2/authorization/google`;
+  return `${API_BASE_URL}${oauthStartPath('google')}`;
 }
 
 export function kakaoLoginUrl() {
-  return `${API_BASE_URL}/oauth2/authorization/kakao`;
+  return `${API_BASE_URL}${oauthStartPath('kakao')}`;
 }
 
 export function naverLoginUrl() {
-  return `${API_BASE_URL}/oauth2/authorization/naver`;
+  return `${API_BASE_URL}${oauthStartPath('naver')}`;
 }
 
 export function checkEmailAvailable(email) {
@@ -579,8 +588,11 @@ export function getAiChatMessages(sessionId) {
 }
 
 // "AI 코스 추천"(홈탭 배너, 2026-08-25 추가) - 채팅 세션과 무관한 1회성 추천 4곳을 받아온다.
-export function getAiCourseRecommendation() {
-  return request('/api/aichat/course-recommendation');
+// lat/lon을 안 보내면 백엔드가 반경 제한 없이(전국 대상) 후보를 고르게 되어 서울/부산처럼
+// 멀리 떨어진 장소가 한 코스에 섞여 나올 수 있다(2026-09-01) - 호출부에서 항상 위치를 구해 넘긴다.
+export function getAiCourseRecommendation(lat, lon) {
+  const query = lat != null && lon != null ? `?lat=${lat}&lon=${lon}` : '';
+  return request(`/api/aichat/course-recommendation${query}`);
 }
 
 // 장소 상세 "AI 코치의 한마디"(2026-08-31 추가) - 로그인 안 했으면 호출부에서 아예 안 부른다.
