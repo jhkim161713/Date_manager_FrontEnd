@@ -1,4 +1,5 @@
 import { DATE_CATEGORIES } from '../../data/curationCategories';
+import { IS_ANDROID_APP } from '../../lib/platform';
 
 export function DateCategoryHero({ visible, dateCategory, setDateCategory, categoryCounts, dateSubCatalog, dateSubCounts, dateSubCategory, setDateSubCategory }) {
   return (
@@ -19,7 +20,10 @@ export function DateCategoryHero({ visible, dateCategory, setDateCategory, categ
         >
           💕 DATE CURATION
         </span>
-        <h3 className="font-display mt-3 text-2xl font-bold" style={{ color: '#45343d' }}>
+        {/* text-wrap:balance(2026-09-01, 안드로이드 앱 전용) - 안드로이드 좁은 화면에서 "골라" /
+            "보세요"처럼 어색하게 끊겨 보이는 줄바꿈이 있었다. 웹은 원래 크기/줄바꿈 그대로. */}
+        <h3 className={`font-display mt-3 font-bold ${IS_ANDROID_APP ? 'text-xl' : 'text-2xl'} md:text-2xl`}
+          style={{ color: '#45343d', ...(IS_ANDROID_APP ? { textWrap: 'balance' } : {}) }}>
           취향에 맞는 데이트 장소를 골라보세요
         </h3>
         <p className="mt-1.5 max-w-xl text-xs leading-5" style={{ color: '#8e7882' }}>
@@ -52,8 +56,8 @@ export function DateCategoryHero({ visible, dateCategory, setDateCategory, categ
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-1">
-                  <strong className="text-xs" style={{ color: selected ? item.color : '#4d3b44' }}>{item.label}</strong>
-                  <small className="text-[9px] font-bold" style={{ color: '#b19fa6' }}>{count}곳</small>
+                  <strong className="text-xs" style={{ color: selected ? item.color : '#4d3b44', ...(IS_ANDROID_APP ? { textWrap: 'balance' } : {}) }}>{item.label}</strong>
+                  <small className={`text-[9px] font-bold ${IS_ANDROID_APP ? 'shrink-0' : ''}`} style={{ color: '#b19fa6' }}>{count}곳</small>
                 </span>
               </span>
             </button>

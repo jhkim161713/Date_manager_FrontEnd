@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Map, MapMarker, Polyline, useKakaoLoader } from "react-kakao-maps-sdk";
+import { IS_ANDROID_APP } from "../../lib/platform";
 
 export function CourseDetail ({props}){
     const {showDetail, onMoveItem, onDeleteGroup, onOptimizeOrder} = props
@@ -9,9 +10,15 @@ export function CourseDetail ({props}){
 
     // index.html의 카카오맵 스크립트가 autoload=false라 kakao.maps.load()를 직접 호출해줘야
     // 지도가 초기화된다 - 이게 없어서 지도 영역이 계속 빈 박스로만 나왔었다(2026-08-25 발견).
+    // useKakaoLoader는 index.html의 태그를 재사용하지 않고 자체적으로 새 <script>를 만드는데,
+    // 그 기본 url이 프로토콜 상대경로("//dapi.kakao.com/...")라 안드로이드 웹뷰(origin이
+    // http://localhost)에서는 http://dapi.kakao.com/...로 풀려 카카오 서버가 거부해서 계속
+    // 실패/재시도만 반복했다(2026-09-01, 실기기 로그로 원인 확인 - index.html 쪽 스크립트
+    // 태그는 이미 https로 고쳐뒀었는데 이 훅 호출부는 안 고쳐져 있었음). url을 명시해서 고정.
     const [loading, error] = useKakaoLoader({
         appkey: import.meta.env.VITE_KAKAO_MAP_KEY,
         libraries: ['services', 'clusterer'],
+        url: 'https://dapi.kakao.com/v2/maps/sdk.js',
     });
 
     useEffect(()=>{
@@ -31,8 +38,11 @@ export function CourseDetail ({props}){
 
     return (
         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-pink-100 shadow-xl space-y-6 mt-8 animate-fade-in">
-          <div className="flex items-center justify-between border-b border-pink-100 pb-3">
-            <h1 className="text-lg font-bold text-rose-600 flex items-center gap-2">
+          {/* flex-wrap(2026-09-01, 안드로이드 앱 전용) - 안드로이드 좁은 화면에서 제목+버튼이 한 줄에
+              다 안 들어가면서 제목 글자("상세보기")가 어색하게 줄바꿈됐다. 버튼 쪽이 먼저 다음 줄로
+              넘어가게. 웹은 원래대로 한 줄 유지. */}
+          <div className={`flex items-center justify-between gap-y-2 border-b border-pink-100 pb-3 ${IS_ANDROID_APP ? 'flex-wrap' : ''}`}>
+            <h1 className={`text-lg font-bold text-rose-600 flex items-center gap-2 ${IS_ANDROID_APP ? 'whitespace-nowrap' : ''}`}>
               <span className="text-xs px-2 py-0.5 bg-pink-100 text-pink-500 rounded-md font-semibold">Detail</span>
 
               데이트코스 상세보기

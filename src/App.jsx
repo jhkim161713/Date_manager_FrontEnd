@@ -29,6 +29,14 @@ import { FinancialPlanner } from './tabs/financialPlanner';
 // 안드로이드 앱에서만 상단바에서 숨긴다. 웹/데스크톱에는 그대로 보인다.
 const IS_ANDROID_APP = Capacitor.getPlatform() === 'android';
 
+// 안드로이드 실기기 점검(2026-09-01)에서 찾은 좁은 화면 레이아웃 수정들은 전부 안드로이드
+// 앱에서만 적용하기로 함 - 웹은 창을 좁혀도 예전 모습 그대로 유지해야 한다는 요청. CSS에서
+// Capacitor.isNativePlatform()을 직접 못 쓰니, <html>에 클래스를 하나 붙여서 index.css의
+// 전역 규칙들이 이 클래스 아래에서만 적용되게 한다(개별 컴포넌트는 IS_ANDROID_APP을 직접 사용).
+if (IS_ANDROID_APP) {
+  document.documentElement.classList.add('dm-android');
+}
+
 // 모바일 하단 네비게이션용 핵심 탭 (사이드바 전체 대신 자주 쓰는 것만 추림)
 const MOBILE_NAV_TABS = [
   { id: 'home', label: '홈', emoji: '🏠' },
@@ -689,8 +697,8 @@ export default function App() {
                 }
                 changeTab(t.id);
               }}
-                className="flex flex-col items-center gap-0.5 py-1 transition-all"
-                style={{ minWidth: '56px' }}>
+                className={`flex flex-col items-center gap-0.5 py-1 transition-all ${IS_ANDROID_APP ? 'flex-1' : ''}`}
+                style={IS_ANDROID_APP ? undefined : { minWidth: '56px' }}>
                 <span className="text-lg" style={{ opacity: active ? 1 : 0.55 }}>{t.emoji}</span>
                 <span className="text-[10px] font-bold" style={{ color: active ? '#ff6b8a' : '#bbb' }}>{t.label}</span>
               </button>

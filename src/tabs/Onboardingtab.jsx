@@ -5,6 +5,7 @@ import {
   buildPersonaResult,
 } from '../data/onboardingData'
 import dmLogo from '../imports/Logo.png'
+import { IS_ANDROID_APP } from '../lib/platform'
 
 const ADVANCE_DELAY = 360
 
@@ -179,16 +180,23 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
     const isFinalRound = roundIndex === rounds.length - 1
     let hasWinner = false
 
-    // 마지막 라운드뿐 아니라 매 라운드마다 선택한 사진이 그리드 중앙으로 확대 이동하는
+    // 마지막 라운드뿐 아니라 매 라운드마다 선택한 사진이 화면 중앙으로 확대 이동하는
     // 위너 컷 연출을 보여준다.
     const node = cardRefs.current[option.id]
-    const gridRect = optionsGridRef.current?.getBoundingClientRect()
-    if (node && gridRect) {
+    if (node) {
+      const rect = node.getBoundingClientRect()
       setWinner({
         option,
-        rect: node.getBoundingClientRect(),
-        // 뷰포트 정중앙이 아니라, 두 사진이 놓여 있던 그리드 영역의 중앙으로 보내기 위한 좌표.
-        center: { x: gridRect.left + gridRect.width / 2, y: gridRect.top + gridRect.height / 2 },
+        rect,
+        // 원래는 "그리드 영역의 중앙"으로 보냈는데(뷰포트 정중앙이 아니라 두 사진이 놓여 있던
+        // 자리 기준), 모바일 1열 레이아웃에서 위/아래 카드를 골랐을 때 결과 위치가 서로 달라
+        // 보이는 문제가 있었다(2026-09-01, 실기기에서 확인 - 원인은 명확히 재현 못 했지만
+        // 스크롤 위치에 영향받는 그리드 기준 좌표보다 뷰포트 자체의 중앙이 항상 일관적이다).
+        // 안드로이드 앱에서만 화면 정중앙으로 통일 - 웹은 그리드가 항상 좌우 2열이라 이 문제가
+        // 안 생기고, 원래 의도(그리드 영역 중앙)도 그대로 유지하는 게 자연스럽다.
+        center: IS_ANDROID_APP
+          ? { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+          : { x: gridRect.left + gridRect.width / 2, y: gridRect.top + gridRect.height / 2 },
         isFinalRound,
       })
       hasWinner = true
@@ -310,7 +318,10 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
           <div className="mx-auto mb-5 grid h-24 w-24 place-items-center overflow-hidden rounded-3xl bg-white shadow-lg">
             <img src={dmLogo} alt="DM 로고" className="h-[5.5rem] w-[5.5rem] object-contain" />
           </div>
-          <h1 className="font-display text-3xl font-bold leading-tight text-[#3d2c35] sm:text-4xl">
+          {/* 폰트 크기 축소(2026-09-01, 안드로이드 앱 전용) - "두 사진 중 더 끌리는 쪽을,"이 안드로이드
+              좁은 화면에서 한 줄에 안 들어가 다시 줄바꿈되면서 "쪽을,"만 혼자 남는 3줄이 됐다. "쪽을,"에서
+              끊는 의도된 줄바꿈은 유지하고, 첫 줄 자체가 한 줄에 들어가도록 폰트만 줄였다. 웹은 원래 크기 유지. */}
+          <h1 className={`font-display font-bold leading-tight text-[#3d2c35] ${IS_ANDROID_APP ? 'text-2xl' : 'text-3xl'} sm:text-4xl`}>
             두 사진 중 더 끌리는 쪽을,<br />6번만 골라주세요
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-stone-500">
@@ -465,7 +476,9 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
             <img src={dmLogo} alt="DM 로고" className="h-[4.5rem] w-[4.5rem] object-contain" />
           </span>
           <div>
-            <p className="font-display text-2xl font-extrabold text-[#3d2c35]">당신의 문화생활 취향을 분석하고 있어요</p>
+            {/* 폰트 축소 + balance(2026-09-01, 안드로이드 앱 전용) - text-2xl에서 "취향"이 "취"/"향"으로
+                쪼개지는 등 단어 중간에 줄바꿈됐다. balance만으론 부족해서 폰트 크기 자체를 줄였다. 웹은 원래대로. */}
+            <p className={`font-display font-extrabold text-[#3d2c35] ${IS_ANDROID_APP ? 'text-lg sm:text-2xl' : 'text-2xl'}`} style={IS_ANDROID_APP ? { textWrap: 'balance' } : undefined}>당신의 문화생활 취향을 분석하고 있어요</p>
           </div>
         </div>
 
@@ -494,7 +507,9 @@ export function OnboardingTab({ onComplete, onSkip, embedded = false, skippable 
           <p className="text-sm font-black uppercase tracking-[0.2em]" style={{ color: currentAxis.color }}>
             {roundIndex + 1}라운드 · {currentAxis.koreanLabel}
           </p>
-          <h1 className="font-display mt-1 text-2xl font-extrabold text-[#3d2c35] sm:text-3xl">
+          {/* 폰트 축소 + balance(2026-09-01, 안드로이드 앱 전용) - 질문 문구가 안드로이드 좁은 화면에서
+              단어 중간에 줄바꿈됐다. 웹은 원래 크기(balance 없이) 유지. */}
+          <h1 className={`font-display mt-1 font-extrabold text-[#3d2c35] ${IS_ANDROID_APP ? 'text-xl sm:text-3xl' : 'text-2xl sm:text-3xl'}`} style={IS_ANDROID_APP ? { textWrap: 'balance' } : undefined}>
             {currentAxis.question}
           </h1>
         </div>

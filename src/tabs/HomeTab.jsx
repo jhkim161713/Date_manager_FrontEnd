@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { QUICK_TABS } from '../data/tabsData';
+import { QUICK_TABS, TABS } from '../data/tabsData';
 import { useWeather } from '../hooks/useWeather';
 import { useLikedPlaces } from '../hooks/useLikedPlaces';
 import { useHomeRecommendations } from '../hooks/useHomeRecommendations';
@@ -11,8 +11,13 @@ import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { HeroBanner } from '../components/home/HeroBanner';
 import { HomeCategoryChips } from '../components/home/HomeCategoryChips';
 import { RecommendationCard } from '../components/home/RecommendationCard';
+import { IS_ANDROID_APP } from '../lib/platform';
 
 export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
+  // 퀵탭 사이드 드로어(2026-09-01, 안드로이드 전용) - 퀵탭 8개짜리 가로 스크롤 칩 줄이 안드로이드
+  // 좁은 화면에서 뒤쪽 칩이 잘려 안 보였다. 안드로이드에서는 이 줄 대신 "☰ 메뉴" 버튼 하나로
+  // 바꾸고, 누르면 데스크톱 사이드바(TABS)와 같은 목록을 슬라이드 드로어로 보여준다.
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   // 배너 문구를 실제 커플 연결 상태에 따라 다르게 보여준다 - 예전엔 목업 커플타입과 가짜 코스
   // 개수를 썼는데, 실제 데이터 기반으로 교체(2026-08-13).
   const [coupleLinked, setCoupleLinked] = useState(false);
@@ -128,17 +133,56 @@ export function HomeTab({ user, onTabChange, personaProfile, onStyleChanged }) {
 
       {/* ━━━ ② 카테고리 퀵 필터 탭 ━━━ */}
       <div className="flex-shrink-0 flex items-center gap-2">
-        <div className="flex-shrink-0 flex items-center gap-1.5 overflow-x-auto py-1" style={{ scrollbarWidth: 'none' }}>
-          {QUICK_TABS.map(q => (
-            <button key={q.tab} onClick={() => onTabChange(q.tab)}
-              className="flex-shrink-0 flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 bg-white shadow-sm"
-              style={{ color: q.color, border: `1.5px solid ${q.color}40` }}>
-              <span>{q.emoji}</span>
-              <span>{q.label}</span>
-            </button>
-          ))}
-        </div>
+        {IS_ANDROID_APP ? (
+          <button type="button" onClick={() => setShowMobileDrawer(true)}
+            className="flex-shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold bg-white shadow-sm"
+            style={{ color: '#3d2c35', border: '1.5px solid #f0dce2' }}>
+            <span>☰</span><span>메뉴</span>
+          </button>
+        ) : (
+          <div className="flex-shrink-0 flex items-center gap-1.5 overflow-x-auto py-1" style={{ scrollbarWidth: 'none' }}>
+            {QUICK_TABS.map(q => (
+              <button key={q.tab} onClick={() => onTabChange(q.tab)}
+                className="flex-shrink-0 flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 bg-white shadow-sm"
+                style={{ color: q.color, border: `1.5px solid ${q.color}40` }}>
+                <span>{q.emoji}</span>
+                <span>{q.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* 퀵탭 드로어(2026-09-01, 안드로이드 전용) - "☰ 메뉴" 버튼을 누르면 데스크톱 사이드바와
+          같은 TABS 8개를 왼쪽에서 슬라이드로 보여준다. 배경 탭하면 닫힘. */}
+      {IS_ANDROID_APP && (
+        <div
+          className={`fixed inset-0 z-50 transition-opacity duration-300 ${showMobileDrawer ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setShowMobileDrawer(false)}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className={`h-full flex flex-col overflow-y-auto transition-transform duration-300 ${showMobileDrawer ? 'translate-x-0' : '-translate-x-full'}`}
+            style={{ width: '210px', background: 'white', boxShadow: '4px 0 24px rgba(0,0,0,0.15)' }}
+          >
+            <div className="flex items-center justify-between px-4 pt-5 pb-3" style={{ borderBottom: '1.5px solid #ffd6e0' }}>
+              <span className="font-display font-bold text-sm" style={{ color: '#3d2c35' }}>메뉴</span>
+              <button type="button" onClick={() => setShowMobileDrawer(false)} className="text-lg leading-none" style={{ color: '#b9a7ae' }}>✕</button>
+            </div>
+            <nav className="flex flex-col gap-1 px-3 py-3">
+              {TABS.map(t => (
+                <button key={t.id} onClick={() => { onTabChange(t.id); setShowMobileDrawer(false); }}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-left transition-all"
+                  style={{ color: '#3d2c35' }}>
+                  <span className="text-base">{t.emoji}</span>
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* 상단 헤더의 구분선(app-topbar border-bottom)과 같은 스타일로, 퀵 필터 탭과 아래 추천
           섹션 사이를 구분함(2026-08-13) */}

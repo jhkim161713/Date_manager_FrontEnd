@@ -1,4 +1,5 @@
 import { REGIONS, SUB_REGIONS } from '../../data/curationRegions';
+import { IS_ANDROID_APP } from '../../lib/platform';
 
 // 지역 필터 - 특정 지역을 고르면 위치 기반 정렬(useNearby)은 자동으로 꺼진다(지금 위치와
 // 무관하게 그 지역을 보고 싶은 거라서, useCurationPlaces의 useNearby 파생 로직 참고).
@@ -47,19 +48,26 @@ export function RegionFilterBar({ region, setRegion, subRegion, setSubRegion, en
         {/* 에너지 게이지 - 유저 성향값 저장 파이프라인이 아직 없어서(온보딩 미완성) 지금 당장은 그
             순간 원하는 활력 정도를 직접 조정하는 임시 방식으로 만듦. 값을 만지면 scoreEnergy가 가까운
             장소 순으로 정렬되고(필터가 아니라 정렬이라 결과 수는 그대로), 안 만지면(null) 기존
-            정렬(최신순) 그대로 동작한다. */}
-        <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5" style={{ border: '1.5px solid #cdeacd' }}>
-          <span className="whitespace-nowrap text-[10px] font-bold" style={{ color: '#5a8a5f' }}>
-            당신의 에너지를 입력하세요
-          </span>
-          <span className="text-xs">🔋</span>
+            정렬(최신순) 그대로 동작한다. 전체 문장 라벨이 좁은 화면에서 지역 칩 자리를 다 잡아먹어서
+            (2026-09-01, 안드로이드 실기기 캡처로 발견) 안드로이드 앱에서만 배터리 이모지만 남긴다. */}
+        <div className={`flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white py-1.5 ${IS_ANDROID_APP ? 'px-2.5' : 'px-3'}`} style={{ border: '1.5px solid #cdeacd' }}>
+          {IS_ANDROID_APP ? (
+            <span className="text-xs" title="당신의 에너지를 입력하세요">🔋</span>
+          ) : (
+            <>
+              <span className="whitespace-nowrap text-[10px] font-bold" style={{ color: '#5a8a5f' }}>
+                당신의 에너지를 입력하세요
+              </span>
+              <span className="text-xs">🔋</span>
+            </>
+          )}
           <input
             type="range"
             min={0}
             max={100}
             value={energyTarget ?? 50}
             onChange={(event) => setEnergyTarget(Number(event.target.value))}
-            className="w-20 accent-[#4caf6e]"
+            className={`${IS_ANDROID_APP ? 'w-12' : 'w-20'} accent-[#4caf6e]`}
           />
           {energyTarget != null && (
             <button

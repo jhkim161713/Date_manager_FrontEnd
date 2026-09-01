@@ -1,4 +1,5 @@
 import { STAY_CATEGORIES, STAY_HERO } from '../../data/stayData';
+import { IS_ANDROID_APP } from '../../lib/platform';
 
 export function StayCategoryHero({ visible, stayCategory, setStayCategory, staySubCounts, stayCount }) {
   return (
@@ -21,7 +22,9 @@ export function StayCategoryHero({ visible, stayCategory, setStayCategory, stayS
           >
             {STAY_HERO.emoji} {STAY_HERO.label}
           </span>
-          <h3 className="font-display mt-3 text-2xl font-bold" style={{ color: '#403747' }}>
+          {/* text-wrap:balance(2026-09-01, 안드로이드 앱 전용) - DateCategoryHero와 같은 이유. */}
+          <h3 className={`font-display mt-3 font-bold ${IS_ANDROID_APP ? 'text-xl' : 'text-2xl'} md:text-2xl`}
+            style={{ color: '#403747', ...(IS_ANDROID_APP ? { textWrap: 'balance' } : {}) }}>
             {STAY_HERO.title}
           </h3>
           <p className="mt-1.5 max-w-xl text-xs leading-5" style={{ color: '#83788a' }}>
@@ -61,8 +64,8 @@ export function StayCategoryHero({ visible, stayCategory, setStayCategory, stayS
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-1">
-                  <strong className="text-xs" style={{ color: selected ? item.color : '#4d434f' }}>{item.label}</strong>
-                  <small className="text-[9px] font-bold" style={{ color: '#aa9eb0' }}>{count}곳</small>
+                  <strong className="text-xs" style={{ color: selected ? item.color : '#4d434f', ...(IS_ANDROID_APP ? { textWrap: 'balance' } : {}) }}>{item.label}</strong>
+                  <small className={`text-[9px] font-bold ${IS_ANDROID_APP ? 'shrink-0' : ''}`} style={{ color: '#aa9eb0' }}>{count}곳</small>
                 </span>
               </span>
             </button>

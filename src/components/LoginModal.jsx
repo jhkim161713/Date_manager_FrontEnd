@@ -290,14 +290,14 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
             {isSignup && (
               <div>
                 <div className="flex items-center gap-1.5">
-                  <div className="flex-1 rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                  <div className="min-w-0 flex-1 rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
                     <span className="text-sm">🌸</span>
                     <input className="flex-1 text-sm outline-none bg-transparent" placeholder="닉네임"
                       value={nickname} onChange={e => { setNickname(e.target.value); setNicknameCheck(null); }}
                       style={{ fontFamily: 'Nunito, sans-serif', color: '#3d2c35' }} />
                   </div>
                   <button type="button" onClick={handleCheckNickname} disabled={!nickname.trim() || nicknameCheck?.checking}
-                    className="rounded-2xl px-3 py-3 text-xs font-bold whitespace-nowrap disabled:opacity-50"
+                    className="shrink-0 rounded-2xl px-2.5 py-3 text-xs font-bold whitespace-nowrap disabled:opacity-50"
                     style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35' }}>
                     {nicknameCheck?.checking ? '확인 중...' : '중복확인'}
                   </button>
@@ -311,7 +311,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
             )}
             <div>
               <div className="flex items-center gap-1.5">
-                <div className="flex-1 rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
+                <div className="min-w-0 flex-1 rounded-2xl px-4 py-3 flex items-center gap-2" style={{ border: '1.5px solid #ffd6e0', background: '#fff8f4' }}>
                   <span className="text-sm">🌷</span>
                   <input type="text" className="flex-1 text-sm outline-none bg-transparent" placeholder="이메일"
                     value={email} onChange={e => { setEmail(e.target.value); setEmailCheck(null); }}
@@ -320,7 +320,7 @@ export function LoginModal({ onClose, onAuthed, onSignupComplete, initialError }
                 </div>
                 {isSignup && (
                   <button type="button" onClick={handleCheckEmail} disabled={!email.trim() || emailCheck?.checking}
-                    className="rounded-2xl px-3 py-3 text-xs font-bold whitespace-nowrap disabled:opacity-50"
+                    className="shrink-0 rounded-2xl px-2.5 py-3 text-xs font-bold whitespace-nowrap disabled:opacity-50"
                     style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35' }}>
                     {emailCheck?.checking ? '확인 중...' : '중복확인'}
                   </button>
