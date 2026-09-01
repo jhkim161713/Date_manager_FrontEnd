@@ -579,8 +579,11 @@ export function getAiChatMessages(sessionId) {
 }
 
 // "AI 코스 추천"(홈탭 배너, 2026-08-25 추가) - 채팅 세션과 무관한 1회성 추천 4곳을 받아온다.
-export function getAiCourseRecommendation() {
-  return request('/api/aichat/course-recommendation');
+// lat/lon을 안 보내면 백엔드가 반경 제한 없이(전국 대상) 후보를 고르게 되어 서울/부산처럼
+// 멀리 떨어진 장소가 한 코스에 섞여 나올 수 있다(2026-09-01) - 호출부에서 항상 위치를 구해 넘긴다.
+export function getAiCourseRecommendation(lat, lon) {
+  const query = lat != null && lon != null ? `?lat=${lat}&lon=${lon}` : '';
+  return request(`/api/aichat/course-recommendation${query}`);
 }
 
 // 장소 상세 "AI 코치의 한마디"(2026-08-31 추가) - 로그인 안 했으면 호출부에서 아예 안 부른다.
