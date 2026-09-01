@@ -115,9 +115,11 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
         onClick={(e) => e.stopPropagation()}
         style={{ background: 'white', boxShadow: '0 20px 60px rgba(255,107,138,0.18)' }}>
       <div className="w-full md:max-w-md relative overflow-y-auto">
-        <button onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-          style={{ background: 'rgba(0,0,0,0.35)', color: 'white' }}>✕</button>
+        {!showCoachPanel && (
+          <button onClick={onClose}
+            className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+            style={{ background: 'rgba(0,0,0,0.35)', color: 'white' }}>✕</button>
+        )}
 
         {!place && !error && (
           <p className="text-sm text-stone-400 text-center py-16">불러오는 중...</p>
@@ -276,8 +278,11 @@ export function PlaceDetailModal({ user, placeId, onClose, onToggleBuilder, inBu
           401을 줘서 coachReply가 계속 null). 왼쪽 카드와 한 카드로 붙이고 세로 구분선만 둔다(시안
           확정). 데스크톱은 오른쪽에, 좁은 화면은 카드 아래로 쌓인다. */}
       {showCoachPanel && (
-        <div className="w-full md:max-w-sm flex flex-col border-t md:border-t-0 md:border-l"
+        <div className="w-full md:max-w-sm relative flex flex-col border-t md:border-t-0 md:border-l"
           style={{ background: '#fffdfc', borderColor: '#f6e6ea' }}>
+          <button onClick={onClose}
+            className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+            style={{ background: 'rgba(0,0,0,0.35)', color: 'white' }}>✕</button>
           <div className="relative" style={{ height: '220px', background: '#fffdfc' }}>
             <img src={coachPersona.image} alt={coachPersona.name} className="w-full h-full object-contain object-bottom" />
           </div>
