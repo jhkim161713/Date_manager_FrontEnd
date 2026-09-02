@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { createReport, createBoardPost, deleteBoardPost, getBoardPost, getBoardPosts, updateBoardPost } from '@/lib/api';
+import { confirm } from '@/lib/confirm';
 
 // 2026-08-22 - 실제 백엔드(BoardController, /api/board)로 연동 완료. 글 목록/작성/수정/삭제
 // 전부 진짜 DB에 저장되고, 새로고침해도 안 사라진다. 신고는 그 전부터 이미 실제 백엔드
@@ -112,7 +113,7 @@ export function BoardTab({ user }) {
   };
 
   const handleDelete = async (post) => {
-    if (!window.confirm('이 글을 삭제할까요?')) return;
+    if (!await confirm('이 글을 삭제할까요?', { confirmText: '삭제할게요', danger: true })) return;
     try {
       await deleteBoardPost(post.id);
       setSelected(null);

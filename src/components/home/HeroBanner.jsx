@@ -49,7 +49,7 @@ export function HeroBanner({ coupleLinked, weather, onOpenBuilder, aiRecommendin
           ))}
         </div>
 
-        <div className="flex items-center gap-2 mt-2">
+        <div className={`flex items-center gap-2 ${IS_ANDROID_APP ? 'mt-6' : 'mt-2'}`}>
           <button onClick={onOpenBuilder} disabled={aiRecommending}
             className="rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105 disabled:opacity-70 disabled:hover:scale-100"
             style={{ background: 'white', color: '#ff6b8a', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>

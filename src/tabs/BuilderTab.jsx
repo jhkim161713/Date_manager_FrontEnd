@@ -5,6 +5,7 @@ import { SectionTitle } from "../components/SectionTitle"
 import axios from "axios"
 import { getToken } from "../lib/api"
 import { BUILDER_STORAGE_KEY } from "../data/curationData"
+import { confirm } from "../lib/confirm"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // 커플 공유 조회 이후(2026-08-25), 목록에는 파트너가 만든 코스도 보이지만 수정/삭제는 여전히
@@ -116,8 +117,8 @@ export function BuilderTab({ autoOpenNaming, onAutoOpenConsumed }) {
   };
 
   // 담은 장소를 전부 취소하고 싶을 때(2026-09-01 추가).
-  const handleCancelQueue = () => {
-    if (!window.confirm("담은 장소를 모두 비울까요?")) return;
+  const handleCancelQueue = async () => {
+    if (!await confirm("담은 장소를 모두 비울까요?", { confirmText: "비울게요", danger: true })) return;
     updateBuilderQueue([]);
   };
 
@@ -201,7 +202,7 @@ export function BuilderTab({ autoOpenNaming, onAutoOpenConsumed }) {
 
   // 등록한 코스 삭제(2026-08-25 추가) - 게시판 글 삭제(handleDelete)와 같은 패턴.
   const handleDeleteCourseGroup = async (groupId) => {
-    if (!window.confirm("이 코스를 삭제할까요?")) return;
+    if (!await confirm("이 코스를 삭제할까요?", { confirmText: "삭제할게요", danger: true })) return;
     try {
       const token = getToken();
       await axios.delete(`${API_BASE_URL}/api/course/groups/${groupId}`, {

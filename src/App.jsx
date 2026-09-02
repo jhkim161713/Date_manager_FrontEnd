@@ -7,6 +7,7 @@ import dmLogo from '@/imports/Logo.png';
 import { getMe, getToken, setToken, clearToken, adminCheck, getUnreadCoupleNotifications, ackCoupleNotifications, getCoupleStatus, saveOnboardingStyle, getMyStyle, getMySubscription } from '@/lib/api';
 import { CURATION_CART_STORAGE_KEY } from './data/curationData';
 import { CoupleMatchCelebration } from './components/CoupleMatchCelebration';
+import { ConfirmDialogHost } from './components/ConfirmDialogHost';
 import { avatarSrc } from './components/Avatar';
 import { HomeTab } from './tabs/HomeTab';
 import { CoupleTab } from './tabs/CoupleTab';
@@ -87,6 +88,9 @@ export default function App() {
   // 필수 성향 온보딩 오버레이. 둘 다 "방금 처음 가입한 사람"만 거치는 지점이라 이 하나의
   // 플래그로 두 경로를 합쳐서 처리한다.
   const [showPostSignupOnboarding, setShowPostSignupOnboarding] = useState(false);
+  // 안드로이드 전용 "☰ 메뉴" 드로어(2026-09-02) - 예전엔 HomeTab에서만 열 수 있었는데, 헤더의
+  // "마이페이지" 버튼 옆으로 옮겨서 어느 탭에 있든 전체 TABS 8개 목록에 접근할 수 있게 함.
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   // 관리자 페이지(/admin)에서 "우리 홈"으로 넘어온 경우에만 상단에 "관리자 페이지" 버튼을 보여준다.
   // adminCheck()를 매번 새로 부르는 대신, /admin에서 넘어올 때만 붙는 ?admin=1 쿼리를
   // sessionStorage에 남겨서 이 탭에 머무는 동안 계속 기억하게 한다.
@@ -553,6 +557,13 @@ export default function App() {
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
                   ⚙️ <span className="app-profile-secondary-label">마이페이지</span>
                 </button>
+                {IS_ANDROID_APP && (
+                  <button onClick={() => setShowMobileDrawer(true)}
+                    className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
+                    style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
+                    ☰ <span className="app-profile-secondary-label">메뉴</span>
+                  </button>
+                )}
                 <button onClick={() => setShowSubscription(true)}
                   className="rounded-2xl px-3 py-1.5 text-xs font-bold transition-all hover:bg-stone-100"
                   style={{ border: '1.5px solid #ffd6e0', color: '#3d2c35', background: 'white' }}>
@@ -706,6 +717,40 @@ export default function App() {
           })}
         </nav>
       </div>
+
+      {/* 안드로이드 전용 메뉴 드로어(2026-09-02) - 헤더 "마이페이지" 옆 "☰ 메뉴" 버튼을 누르면
+          TABS 8개 전체 목록을 왼쪽에서 슬라이드로 보여준다(하단 네비 5개엔 없는 빌더/AI상담/
+          자금플래너/게시판도 여기서 접근). 배경 탭하면 닫힘. */}
+      {IS_ANDROID_APP && (
+        <div
+          className={`fixed inset-0 z-50 transition-opacity duration-300 ${showMobileDrawer ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setShowMobileDrawer(false)}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className={`h-full flex flex-col overflow-y-auto transition-transform duration-300 ${showMobileDrawer ? 'translate-x-0' : '-translate-x-full'}`}
+            style={{ width: '210px', background: 'white', boxShadow: '4px 0 24px rgba(0,0,0,0.15)' }}
+          >
+            <div className="flex items-center justify-between px-4 pt-5 pb-3" style={{ borderBottom: '1.5px solid #ffd6e0' }}>
+              <span className="font-display font-bold text-sm" style={{ color: '#3d2c35' }}>메뉴</span>
+              <button type="button" onClick={() => setShowMobileDrawer(false)} className="text-lg leading-none" style={{ color: '#b9a7ae' }}>✕</button>
+            </div>
+            <nav className="flex flex-col gap-1 px-3 py-3">
+              {TABS.map(t => (
+                <button key={t.id} onClick={() => { changeTab(t.id); setShowMobileDrawer(false); }}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold text-left transition-all"
+                  style={{ color: '#3d2c35' }}>
+                  <span className="text-base">{t.emoji}</span>
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialogHost />
 
       {/* Login Modal */}
       {showLogin && (

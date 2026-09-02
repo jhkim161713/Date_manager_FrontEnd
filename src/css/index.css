@@ -41,6 +41,12 @@ html.dm-android .overflow-x-auto {
   overscroll-behavior-inline: contain;
   touch-action: pan-x;
 }
+/* 히어로 배너 동네 칩 줄처럼 키가 짧은 가로 스크롤 줄에서는 전역 핑크 스크롤바(아래)가
+   칩 바로 밑에 딱 붙어 보여서 어색했다(2026-09-02). scrollbarWidth:'none' 인라인 스타일은
+   Firefox 전용이라 안드로이드(Chromium 웹뷰)에서는 안 먹혀서 이 규칙으로 보완. */
+html.dm-android .overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
 
 ::-webkit-scrollbar {
   width: 4px;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import { getMySubscription, issueBillingKey, retryChargeSubscription, cancelSubscription } from '@/lib/api';
+import { confirm } from '@/lib/confirm';
 
 // 토스페이먼츠 클라이언트 키(공개 키라 프론트에 노출해도 안전함) - 팀원 개인 테스트 상점의 API 개별연동 키
 const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_ma60RZblrq5vYRA526lZrwzYWBn1';
@@ -100,7 +101,7 @@ export function SubscriptionModal({ user, onClose, pendingBillingAuth }) {
   };
 
   const handleCancel = async () => {
-    if (!window.confirm('구독을 해지할까요? 이용 만료일까지는 계속 사용할 수 있어요.')) return;
+    if (!await confirm('구독을 해지할까요? 이용 만료일까지는 계속 사용할 수 있어요.', { confirmText: '해지할게요' })) return;
     setError(null);
     setProcessing(true);
     try {

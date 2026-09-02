@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { SectionTitle } from '../components/SectionTitle';
 import { Avatar } from '../components/Avatar';
+import { DatePickerField } from '../components/DatePickerField';
 import {
   getMe, updateMe, changePassword, uploadProfilePhoto,
   getMySubscription, cancelSubscription, getCoupleStatus, disconnectCouple, updateMetDate,
   ackAdminReconnect, withdrawMe,
 } from '@/lib/api';
+import { confirm } from '@/lib/confirm';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -103,6 +105,10 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
         setSubscription({ hasSubscription: false });
       }
     };
+    loadSubscription();
+  }, []);
+
+  useEffect(() => {
     const loadCoupleStatus = async () => {
       try {
         const data = await getCoupleStatus();
@@ -112,8 +118,12 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
         setCoupleStatus({ linked: false, partner: null, connectedAt: null, metDate: null });
       }
     };
-    loadSubscription();
     loadCoupleStatus();
+    // 앱을 안 껐다 켜고 같은 세션 안에서 파트너가 방금 초대를 수락한 경우(2026-09-02) - 이 탭이
+    // 이미 마운트돼 있으면 마운트 시점 한 번만 조회하고 끝이라 방금 연결된 상태가 반영 안 됐다.
+    // HomeTab.jsx/useCoupleConnection.js와 동일한 이벤트를 구독해서 다시 조회한다.
+    window.addEventListener('dm:couple-status-changed', loadCoupleStatus);
+    return () => window.removeEventListener('dm:couple-status-changed', loadCoupleStatus);
   }, []);
 
   const handleSaveMetDate = async () => {
@@ -130,10 +140,12 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm(
+    const ok = await confirm(
       '정말 연결을 해제할까요?\n' +
-      '해제하면 만난 날짜, 연결 기간 등 함께 쌓아온 기록은 같은 상대와 다시 연결하기 전까지 보이지 않게 돼요.'
-    )) return;
+      '해제하면 만난 날짜, 연결 기간 등 함께 쌓아온 기록은 같은 상대와 다시 연결하기 전까지 보이지 않게 돼요.',
+      { confirmText: '해제할게요', danger: true },
+    );
+    if (!ok) return;
     setDisconnecting(true);
     try {
       await disconnectCouple();
@@ -160,7 +172,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
 
   const handleCancelSubscription = async () => {
     setSubError(null);
-    if (!window.confirm('구독을 해지할까요?\n이미 낸 이용 기간이 끝날 때까지는 계속 이용할 수 있고, 이후 자동 갱신만 안 돼요.')) return;
+    if (!await confirm('구독을 해지할까요?\n이미 낸 이용 기간이 끝날 때까지는 계속 이용할 수 있고, 이후 자동 갱신만 안 돼요.', { confirmText: '해지할게요' })) return;
     setSubCanceling(true);
     try {
       const updated = await cancelSubscription();
@@ -174,7 +186,7 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
 
   const handleWithdraw = async () => {
     setWithdrawError(null);
-    if (!window.confirm('정말 탈퇴하시겠어요?\n탈퇴 후 1년이 지나면 계정 정보가 완전히 삭제돼요.')) return;
+    if (!await confirm('정말 탈퇴하시겠어요?\n탈퇴 후 1년이 지나면 계정 정보가 완전히 삭제돼요.', { confirmText: '탈퇴할게요', danger: true })) return;
     setWithdrawing(true);
     try {
       await withdrawMe();
@@ -391,13 +403,11 @@ export function MyPageTab({ onUpdated, onWithdrawn, onTabChange }) {
 
               <label className="block text-[11px] font-bold mb-1.5" style={{ color: '#6d5662' }}>만난 날짜</label>
               <div className="flex items-center gap-2">
-                <input
-                  type="date"
+                <DatePickerField
                   value={metDateInput}
                   max={todayStr()}
-                  onChange={e => setMetDateInput(e.target.value)}
-                  className="min-w-0 flex-1 rounded-xl px-3 py-2.5 text-xs font-semibold outline-none"
-                  style={{ border: '1.5px solid #f0dbe1', background: 'white', color: '#5c4651' }}
+                  onChange={setMetDateInput}
+                  className="min-w-0 flex-1"
                 />
                 <button
                   onClick={handleSaveMetDate}

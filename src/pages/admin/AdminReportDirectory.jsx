@@ -113,7 +113,7 @@ export function AdminReportDirectory() {
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full text-xs text-left">
+        <table className="w-full text-xs text-left whitespace-nowrap">
           <thead>
             <tr className="text-stone-400 border-b" style={{ borderColor: '#ffd6e0' }}>
               <th className="py-2 pr-3">ID</th>

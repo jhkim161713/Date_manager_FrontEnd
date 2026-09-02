@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createCoupleInvite, acceptCoupleInvite, getCoupleStatus, disconnectCouple, updateMetDate, ackAdminReconnect } from '../lib/api';
 import { COUPLE_SINK_COPY } from '../data/coupleSink';
+import { confirm } from '../lib/confirm';
 
 // "며칠째"는 자정 기준 날짜 차이 + 1(만난 당일을 1일째로 침) - MyPageTab의 daysSince와 동일한 계산.
 function daysSince(dateStr) {
@@ -30,7 +31,7 @@ export const notifyCoupleStatusChanged = () => window.dispatchEvent(new CustomEv
 // CoupleTab의 상태(연결 여부/파트너/만난 날짜) + 초대/수락/해제/만난날짜 저장 로직을 전부 감싼 훅
 // (2026-08-24 분리). 원래 CoupleTab.jsx 하나에 다 있던 로직이라, 탭 컴포넌트는 이 훅이 돌려주는
 // 값만 그대로 렌더링에 쓰면 된다.
-export function useCoupleConnection() {
+export function useCoupleConnection(userId) {
   const [feedback, setFeedback] = useState('');
   const showFeedback = (message) => {
     setFeedback(message);
@@ -55,7 +56,12 @@ export function useCoupleConnection() {
 
   useEffect(() => {
     loadStatus();
-  }, []);
+    // HomeTab.jsx와 동일한 이유(2026-09-02) - 이 탭이 로그인 전에 이미 마운트돼 있으면
+    // (예: URL 해시로 'couple' 탭에 바로 진입) 재로그인해도 최초 마운트 시점 상태만 들고
+    // 있어서 초대한 사람(A) 쪽에 새 연결 상태가 반영 안 되는 문제가 있었다.
+    window.addEventListener('dm:couple-status-changed', loadStatus);
+    return () => window.removeEventListener('dm:couple-status-changed', loadStatus);
+  }, [userId]);
 
   const daysTogether = status.metDate ? daysSince(status.metDate) : null;
   const milestone = daysTogether != null ? nextMilestone(daysTogether) : null;
@@ -170,10 +176,12 @@ export function useCoupleConnection() {
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm(
+    const ok = await confirm(
       '정말 연결을 해제하시겠어요?\n' +
-      '해제하면 더 이상 파트너 정보를 볼 수 없고, 만난 날짜·연결 기간 등 함께 쌓아온 기록도 같은 상대와 다시 연결하기 전까지 보이지 않게 돼요.'
-    )) return;
+      '해제하면 더 이상 파트너 정보를 볼 수 없고, 만난 날짜·연결 기간 등 함께 쌓아온 기록도 같은 상대와 다시 연결하기 전까지 보이지 않게 돼요.',
+      { confirmText: '해제할게요', danger: true },
+    );
+    if (!ok) return;
     try {
       await disconnectCouple();
       showFeedback('연결을 해제했어요');

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { DatePickerField } from '../DatePickerField';
 
 // 새 일정 등록 모달. 큐레이션 탭 "캘린더에 담기"로 넘어온 값(2026-08-22)이 있으면 제목/날짜를
 // 미리 채워둔다 - 날짜는 공연류처럼 실제 날짜를 아는 경우만 채우고, 그 외엔 빈 값으로 둬서
@@ -10,12 +11,14 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit, 
   const [coupleEvent, setCoupleEvent] = useState(false);
   const titleRef = useRef();
   const descriptionRef = useRef();
-  const targetDateRef = useRef();
+  // 날짜만 DatePickerField(커스텀 컴포넌트)로 바뀌면서 ref로 값을 읽을 수 없어 상태로 관리한다
+  // (2026-09-02, title/description은 기존처럼 비제어 ref 그대로 유지).
+  const [targetDate, setTargetDate] = useState('');
 
   useEffect(() => {
     if (!prefill) return;
     if (titleRef.current) titleRef.current.value = prefill.title || '';
-    if (targetDateRef.current) targetDateRef.current.value = prefill.targetDate || '';
+    setTargetDate(prefill.targetDate || '');
     onPrefillConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -25,16 +28,14 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit, 
 
     const titleNode = titleRef.current;
     const descriptionNode = descriptionRef.current;
-    const targetDateNode = targetDateRef.current;
 
     if (titleNode.value.trim() === '') {
       setTitleMsg('제목을 입력해주세요');
       titleNode.focus();
       return;
     }
-    if (targetDateNode.value === '') {
+    if (targetDate === '') {
       setTitleMsg('날짜를 선택해주세요');
-      targetDateNode.focus();
       return;
     }
     setTitleMsg('');
@@ -42,7 +43,7 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit, 
     onSubmit({
       title: titleNode.value.trim(),
       description: descriptionNode.value.trim(),
-      targetDate: targetDateNode.value,
+      targetDate,
       coupleEvent: coupleLinked && coupleEvent,
     })
       .then(() => onClose())
@@ -94,13 +95,11 @@ export function EventFormModal({ prefill, onPrefillConsumed, onClose, onSubmit, 
 
         <div className="mb-4">
           <label htmlFor="targetDate" className="block text-[11px] font-bold mb-1" style={{ color: '#3d2c35' }}>날짜</label>
-          <input
-            ref={targetDateRef}
-            type="date"
+          <DatePickerField
             id="targetDate"
-            name="targetDate"
-            className="w-full text-sm px-3 py-2 rounded-lg border outline-none"
-            style={{ borderColor: '#f0dbe4' }}
+            value={targetDate}
+            onChange={setTargetDate}
+            className="w-full"
           />
         </div>
 

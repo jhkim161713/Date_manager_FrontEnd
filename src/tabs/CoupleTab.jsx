@@ -20,7 +20,7 @@ export function CoupleTab({ user, onTabChange, personaProfile }) {
     handleDisconnect, handleAckAdminReconnect,
     metDateInput, setMetDateInput, metDateSaving, metDateError,
     isEditingMetDate, setIsEditingMetDate, handleSaveMetDate, cancelEditMetDate,
-  } = useCoupleConnection();
+  } = useCoupleConnection(user?.id);
 
   return (
     <div className="space-y-5 pb-8">

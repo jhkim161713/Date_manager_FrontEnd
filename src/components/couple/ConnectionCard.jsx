@@ -1,4 +1,5 @@
 import { Avatar } from '../Avatar';
+import { DatePickerField } from '../DatePickerField';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -81,13 +82,11 @@ export function ConnectionCard({
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="date"
+                    <DatePickerField
                       value={metDateInput}
                       max={todayStr()}
-                      onChange={e => setMetDateInput(e.target.value)}
-                      className="min-w-0 flex-1 rounded-xl px-3 py-2 text-xs font-semibold outline-none"
-                      style={{ border: '1.5px solid #f0dbe1', background: 'white', color: '#5c4651' }}
+                      onChange={setMetDateInput}
+                      className="min-w-0 flex-1"
                     />
                     <button
                       type="button"

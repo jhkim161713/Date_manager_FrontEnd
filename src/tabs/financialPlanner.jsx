@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createOrUpdateFundGoal, getFundPlannerDashboard, updateFundGoalProgress } from '../lib/api';
 import { SectionTitle } from '../components/SectionTitle';
+import { IS_ANDROID_APP } from '../lib/platform';
 
 const MONEY_FORMATTER = new Intl.NumberFormat('ko-KR');
 
@@ -489,8 +490,8 @@ export function FinancialPlanner() {
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(420px,1.08fr)]">
         <div className="space-y-4 xl:sticky xl:top-0">
-          <div className="sticky top-0 z-20 -mx-1 px-1 pb-1 pt-1 backdrop-blur-md xl:static xl:m-0 xl:p-0 xl:backdrop-blur-none"
-            style={{ background: 'rgba(255,248,244,.86)' }}>
+          <div className={`${IS_ANDROID_APP ? '' : 'sticky top-0 z-20 backdrop-blur-md'} -mx-1 px-1 pb-1 pt-1 xl:static xl:m-0 xl:p-0 xl:backdrop-blur-none`}
+            style={{ background: IS_ANDROID_APP ? undefined : 'rgba(255,248,244,.86)' }}>
             <PlannerPromptPanel
               input={input}
               setInput={setInput}
