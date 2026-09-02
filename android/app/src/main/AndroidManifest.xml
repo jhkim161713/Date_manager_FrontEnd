@@ -19,10 +19,10 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <!-- 소셜로그인 딥링크(2026-09-01) - 백엔드가 datemanager://oauth/callback?token=...으로
-                 리다이렉트하면 이 인텐트 필터가 그 URL을 받아 이 앱(MainActivity)을 다시 연다.
-                 App.jsx의 appUrlOpen 리스너(Capacitor App 플러그인)가 그 URL을 읽어 토큰을 저장한다. -->
+            <!-- 구글/카카오 소셜로그인이 외부 브라우저(Custom Tabs)로 열린 뒤, 백엔드의
+                 OAuth2LoginSuccessHandler가 datemanager://oauth/callback?token=... 으로 리다이렉트하면
+                 이 intent-filter가 그 요청을 받아 앱으로 되돌아오게 한다(2026-09-01, @capacitor/app의
+                 appUrlOpen 리스너와 짝을 이룸 - "구글/카카오 소셜로그인 딥링크" 미해결 항목 해결). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
