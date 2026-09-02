@@ -101,23 +101,37 @@ export async function uploadProfilePhoto(file) {
 }
 
 // 안드로이드 앱에서는 구글 정책상 소셜로그인이 웹뷰가 아니라 시스템 브라우저에서 열려서, 로그인이
-// 끝나도 토큰이 앱으로 돌아올 방법이 없다(2026-09-01). 백엔드의 /oauth2/mobile-start/{id}를 거치면
-// 세션에 "모바일에서 시작됨" 표시를 남겨서, 콜백 시점에 딥링크(datemanager://oauth/callback)로
+// 끝나도 토큰이 앱으로 돌아올 방법이 없다(2026-09-01). 백엔드 표준 경로(/oauth2/authorization/{id})에
+// platform=android 쿼리파라미터를 붙여서 보내면, PlatformAwareAuthorizationRequestRepository가
+// 세션에 "모바일에서 시작됨" 표시를 남겨서 콜백 시점에 딥링크(datemanager://oauth/callback)로
 // 리다이렉트되게 만든다 - App.jsx의 appUrlOpen 리스너가 그 딥링크를 받아 토큰을 저장한다.
+// (2026-09-02 수정 - 예전엔 /oauth2/mobile-start/{id}라는 실제로는 백엔드에 없는 경로를 불러서
+// 안드로이드 소셜로그인이 Whitelabel Error Page로 항상 실패했음. 백엔드가 실제로 구현한 경로는
+// 이거였음 - PlatformAwareAuthorizationRequestRepository 주석 참고. ?platform=android는 여기서
+// 안 붙인다 - LoginModal.jsx의 handleSocialLogin이 Browser.open() 호출 시 이미 붙이고 있어서,
+// 여기서도 붙이면 "?platform=android?platform=android"로 중복돼 값이 깨졌었음.)
 function oauthStartPath(provider) {
-  return Capacitor.isNativePlatform() ? `/oauth2/mobile-start/${provider}` : `/oauth2/authorization/${provider}`;
+  return `/oauth2/authorization/${provider}`;
 }
 
+// 소셜로그인은 일반 API 호출(API_BASE_URL=10.0.2.2)과 달리 앱 웹뷰가 아니라 시스템 브라우저에서
+// 열린다 - 구글이 10.0.2.2 같은 사설 IP를 리다이렉트 URI로 받으면 "device_id and device_name are
+// required" 오류로 아예 막아버린다(2026-09-02 확인). localhost는 구글이 로컬 개발용으로 공식
+// 허용하는 예외라, 소셜로그인만 이 주소를 쓰고 나머지 API 호출은 그대로 API_BASE_URL을 쓴다.
+// 에뮬레이터에서 시스템 브라우저(Chrome)가 localhost:8080을 PC로 연결하려면 `adb reverse
+// tcp:8080 tcp:8080`이 걸려있어야 한다(에뮬레이터 재시작 시 다시 걸어줘야 함).
+const OAUTH_BASE_URL = Capacitor.isNativePlatform() ? 'http://localhost:8080' : API_BASE_URL;
+
 export function googleLoginUrl() {
-  return `${API_BASE_URL}${oauthStartPath('google')}`;
+  return `${OAUTH_BASE_URL}${oauthStartPath('google')}`;
 }
 
 export function kakaoLoginUrl() {
-  return `${API_BASE_URL}${oauthStartPath('kakao')}`;
+  return `${OAUTH_BASE_URL}${oauthStartPath('kakao')}`;
 }
 
 export function naverLoginUrl() {
-  return `${API_BASE_URL}${oauthStartPath('naver')}`;
+  return `${OAUTH_BASE_URL}${oauthStartPath('naver')}`;
 }
 
 export function checkEmailAvailable(email) {
