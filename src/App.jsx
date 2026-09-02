@@ -772,7 +772,13 @@ export default function App() {
       {showLogin && (
         <LoginModal
           onClose={() => { setShowLogin(false); setAuthError(null); }}
-          onAuthed={() => { loadUser(); changeTab('home', false); }}
+          onAuthed={() => {
+            // 앱을 콜드 스타트할 때만 fetchPartnerNotifications()가 불려서, 로그인 모달로 로그아웃
+            // 후 재로그인하는 경로(앱을 안 껐다 켠 경우)에서는 "파트너가 수락했어요" 축하 효과가
+            // 영원히 안 떴다(2026-09-02 발견) - 여기서도 같이 호출해서 콜드 스타트와 동일하게 만든다.
+            loadUser().then((loadedUser) => { if (loadedUser) fetchPartnerNotifications(); });
+            changeTab('home', false);
+          }}
           onSignupComplete={() => { setShowLogin(false); setAuthError(null); setShowPostSignupOnboarding(true); }}
           initialError={authError}
         />
