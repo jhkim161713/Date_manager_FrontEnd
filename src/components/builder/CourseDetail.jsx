@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { Map, MapMarker, Polyline, useKakaoLoader } from "react-kakao-maps-sdk";
 import { IS_ANDROID_APP } from "../../lib/platform";
+import { PlaceDetail } from "./PlaceDetail";
 
 export function CourseDetail ({props}){
     const {showDetail, onMoveItem, onDeleteGroup, onOptimizeOrder} = props
     const [position,setPosition] =useState({})
     const [paths,setPaths] = useState([]);
     const [distances,setDistances] = useState([]);
+    const [itemDetailsOpen,setItemDetailsOpen] = useState(false);
+    const [placeDetail,setPlaceDetail] = useState(null)
 
     // index.html의 카카오맵 스크립트가 autoload=false라 kakao.maps.load()를 직접 호출해줘야
     // 지도가 초기화된다 - 이게 없어서 지도 영역이 계속 빈 박스로만 나왔었다(2026-08-25 발견).
@@ -30,6 +33,11 @@ export function CourseDetail ({props}){
         setPosition(pathes[0])
         setPaths(pathes)
     },[showDetail])
+
+    const showPlaceDetail = (place) => {
+      setPlaceDetail(place)
+      setItemDetailsOpen(true)
+    }
 
     if (!showDetail) return null
     // 카카오맵 스크립트 로딩 중이거나 실패했을 때는 지도 영역만 비워두고 나머지(코스 목록 등)는
@@ -152,18 +160,21 @@ export function CourseDetail ({props}){
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation(); // 부모 div의 클릭 이벤트 전파 방지
-                        window.alert("공사중이에요")
+                        showPlaceDetail(place)
                       }}
                       className="px-3 py-1.5 text-xs font-semibold text-pink-500 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
-
                     >
                       자세히 보기
                     </button>
                   </div>
 
                 </div>
-                
+
               ))}
+               {itemDetailsOpen && <PlaceDetail
+                  props={{setItemDetailsOpen,placeDetail}}
+                  
+                  />}
             </div>
           </div>
         </div>
